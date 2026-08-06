@@ -12,11 +12,17 @@ app-mini/
 ├── index.html              # redirect ke Dashboard.dc.html (biar bisa akses via folder root)
 ├── Dashboard.dc.html        # halaman utama: markup + logika (React, di dalam <script>)
 ├── support.js               # runtime yang membaca Dashboard.dc.html dan merender React-nya
-└── _ds/broadsheet-.../
-    ├── styles.css            # design tokens & style komponen (warna, font, spacing)
-    ├── _ds_bundle.js          # efek visual tambahan (filter cetak/plate)
-    ├── _ds_manifest.json      # metadata design system (tidak dipakai saat runtime)
-    └── readme.md              # dokumentasi design system aslinya
+├── _ds/broadsheet-.../
+│   ├── styles.css            # design tokens & style komponen (warna, font, spacing)
+│   ├── _ds_bundle.js          # efek visual tambahan (filter cetak/plate)
+│   ├── _ds_manifest.json      # metadata design system (tidak dipakai saat runtime)
+│   └── readme.md              # dokumentasi design system aslinya
+├── backend/                  # PHP + MySQL — API, belum tersambung ke frontend di atas
+│   └── ...                    # lihat docs/BACKEND.md
+└── docs/
+    ├── BACKEND.md              # dokumentasi schema database + referensi API lengkap
+    ├── Sistem Stok - Complete Business Flow.md
+    └── Sistem Stok - Main Process Flow (Excalidraw Guide).md
 ```
 
 Semua logic aplikasi (state, validasi, kalkulasi) ada di dalam tag
@@ -39,6 +45,19 @@ akses lewat `http://localhost/...`, jangan dobel klik file-nya langsung
 boot, dan sebagian browser memblokir `fetch()` untuk skema `file://` sehingga
 perilakunya jadi tidak konsisten.
 
+## Backend + database (PHP + MySQL)
+
+Ada backend PHP + MySQL di folder `backend/` — schema database dan REST API
+untuk auth, master data, pembelian, penjualan, stok, retur, dan semua laporan
+di `docs/Sistem Stok - Complete Business Flow.md`. **Belum tersambung ke
+`Dashboard.dc.html`** (lihat batasan di bawah) — jalan sendiri, sudah dites
+lewat `curl`. Setup dan referensi API lengkap ada di **`docs/BACKEND.md`**.
+
+Ringkas: import `backend/schema.sql` lewat phpMyAdmin, copy folder `backend/`
+bersama file-file di atas ke `htdocs` yang sama, akun demo `Budi`/`owner123`
+(Owner) dan `Karyawan1`/`karyawan123` (Karyawan) — ganti passwordnya sebelum
+dipakai sungguhan.
+
 ## Kebutuhan koneksi internet
 
 Halaman ini memuat beberapa file dari CDN saat dibuka:
@@ -52,28 +71,30 @@ lokal (belum dilakukan di versi ini).
 
 ## ⚠️ Batasan penting sebelum dipakai sungguhan di toko
 
-- **Tidak ada penyimpanan data.** Semua data (produk, transaksi, stok,
-  suplier, dst) hanya tersimpan di memori browser (React state). Refresh
-  halaman atau tutup tab → semua data kembali ke data contoh awal yang
-  ditulis di dalam `Dashboard.dc.html` (`INITIAL_PRODUCTS`, dst). Ini masih
-  prototipe tampilan/alur, belum tersambung ke database.
-- **Tidak ada autentikasi asli.** Login hanya mengecek nama pengguna diisi
-  atau tidak; kata sandi tidak divalidasi dan peran (Owner/Karyawan) dipilih
-  bebas dari layar login. Siapa pun yang membuka halaman bisa memilih jadi
-  Owner.
-- **Single-user.** Tidak ada sinkronisasi antar perangkat/kasir — dua orang
-  yang membuka halaman ini di dua komputer punya data masing-masing yang
-  tidak nyambung.
+`Dashboard.dc.html` (halaman yang jalan sekarang) dan `backend/` (API yang
+sudah dibangun) **belum saling terhubung** — dua hal terpisah:
 
-Kalau tujuannya sudah mau dipakai untuk transaksi nyata di toko, tiga hal di
-atas (penyimpanan data, login sungguhan, multi-user) perlu dibangun dulu —
-bukan sekadar "deploy", tapi menambah backend + database.
+- **Frontend masih 100% in-memory.** Semua data di `Dashboard.dc.html` (produk,
+  transaksi, stok, suplier, dst) cuma tersimpan di memori browser (React
+  state). Refresh halaman → balik ke data contoh (`INITIAL_PRODUCTS`, dst).
+  Login di layar ini juga tidak memvalidasi kata sandi apa pun.
+- **Backend sudah punya penyimpanan data + autentikasi asli** (MySQL, password
+  di-hash, role Owner/Karyawan ditegakkan di server) — tapi frontend belum
+  memanggilnya. Lihat `docs/BACKEND.md`.
+
+Supaya bisa dipakai transaksi nyata: `Dashboard.dc.html` perlu diubah supaya
+tiap aksi (login, tambah barang, transaksi, dst) benar-benar `fetch()` ke API
+di `backend/api/`, bukan lagi `setState` in-memory. Itu pekerjaan terpisah
+yang belum dikerjakan.
 
 ## Rencana upload ke repo Git
 
-Semua file di folder ini aman untuk di-commit (tidak ada secret/kredensial).
-Yang perlu diperhatikan:
+Semua file di folder ini aman untuk di-commit — tidak ada kredensial database
+sungguhan (`backend/config.php` cuma berisi default XAMPP: `root` tanpa
+password). Yang perlu diperhatikan:
 - Folder `.claude/` (kalau ada) adalah folder kerja Claude Code, bukan bagian
   aplikasi — boleh ditambahkan ke `.gitignore` kalau tidak mau ikut ter-commit.
-- Tidak ada `.env` atau kredensial apa pun untuk disembunyikan — aplikasi ini
-  tidak punya backend.
+- `backend/schema.sql` berisi **hash password akun demo** (`owner123` /
+  `karyawan123`, sudah di-bcrypt, bukan plaintext) — aman di-commit sebagai
+  data contoh, tapi ganti password akun-akun itu sebelum server ini benar-benar
+  diakses orang lain.
