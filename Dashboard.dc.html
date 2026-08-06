@@ -1,0 +1,2450 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App-mini — Sistem Stok Toko</title>
+  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css" />
+  <script src="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/_ds_bundle.js"></script>
+  <style>
+    body { margin: 0; }
+    a { color: var(--color-accent); }
+    a:hover { color: var(--color-accent-700); }
+  </style>
+</helmet>
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
+    <div style="width:42%;min-width:340px;background:var(--color-neutral-900);color:var(--color-bg);display:flex;flex-direction:column;justify-content:space-between;padding:48px;box-sizing:border-box;">
+      <div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:30px;">{{ storeName }}</div>
+        <div style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 65%, transparent);margin-top:8px;">Sistem Stok &amp; Kasir Toko</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:22px;">
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);flex:none;"></span>
+          <span style="font-size:15px;color:color-mix(in srgb, var(--color-bg) 90%, transparent);">Transaksi Penjualan</span>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);flex:none;"></span>
+          <span style="font-size:15px;color:color-mix(in srgb, var(--color-bg) 90%, transparent);">Stok Barang</span>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);flex:none;"></span>
+          <span style="font-size:15px;color:color-mix(in srgb, var(--color-bg) 90%, transparent);">Laporan Toko</span>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);flex:none;"></span>
+          <span style="font-size:15px;color:color-mix(in srgb, var(--color-bg) 90%, transparent);">Retur Barang</span>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);flex:none;"></span>
+          <span style="font-size:15px;color:color-mix(in srgb, var(--color-bg) 90%, transparent);">Master Data</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:color-mix(in srgb, var(--color-bg) 45%, transparent);">App-mini v1.0 — dijalankan lokal di toko.</div>
+    </div>
+
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px;box-sizing:border-box;">
+      <div style="width:380px;display:flex;flex-direction:column;gap:22px;">
+        <div>
+          <h2 style="margin:0 0 6px;">Masuk ke Aplikasi</h2>
+          <p style="margin:0;font-size:14px;opacity:0.7;">Pilih peran dan masukkan akun Anda.</p>
+        </div>
+
+        <div class="field">
+          <label id="role-label">Peran</label>
+          <div class="seg" role="radiogroup" aria-labelledby="role-label" style="width:100%;">
+            <label class="seg-opt" style="flex:1;justify-content:center;padding:13px;font-size:15px;">
+              <input type="radio" name="role" checked="{{ isOwner }}" onChange="{{ setRoleOwner }}" />Owner
+            </label>
+            <label class="seg-opt" style="flex:1;justify-content:center;padding:13px;font-size:15px;">
+              <input type="radio" name="role" checked="{{ isKaryawan }}" onChange="{{ setRoleKaryawan }}" />Karyawan
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="login-user">Nama Pengguna</label>
+          <input class="input" id="login-user" style="min-height:46px;font-size:15px;" placeholder="Contoh: Budi" value="{{ username }}" onChange="{{ setUsername }}" />
+        </div>
+
+        <div class="field">
+          <label for="login-pass">Kata Sandi</label>
+          <input class="input" id="login-pass" type="password" style="min-height:46px;font-size:15px;" placeholder="Kata sandi" value="{{ password }}" onChange="{{ setPassword }}" />
+        </div>
+
+        <sc-if value="{{ loginError }}">
+          <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ loginError }}</p>
+        </sc-if>
+
+        <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" onClick="{{ doLogin }}">Masuk</button>
+        <button type="button" style="margin:0;font-size:12px;background:none;border:none;color:var(--color-accent);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0;text-align:center;font-family:var(--font-body);" onClick="{{ openForgot }}">Lupa kata sandi?</button>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ showForgot }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog">
+        <div class="dialog-title">Lupa Kata Sandi</div>
+        <sc-if value="{{ forgotNotSent }}" hint-placeholder-val="{{ true }}">
+          <div class="dialog-body">Masukkan email atau nomor HP Owner yang terdaftar. Permintaan reset akan dikirim ke Owner untuk verifikasi kata sandi baru.</div>
+          <div class="field">
+            <label for="forgot-contact">Email / No. HP Owner</label>
+            <input class="input" id="forgot-contact" style="min-height:46px;font-size:15px;" placeholder="owner@toko.com atau 08xxxxxxxxxx" value="{{ forgotContact }}" onChange="{{ setForgotContact }}" />
+          </div>
+          <sc-if value="{{ forgotError }}">
+            <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ forgotError }}</p>
+          </sc-if>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-ghost" onClick="{{ closeForgot }}">Batal</button>
+            <button type="button" class="btn btn-primary" onClick="{{ sendForgot }}">Kirim Permintaan</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ forgotSent }}" hint-placeholder-val="{{ false }}">
+          <div class="dialog-body">Permintaan reset kata sandi telah dikirim ke <strong>{{ forgotContact }}</strong>. Owner akan menghubungi Anda dengan kata sandi baru.</div>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-primary" onClick="{{ closeForgot }}">Tutup</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
+    <aside style="width:252px;flex:none;background:var(--color-neutral-900);display:flex;flex-direction:column;padding:24px 16px;gap:22px;box-sizing:border-box;">
+      <div style="padding:0 8px;">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-bg);">{{ storeName }}</div>
+        <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 55%, transparent);margin-top:4px;">Sistem Stok &amp; Kasir</div>
+      </div>
+
+      <nav style="display:flex;flex-direction:column;gap:4px;flex:1;">
+        <button type="button" style="{{ navDashboardStyle }}" onClick="{{ goDashboard }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><rect x="24" y="24" width="90" height="90" rx="14" fill="currentColor" opacity="0.35"></rect><rect x="142" y="24" width="90" height="90" rx="14" fill="currentColor"></rect><rect x="24" y="142" width="90" height="90" rx="14" fill="currentColor"></rect><rect x="142" y="142" width="90" height="90" rx="14" fill="currentColor" opacity="0.35"></rect></svg>
+          <span>Dashboard</span>
+        </button>
+        <button type="button" style="{{ navPembelianStyle }}" onClick="{{ goPembelian }}" title="{{ pembelianTitle }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><rect x="20" y="96" width="130" height="84" rx="10" fill="currentColor" opacity="0.3"></rect><path d="M150 120 H206 L232 152 V180 H150 Z" fill="currentColor"></path><circle cx="70" cy="200" r="18" fill="currentColor"></circle><circle cx="190" cy="200" r="18" fill="currentColor"></circle></svg>
+          <span style="flex:1;">Input Pembelian</span>
+          <sc-if value="{{ pembelianLocked }}"><svg width="14" height="14" viewBox="0 0 256 256" style="flex:none;"><rect x="56" y="110" width="144" height="110" rx="16" fill="currentColor"></rect><path d="M82 110 V80 a46 46 0 0 1 92 0 v30" stroke="currentColor" stroke-width="18" fill="none"></path></svg></sc-if>
+        </button>
+        <button type="button" style="{{ navStokStyle }}" onClick="{{ goStok }}" title="{{ stokTitle }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><rect x="34" y="70" width="188" height="150" rx="10" fill="currentColor" opacity="0.3"></rect><path d="M34 70 L128 24 L222 70" stroke="currentColor" stroke-width="14" fill="none"></path><line x1="128" y1="24" x2="128" y2="220" stroke="currentColor" stroke-width="10" opacity="0.6"></line></svg>
+          <span style="flex:1;">Data Barang</span>
+          <sc-if value="{{ stokLocked }}"><svg width="14" height="14" viewBox="0 0 256 256" style="flex:none;"><rect x="56" y="110" width="144" height="110" rx="16" fill="currentColor"></rect><path d="M82 110 V80 a46 46 0 0 1 92 0 v30" stroke="currentColor" stroke-width="18" fill="none"></path></svg></sc-if>
+        </button>
+        <button type="button" style="{{ navLaporanStyle }}" onClick="{{ goLaporan }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><rect x="34" y="140" width="34" height="80" fill="currentColor" opacity="0.35"></rect><rect x="92" y="96" width="34" height="124" fill="currentColor"></rect><rect x="150" y="60" width="34" height="160" fill="currentColor" opacity="0.35"></rect></svg>
+          <span>Laporan Stok</span>
+        </button>
+        <button type="button" style="{{ navPenjualanStyle }}" onClick="{{ goPenjualan }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><rect x="48" y="96" width="160" height="128" rx="16" fill="currentColor" opacity="0.35"></rect><path d="M64 96 L76 48 H180 L192 96 Z" fill="currentColor" opacity="0.35"></path><path d="M96 96 V72 a32 32 0 0 1 64 0 v24" stroke="currentColor" stroke-width="14" fill="none"></path></svg>
+          <span>Transaksi Penjualan</span>
+        </button>
+        <button type="button" style="{{ navLaporanLengkapStyle }}" onClick="{{ goLaporanLengkap }}" title="{{ laporanLengkapTitle }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><rect x="48" y="32" width="160" height="192" rx="12" fill="currentColor" opacity="0.3"></rect><line x1="76" y1="88" x2="180" y2="88" stroke="currentColor" stroke-width="12"></line><line x1="76" y1="128" x2="180" y2="128" stroke="currentColor" stroke-width="12"></line><line x1="76" y1="168" x2="140" y2="168" stroke="currentColor" stroke-width="12"></line></svg>
+          <span style="flex:1;">Laporan</span>
+          <sc-if value="{{ laporanLengkapLocked }}"><svg width="14" height="14" viewBox="0 0 256 256" style="flex:none;"><rect x="56" y="110" width="144" height="110" rx="16" fill="currentColor"></rect><path d="M82 110 V80 a46 46 0 0 1 92 0 v30" stroke="currentColor" stroke-width="18" fill="none"></path></svg></sc-if>
+        </button>
+        <button type="button" style="{{ navReturStyle }}" onClick="{{ goRetur }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><path d="M64 64 A88 88 0 1 0 64 192" stroke="currentColor" stroke-width="16" fill="none" opacity="0.4"></path><path d="M36 40 L72 64 L30 92 Z" fill="currentColor"></path></svg>
+          <span>Retur</span>
+        </button>
+        <button type="button" style="{{ navMasterStyle }}" onClick="{{ goMaster }}" title="{{ masterTitle }}">
+          <svg width="18" height="18" viewBox="0 0 256 256"><circle cx="88" cy="80" r="38" fill="currentColor" opacity="0.35"></circle><circle cx="176" cy="90" r="32" fill="currentColor"></circle><path d="M26 224 C26 164 150 164 150 224 Z" fill="currentColor" opacity="0.35"></path><path d="M118 224 C118 176 234 176 234 224 Z" fill="currentColor"></path></svg>
+          <span style="flex:1;">Master Data</span>
+          <sc-if value="{{ masterLocked }}"><svg width="14" height="14" viewBox="0 0 256 256" style="flex:none;"><rect x="56" y="110" width="144" height="110" rx="16" fill="currentColor"></rect><path d="M82 110 V80 a46 46 0 0 1 92 0 v30" stroke="currentColor" stroke-width="18" fill="none"></path></svg></sc-if>
+        </button>
+      </nav>
+
+      <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:color-mix(in srgb, var(--color-bg) 15%, transparent);display:flex;align-items:center;justify-content:center;color:var(--color-bg);font-family:var(--font-heading);font-weight:600;font-size:14px;flex:none;">{{ userInitial }}</div>
+          <div style="min-width:0;">
+            <div style="color:var(--color-bg);font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">{{ userName }}</div>
+            <div style="font-size:11px;color:color-mix(in srgb, var(--color-bg) 60%, transparent);">{{ roleLabel }}</div>
+          </div>
+        </div>
+        <button type="button" style="display:flex;align-items:center;gap:12px;padding:12px 8px;min-height:44px;border-radius:var(--radius-md);border:none;background:transparent;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:14px;cursor:pointer;width:100%;text-align:left;font-family:var(--font-body);" onClick="{{ doLogout }}">
+          <svg width="16" height="16" viewBox="0 0 256 256"><rect x="26" y="30" width="86" height="196" rx="12" fill="currentColor" opacity="0.35"></rect><line x1="104" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="16"></line><path d="M170 82 L222 128 L170 174" stroke="currentColor" stroke-width="16" fill="none"></path></svg>
+          <span>Keluar</span>
+        </button>
+      </div>
+    </aside>
+
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <header style="display:flex;align-items:center;justify-content:space-between;padding:28px 40px 0;box-sizing:border-box;">
+        <div>
+          <h2 style="margin:0;">{{ activeModuleLabel }}</h2>
+          <div style="font-size:13px;opacity:0.6;margin-top:4px;">{{ todayLabel }}</div>
+        </div>
+        <span class="tag {{ roleTagClass }}" style="font-size:12px;padding:5px 12px;">{{ roleLabel }}</span>
+      </header>
+
+      <main style="flex:1;padding:24px 40px 48px;display:flex;flex-direction:column;gap:30px;box-sizing:border-box;">
+
+        <sc-if value="{{ isModDashboard }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+            <div class="card elev-sm">
+              <div class="card-kicker">Penjualan Hari Ini</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">Rp 3.240.000</div>
+              <div class="card-meta">18 transaksi</div>
+            </div>
+            <sc-if value="{{ isOwner }}">
+              <div class="card elev-sm">
+                <div class="card-kicker">Pembelian Bulan Ini</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">Rp 18.750.000</div>
+                <div class="card-meta">12 faktur suplier</div>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Laba Kotor Bulan Ini</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">Rp 6.120.000</div>
+                <div class="card-meta">Margin kotor 24%</div>
+              </div>
+            </sc-if>
+            <div class="card elev-sm">
+              <div class="card-kicker">Stok Menipis</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">6 produk</div>
+              <div class="card-meta">Perlu pembelian ulang</div>
+            </div>
+          </div>
+
+          <sc-if value="{{ isOwner }}">
+            <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;">
+              <div class="card elev-sm">
+                <div class="card-kicker">Tren Penjualan — 14 Hari Terakhir</div>
+                <svg viewBox="0 0 560 160" style="width:100%;height:160px;margin-top:10px;display:block;">
+                  <path d="{{ trendAreaPath }}" fill="var(--color-accent-100)"></path>
+                  <path d="{{ trendLinePath }}" fill="none" stroke="var(--color-accent)" stroke-width="2.5"></path>
+                </svg>
+                <div class="card-meta">Terakhir tercatat: {{ trendLastLabel }} / hari</div>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Produk Terlaris</div>
+                <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+                  <sc-for list="{{ topProducts }}" as="item" hint-placeholder-count="5">
+                    <div>
+                      <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px;">
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.nama }}</span>
+                        <span style="opacity:0.6;flex:none;">{{ item.qty }} pcs</span>
+                      </div>
+                      <div style="height:8px;background:var(--color-neutral-200);border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;background:var(--color-accent);width:{{ item.barPct }}%;"></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isKaryawan }}">
+            <div class="card elev-sm">
+              <div class="card-kicker">Produk Terlaris</div>
+              <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+                <sc-for list="{{ topProducts }}" as="item" hint-placeholder-count="5">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px;">
+                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.nama }}</span>
+                      <span style="opacity:0.6;flex:none;">{{ item.qty }} pcs</span>
+                    </div>
+                    <div style="height:8px;background:var(--color-neutral-200);border-radius:4px;overflow:hidden;">
+                      <div style="height:100%;background:var(--color-accent);width:{{ item.barPct }}%;"></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div class="card elev-sm">
+            <div class="card-kicker">Stok Menipis</div>
+            <table class="table" style="margin-top:8px;">
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Stok</th><th>Status</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ lowStock }}" as="item" hint-placeholder-count="6">
+                  <tr>
+                    <td>{{ item.kode }}</td>
+                    <td>{{ item.nama }}</td>
+                    <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
+                    <td>{{ item.stok }} pcs</td>
+                    <td>
+                      <sc-if value="{{ item.statusIsKritis }}"><span class="tag tag-accent-2">Kritis</span></sc-if>
+                      <sc-if value="{{ item.statusIsMenipis }}"><span class="tag tag-outline">Menipis</span></sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <sc-if value="{{ isKaryawan }}">
+            <p style="font-size:12px;opacity:0.55;margin:0;">Beberapa data finansial (pembelian &amp; laba) disembunyikan untuk peran Karyawan.</p>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModPenjualan }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ penjNotCompleted }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+              <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                <div class="card elev-sm">
+                  <div class="card-kicker">Tambah Barang</div>
+                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:10px;">
+                    <div class="field">
+                      <label for="penj-product">Cari Barang</label>
+                      <select class="input" id="penj-product" style="min-height:46px;font-size:15px;" value="{{ penjSelectedKode }}" onChange="{{ setPenjProduct }}">
+                        <sc-for list="{{ productOptions }}" as="p" hint-placeholder-count="8">
+                          <option value="{{ p.kode }}">{{ p.nama }}</option>
+                        </sc-for>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="penj-qty">Jumlah</label>
+                      <input class="input" id="penj-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ penjQty }}" onChange="{{ setPenjQty }}" />
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+                    <span style="font-size:13px;opacity:0.65;">Stok tersedia: {{ availableStokLabel }} pcs</span>
+                    <sc-if value="{{ hasTier }}">
+                      <span class="tag tag-outline" style="white-space:nowrap;width:fit-content;">{{ tierLabel }} · {{ unitPriceLabel }}/pcs</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ qtyExceedsStock }}">
+                    <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">Stok tidak mencukupi (tersisa {{ availableStokLabel }} pcs).</p>
+                  </sc-if>
+                  <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" disabled="{{ cannotAdd }}" onClick="{{ addToCart }}">+ Tambah ke Keranjang</button>
+                </div>
+
+                <div class="card elev-sm">
+                  <div class="card-kicker">Keranjang Belanja</div>
+                  <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada barang ditambahkan.</p>
+                  </sc-if>
+                  <sc-if value="{{ cartNotEmpty }}" hint-placeholder-val="{{ true }}">
+                    <table class="table" style="margin-top:8px;">
+                      <thead><tr><th>Nama Barang</th><th>Tier</th><th>Qty</th><th>Harga Satuan</th><th>Subtotal</th><th></th></tr></thead>
+                      <tbody>
+                        <sc-for list="{{ penjCartView }}" as="item" hint-placeholder-count="3">
+                          <tr>
+                            <td>{{ item.nama }}</td>
+                            <td><span class="tag tag-neutral">{{ item.tierLabel }}</span></td>
+                            <td>{{ item.qty }} pcs</td>
+                            <td>{{ item.unitPriceLabel }}</td>
+                            <td>{{ item.subtotalLabel }}</td>
+                            <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.removeHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button></td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </sc-if>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                <div class="card elev-sm">
+                  <div class="card-kicker">Data Transaksi</div>
+                  <div class="field" style="margin-top:10px;">
+                    <label for="penj-cust">Nama Pelanggan</label>
+                    <input class="input" id="penj-cust" style="min-height:46px;font-size:15px;" placeholder="Contoh: Hendi" value="{{ penjCustName }}" onChange="{{ setPenjCustName }}" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;margin-top:10px;">
+                    <span>No. Invoice</span><span style="font-weight:600;opacity:1;">{{ previewInvoiceNo }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;margin-top:10px;">
+                    <span>Tanggal</span><span style="font-weight:600;opacity:1;">{{ todayLabel }}</span>
+                  </div>
+                </div>
+
+                <div class="card elev-sm">
+                  <div class="card-kicker">Ringkasan &amp; Pembayaran</div>
+                  <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ penjTotalItems }} jenis barang · {{ penjTotalQty }} pcs</div>
+                  <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;margin-top:4px;">{{ penjGrandTotalLabel }}</div>
+
+                  <div class="field" style="margin-top:16px;">
+                    <label id="penj-pay-label">Metode Bayar</label>
+                    <div class="seg" role="radiogroup" aria-labelledby="penj-pay-label" style="width:100%;">
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:12px;font-size:14px;">
+                        <input type="radio" name="penj-pay" checked="{{ payIsTunai }}" onChange="{{ setPenjTunai }}" />Tunai
+                      </label>
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:12px;font-size:14px;">
+                        <input type="radio" name="penj-pay" checked="{{ payIsTransfer }}" onChange="{{ setPenjTransfer }}" />Transfer
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="field" style="margin-top:14px;">
+                    <label for="penj-paid">Jumlah Bayar</label>
+                    <input class="input" id="penj-paid" type="number" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ penjAmountPaid }}" onChange="{{ setPenjAmountPaid }}" />
+                  </div>
+
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+                    <span style="font-size:14px;">Kembalian</span>
+                    <span style="font-family:var(--font-heading);font-weight:600;font-size:20px;">{{ penjKembalianLabel }}</span>
+                  </div>
+
+                  <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ penjCannotComplete }}" onClick="{{ completeTransaction }}">Selesaikan Transaksi</button>
+                  <sc-if value="{{ penjNote }}">
+                    <p style="margin:8px 0 0;font-size:12px;opacity:0.6;text-align:center;">{{ penjNote }}</p>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ penjCompletedFlag }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;justify-content:center;">
+              <div class="card elev-md" style="width:520px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
+                <div>
+                  <div class="card-kicker">Transaksi Berhasil</div>
+                  <h3 style="margin:6px 0 0;">{{ penjLastInvoiceView.invoiceNo }}</h3>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Pelanggan</span><span>{{ penjLastInvoiceView.custName }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Tanggal</span><span>{{ todayLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Jumlah Barang</span><span>{{ penjLastInvoiceView.totalQtyLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Metode Bayar</span><span>{{ penjLastInvoiceView.paymentMethod }}</span></div>
+                </div>
+                <table class="table">
+                  <thead><tr><th>No.</th><th>Barang</th><th>Qty</th><th>Subtotal</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ penjLastInvoiceView.items }}" as="item" hint-placeholder-count="3">
+                      <tr><td>{{ item.no }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.subtotalLabel }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:20px;">
+                  <span>Total</span><span>{{ penjLastInvoiceView.grandTotalLabel }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;opacity:0.7;">
+                  <span>Dibayar</span><span>{{ penjLastInvoiceView.amountPaidLabel }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;opacity:0.7;">
+                  <span>Kembalian</span><span>{{ penjLastInvoiceView.kembalianLabel }}</span>
+                </div>
+                <button type="button" class="btn btn-primary btn-block" style="min-height:48px;" onClick="{{ newTransaction }}">Transaksi Baru</button>
+                <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ printPage }}">Cetak</button>
+                <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ goDashboard }}">Kembali</button>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModStok }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ stokHasAlert }}">
+            <div class="card elev-sm" style="border-left:4px solid var(--color-accent-2-500);">
+              <div class="card-kicker">Peringatan Stok</div>
+              <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
+                <sc-if value="{{ stokPendingCount }}"><span class="tag tag-accent" style="white-space:nowrap;flex:none;">{{ stokPendingCount }} barang baru perlu dilengkapi</span></sc-if>
+                <sc-if value="{{ stokKritisCount }}"><span class="tag tag-accent-2" style="white-space:nowrap;flex:none;">{{ stokKritisCount }} produk kritis</span></sc-if>
+                <sc-if value="{{ stokMenipisCount }}"><span class="tag tag-outline" style="white-space:nowrap;flex:none;">{{ stokMenipisCount }} produk menipis</span></sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+              <div class="field" style="width:260px;">
+                <label for="stok-search">Cari Barang</label>
+                <input class="input" id="stok-search" style="min-height:44px;font-size:15px;" placeholder="Nama atau kode barang" value="{{ stokSearch }}" onChange="{{ setStokSearch }}" />
+              </div>
+              <div class="field" style="width:200px;">
+                <label for="stok-kategori">Kategori</label>
+                <select class="input" id="stok-kategori" style="min-height:44px;font-size:15px;" value="{{ stokKategoriFilter }}" onChange="{{ setStokKategoriFilter }}">
+                  <option value="ALL">Semua Kategori</option>
+                  <sc-for list="{{ kategoriOptions }}" as="k" hint-placeholder-count="4">
+                    <option value="{{ k }}">{{ k }}</option>
+                  </sc-for>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" style="min-height:46px;white-space:nowrap;flex:none;" onClick="{{ openStokAdd }}">+ Tambah Barang</button>
+          </div>
+
+          <div class="card elev-sm">
+            <div class="card-kicker">Daftar Barang</div>
+            <sc-if value="{{ stokRowsEmpty }}">
+              <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok.</p>
+            </sc-if>
+            <table class="table" style="margin-top:8px;">
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <sc-for list="{{ stokRows }}" as="item" hint-placeholder-count="8">
+                  <tr>
+                    <td>{{ item.kode }}</td>
+                    <td>{{ item.nama }}</td>
+                    <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
+                    <td>{{ item.supplier }}</td>
+                    <td>{{ item.priceListValueLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.priceListBasisLabel }})</span></td>
+                    <td>{{ item.ecerLabel }}</td>
+                    <td>{{ item.bengkelLabel }}</td>
+                    <td>{{ item.grosirLabel }}</td>
+                    <td>{{ item.stok }} pcs</td>
+                    <td>
+                      <sc-if value="{{ item.pendingSetup }}"><span class="tag tag-accent">Perlu Dilengkapi</span></sc-if>
+                      <sc-if value="{{ item.statusIsKritis }}"><span class="tag tag-accent-2">Kritis</span></sc-if>
+                      <sc-if value="{{ item.statusIsMenipis }}"><span class="tag tag-outline">Menipis</span></sc-if>
+                      <sc-if value="{{ item.statusIsAman }}"><span class="tag tag-neutral">Aman</span></sc-if>
+                    </td>
+                    <td>
+                      <div style="display:flex;gap:6px;">
+                        <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" onClick="{{ item.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
+                        <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                      </div>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <sc-if value="{{ stokModalOpen }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog">
+                <div class="dialog-title">{{ stokModalTitle }}</div>
+                <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;">
+                  <div class="field">
+                    <label for="stok-f-kode">Kode Barang</label>
+                    <input class="input" id="stok-f-kode" style="min-height:44px;font-size:15px;" disabled="{{ stokIsEdit }}" placeholder="Contoh: BAN-030" value="{{ stokForm.kode }}" onChange="{{ setStokKode }}" />
+                  </div>
+                  <div class="field">
+                    <label for="stok-f-nama">Nama Barang</label>
+                    <input class="input" id="stok-f-nama" style="min-height:44px;font-size:15px;" placeholder="Nama barang" value="{{ stokForm.nama }}" onChange="{{ setStokNama }}" />
+                  </div>
+                  <div class="field">
+                    <label for="stok-f-kategori">Kategori</label>
+                    <select class="input" id="stok-f-kategori" style="min-height:44px;font-size:15px;" value="{{ stokForm.kategori }}" onChange="{{ setStokKategori }}">
+                      <sc-for list="{{ kategoriOptions }}" as="k" hint-placeholder-count="4">
+                        <option value="{{ k }}">{{ k }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="stok-f-supplier">Suplier</label>
+                    <select class="input" id="stok-f-supplier" style="min-height:44px;font-size:15px;" value="{{ stokForm.supplier }}" onChange="{{ setStokSupplier }}">
+                      <sc-for list="{{ supplierOptions }}" as="sup" hint-placeholder-count="4">
+                        <option value="{{ sup }}">{{ sup }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:10px 12px;">
+                    <span style="opacity:0.65;">Harga Faktur / Netto (dari Input Pembelian)</span>
+                    <span style="font-weight:600;">{{ stokHargaSourceLabel }}</span>
+                  </div>
+                  <div class="field">
+                    <label id="stok-pricelist-label">Price List (acuan tampilan)</label>
+                    <div class="seg" role="radiogroup" aria-labelledby="stok-pricelist-label" style="width:100%;">
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsFaktur }}" onChange="{{ setStokPriceFaktur }}" />Harga Faktur
+                      </label>
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsNetto }}" onChange="{{ setStokPriceNetto }}" />Harga Netto
+                      </label>
+                    </div>
+                  </div>
+                  <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-top:4px;">Harga Jual</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+                    <div class="field">
+                      <label for="stok-f-ecer">Harga Ecer</label>
+                      <input class="input" id="stok-f-ecer" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.ecer }}" onChange="{{ setStokEcer }}" />
+                    </div>
+                    <div class="field">
+                      <label for="stok-f-bengkel">Harga Bengkel</label>
+                      <input class="input" id="stok-f-bengkel" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.bengkel }}" onChange="{{ setStokBengkel }}" />
+                    </div>
+                    <div class="field">
+                      <label for="stok-f-grosir">Harga Grosir</label>
+                      <input class="input" id="stok-f-grosir" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.grosir }}" onChange="{{ setStokGrosir }}" />
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="field">
+                      <label for="stok-f-stok">Stok</label>
+                      <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
+                    </div>
+                    <div class="field">
+                      <label for="stok-f-minstok">Stok Minimum</label>
+                      <input class="input" id="stok-f-minstok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.minStok }}" onChange="{{ setStokMinStok }}" />
+                    </div>
+                  </div>
+                  <sc-if value="{{ stokFormError }}">
+                    <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ stokFormError }}</p>
+                  </sc-if>
+                </div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ closeStokModal }}">Batal</button>
+                  <button type="button" class="btn btn-primary" onClick="{{ saveStokForm }}">Simpan</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ stokDeleteTarget }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog">
+                <div class="dialog-title">Hapus Barang</div>
+                <div class="dialog-body">Yakin ingin menghapus <strong>{{ deleteTargetName }}</strong> dari daftar barang? Tindakan ini tidak dapat dibatalkan.</div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ cancelDeleteStok }}">Batal</button>
+                  <button type="button" class="btn btn-primary" onClick="{{ confirmDeleteStok }}">Hapus</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModPembelian }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ pembelianNotCompleted }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+              <div class="card elev-sm">
+                <div class="card-kicker">Data Pembelian</div>
+                <div class="field" style="margin-top:10px;">
+                  <label for="pb-supplier">Nama Suplier</label>
+                  <select class="input" id="pb-supplier" style="min-height:46px;font-size:15px;" value="{{ pembelianSupplierChoice }}" onChange="{{ setPembelianSupplierChoice }}">
+                    <sc-for list="{{ supplierOptions }}" as="sup" hint-placeholder-count="4">
+                      <option value="{{ sup }}">{{ sup }}</option>
+                    </sc-for>
+                    <option value="__NEW__">+ Suplier Baru (belum terdaftar)</option>
+                  </select>
+                </div>
+                <sc-if value="{{ pembelianSupplierIsNew }}" hint-placeholder-val="{{ false }}">
+                  <div class="field">
+                    <label for="pb-supplier-new">Nama Suplier Baru</label>
+                    <input class="input" id="pb-supplier-new" style="min-height:46px;font-size:15px;" placeholder="Nama suplier" value="{{ pembelianSupplierNew }}" onChange="{{ setPembelianSupplierNew }}" />
+                  </div>
+                </sc-if>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;margin-top:12px;">
+                  <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;">
+                    <span>No. Faktur</span><span style="font-weight:600;opacity:1;">{{ previewPembelianNo }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;">
+                    <span>Tanggal Faktur</span><span style="font-weight:600;opacity:1;">{{ todayLabel }}</span>
+                  </div>
+                  <div class="field" style="margin:0;">
+                    <label for="pb-jatuhtempo" style="font-size:13px;opacity:0.65;">Tgl Jatuh Tempo</label>
+                    <input class="input" id="pb-jatuhtempo" type="date" style="min-height:40px;font-size:14px;" value="{{ pembelianJatuhTempo }}" onChange="{{ setPembelianJatuhTempo }}" />
+                  </div>
+                  <div class="field" style="margin:0;">
+                    <label id="pb-payment-label" style="font-size:13px;opacity:0.65;">Payment</label>
+                    <div class="seg" role="radiogroup" aria-labelledby="pb-payment-label" style="width:100%;">
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                        <input type="radio" name="pb-payment" checked="{{ payIsCash }}" onChange="{{ setPembelianCash }}" />Cash
+                      </label>
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                        <input type="radio" name="pb-payment" checked="{{ payIsTop }}" onChange="{{ setPembelianTop }}" />TOP
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card elev-sm">
+                <div class="card-kicker">Tambah Barang</div>
+                <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
+                  <div class="field" style="position:relative;">
+                    <label for="pb-kategori">Kategori</label>
+                    <button type="button" class="btn btn-ghost btn-icon" aria-label="Tambah kategori baru" title="Tambah kategori baru" style="position:absolute;top:-4px;right:0;min-height:24px;min-width:24px;padding:0;" onClick="{{ goMaster }}"><svg width="13" height="13" viewBox="0 0 256 256"><line x1="128" y1="40" x2="128" y2="216" stroke="currentColor" stroke-width="24"></line><line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="24"></line></svg></button>
+                    <select class="input" id="pb-kategori" style="min-height:46px;font-size:15px;padding-right:36px;" value="{{ pembelianKategoriFilter }}" onChange="{{ setPembelianKategoriFilter }}">
+                      <option value="ALL">Semua Kategori</option>
+                      <sc-for list="{{ pembelianKategoriOptions }}" as="k" hint-placeholder-count="4">
+                        <option value="{{ k }}">{{ k }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="pb-product">Kode &amp; Nama Barang</label>
+                    <select class="input" id="pb-product" style="min-height:46px;font-size:15px;padding-right:36px;text-overflow:ellipsis;" value="{{ pembelianSelectedKode }}" onChange="{{ setPembelianProduct }}">
+                      <option value="__NEW__">+ Barang Baru (belum terdaftar)</option>
+                      <sc-for list="{{ pembelianProductOptions }}" as="p" hint-placeholder-count="8">
+                        <option value="{{ p.kode }}">{{ p.kode }} — {{ p.nama }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                </div>
+                <sc-if value="{{ pembelianIsNewItem }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px;">
+                    <div class="field">
+                      <label for="pb-new-kode">Kode Barang Baru</label>
+                      <input class="input" id="pb-new-kode" style="min-height:46px;font-size:15px;" placeholder="Contoh: BAN-030" value="{{ pembelianNewKode }}" onChange="{{ setPembelianNewKode }}" />
+                    </div>
+                    <div class="field">
+                      <label for="pb-new-nama">Nama Barang Baru</label>
+                      <input class="input" id="pb-new-nama" style="min-height:46px;font-size:15px;" placeholder="Nama barang" value="{{ pembelianNewNama }}" onChange="{{ setPembelianNewNama }}" />
+                    </div>
+                  </div>
+                </sc-if>
+                <div style="display:grid;grid-template-columns:1fr 1fr 0.7fr;gap:16px;margin-top:16px;">
+                  <div class="field">
+                    <label for="pb-harga-faktur">Harga Faktur</label>
+                    <input class="input" id="pb-harga-faktur" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaFaktur }}" onChange="{{ setPembelianHargaFaktur }}" />
+                  </div>
+                  <div class="field">
+                    <label for="pb-harga-netto">Harga Netto</label>
+                    <input class="input" id="pb-harga-netto" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaNetto }}" onChange="{{ setPembelianHargaNetto }}" />
+                  </div>
+                  <div class="field">
+                    <label for="pb-qty">Jumlah</label>
+                    <input class="input" id="pb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ pembelianQty }}" onChange="{{ setPembelianQty }}" />
+                  </div>
+                </div>
+                <div class="field" style="margin-top:16px;">
+                  <label for="pb-pricelist">Pricelist</label>
+                  <input class="input" id="pb-pricelist" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianPricelist }}" onChange="{{ setPembelianPricelist }}" />
+                </div>
+                <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addToPembelianCart }}">+ Tambah ke Daftar</button>
+              </div>
+
+              <div class="card elev-sm">
+                <div class="card-kicker">Daftar Barang Pembelian</div>
+                <sc-if value="{{ pembelianCartEmpty }}" hint-placeholder-val="{{ false }}">
+                  <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada barang ditambahkan.</p>
+                </sc-if>
+                <sc-if value="{{ pembelianCartNotEmpty }}" hint-placeholder-val="{{ true }}">
+                  <table class="table" style="margin-top:8px;">
+                    <thead><tr><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Harga Faktur</th><th>Harga Netto</th><th>Price List</th><th>Subtotal</th><th></th></tr></thead>
+                    <tbody>
+                      <sc-for list="{{ pembelianCartView }}" as="item" hint-placeholder-count="3">
+                        <tr>
+                          <td>{{ item.kode }}</td>
+                          <td>{{ item.nama }}</td>
+                          <td>{{ item.qty }} pcs</td>
+                          <td>{{ item.hargaFakturLabel }}</td>
+                          <td>{{ item.hargaNettoLabel }}</td>
+                          <td>{{ item.pricelistLabel }}</td>
+                          <td>{{ item.subtotalLabel }}</td>
+                          <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.removeHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button></td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </sc-if>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+              <div class="card elev-sm">
+                <div class="card-kicker">Ringkasan Pembelian</div>
+                <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ pembelianTotalItems }} jenis barang · {{ pembelianTotalQty }} pcs</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;margin-top:4px;">{{ pembelianTotalBiayaLabel }}</div>
+                <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ pembelianCannotComplete }}" onClick="{{ completeSPembelian }}">Simpan Pembelian</button>
+                <sc-if value="{{ pembelianNote }}">
+                  <p style="margin:8px 0 0;font-size:12px;opacity:0.6;text-align:center;">{{ pembelianNote }}</p>
+                </sc-if>
+              </div>
+
+              <div class="card elev-sm">
+                <div class="card-kicker">Riwayat Pembelian</div>
+                <table class="table" style="margin-top:8px;">
+                  <thead><tr><th>No. Faktur</th><th>Suplier</th><th>Total</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="2">
+                      <tr>
+                        <td>{{ h.noFaktur }}<div style="font-size:11px;opacity:0.55;">{{ h.tanggal }}</div></td>
+                        <td>{{ h.supplier }}</td>
+                        <td>{{ h.totalBiayaLabel }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ pembelianCompletedFlag }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;justify-content:center;">
+              <div class="card elev-md" style="width:560px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
+                <div>
+                  <div class="card-kicker">Pembelian Siap Disimpan</div>
+                  <h3 style="margin:6px 0 0;">{{ pembelianPreviewView.noFaktur }}</h3>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Suplier</span><span>{{ pembelianPreviewView.supplier }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Tanggal Faktur</span><span>{{ pembelianPreviewView.tanggal }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Jatuh Tempo</span><span>{{ pembelianPreviewView.jatuhTempoLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Payment</span><span>{{ pembelianPreviewView.paymentLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Kategori</span><span>{{ pembelianPreviewView.kategori }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Pricelist</span><span>{{ pembelianPreviewView.pricelist }}</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Harga Faktur</span><span>{{ pembelianPreviewView.hargaFaktur }}</span></div>
+                </div>
+                <table class="table">
+                  <thead><tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga Netto</th><th>Subtotal</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ pembelianPreviewView.itemsView }}" as="item" hint-placeholder-count="3">
+                      <tr><td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.hargaNettoLabel }}</td><td>{{ item.subtotalLabel }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:20px;">
+                  <span>Total</span><span>{{ pembelianPreviewView.totalBiayaLabel }}</span>
+                </div>
+                <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" onClick="{{ finalizePembelian }}">Simpan &amp; Masuk Riwayat</button>
+                <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ printPage }}">Cetak</button>
+                <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ editPembelianPreview }}">Kembali / Edit</button>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModLaporan }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+              <div class="field" style="width:220px;">
+                <label for="lap-search">Cari Barang</label>
+                <input class="input" id="lap-search" style="min-height:44px;font-size:15px;" placeholder="Nama atau kode barang" value="{{ laporanSearch }}" onChange="{{ setLaporanSearch }}" />
+              </div>
+              <div class="field" style="width:170px;">
+                <label for="lap-kategori">Kategori</label>
+                <select class="input" id="lap-kategori" style="min-height:44px;font-size:15px;" value="{{ laporanKategoriFilter }}" onChange="{{ setLaporanKategoriFilter }}">
+                  <option value="ALL">Semua Kategori</option>
+                  <sc-for list="{{ laporanKategoriOptions }}" as="k" hint-placeholder-count="4">
+                    <option value="{{ k }}">{{ k }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <div class="field" style="width:190px;">
+                <label for="lap-supplier">Suplier</label>
+                <select class="input" id="lap-supplier" style="min-height:44px;font-size:15px;" value="{{ laporanSupplierFilter }}" onChange="{{ setLaporanSupplierFilter }}">
+                  <option value="ALL">Semua Suplier</option>
+                  <sc-for list="{{ laporanSupplierOptions }}" as="sup" hint-placeholder-count="4">
+                    <option value="{{ sup }}">{{ sup }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <div class="field" style="width:170px;">
+                <label for="lap-status">Status Stok</label>
+                <select class="input" id="lap-status" style="min-height:44px;font-size:15px;" value="{{ laporanStatusFilter }}" onChange="{{ setLaporanStatusFilter }}">
+                  <option value="ALL">Semua Status</option>
+                  <option value="Aman">Aman</option>
+                  <option value="Menipis">Menipis</option>
+                  <option value="Kritis">Kritis</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex:none;">
+              <button type="button" class="btn btn-secondary" style="min-height:44px;white-space:nowrap;" onClick="{{ exportLaporanCsv }}">Export Excel</button>
+              <button type="button" class="btn btn-primary" style="min-height:44px;white-space:nowrap;" onClick="{{ printLaporan }}">Cetak / Export PDF</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+            <div class="card elev-sm">
+              <div class="card-kicker">Total Barang</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ laporanRows.length }} jenis</div>
+            </div>
+            <div class="card elev-sm">
+              <div class="card-kicker">Total Stok</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ laporanTotalStok }} pcs</div>
+            </div>
+            <div class="card elev-sm">
+              <div class="card-kicker">Estimasi Nilai Jual (Ecer)</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ laporanTotalNilaiJualLabel }}</div>
+            </div>
+          </div>
+
+          <div class="card elev-sm">
+            <div class="card-kicker">Laporan Stok Barang</div>
+            <sc-if value="{{ laporanRowsEmpty }}">
+              <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok dengan filter.</p>
+            </sc-if>
+            <table class="table" style="margin-top:8px;">
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Stok</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Status</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ laporanRows }}" as="item" hint-placeholder-count="8">
+                  <tr>
+                    <td>{{ item.kode }}</td>
+                    <td>{{ item.nama }}</td>
+                    <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
+                    <td>{{ item.supplier }}</td>
+                    <td>{{ item.stok }} pcs</td>
+                    <td>{{ item.ecerLabel }}</td>
+                    <td>{{ item.bengkelLabel }}</td>
+                    <td>{{ item.grosirLabel }}</td>
+                    <td>
+                      <sc-if value="{{ item.statusIsKritis }}"><span class="tag tag-accent-2">Kritis</span></sc-if>
+                      <sc-if value="{{ item.statusIsMenipis }}"><span class="tag tag-outline">Menipis</span></sc-if>
+                      <sc-if value="{{ item.statusIsAman }}"><span class="tag tag-neutral">Aman</span></sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isModLaporanLengkap }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <sc-for list="{{ laporanLengkapTabs }}" as="t" hint-placeholder-count="6">
+              <button type="button" style="{{ t.style }}" onClick="{{ t.clickHandler }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="field" style="width:220px;">
+              <label for="lap-search">Cari</label>
+              <input class="input" id="lap-search" style="min-height:44px;font-size:15px;" placeholder="Nama, kode, suplier, invoice..." value="{{ laporanLengkapSearch }}" onChange="{{ setLaporanLengkapSearch }}" />
+            </div>
+            <div class="field" style="width:190px;">
+              <label for="lap-dari">Periode Dari</label>
+              <input class="input" id="lap-dari" type="date" style="min-height:44px;font-size:15px;" value="{{ laporanDari }}" onChange="{{ setLaporanDari }}" />
+            </div>
+            <div class="field" style="width:190px;">
+              <label for="lap-sampai">Sampai</label>
+              <input class="input" id="lap-sampai" type="date" style="min-height:44px;font-size:15px;" value="{{ laporanSampai }}" onChange="{{ setLaporanSampai }}" />
+            </div>
+          </div>
+
+          <sc-if value="{{ lapTabIsGlobal }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+              <div class="card elev-sm">
+                <div class="card-kicker">Total Pendapatan</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiTotalRevenueLabel }}</div>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Total Modal</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiTotalCostLabel }}</div>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Laba Bersih</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiNetProfitLabel }}</div>
+                <div class="card-meta">Margin {{ kpiMarginLabel }} · ROI {{ kpiRoiLabel }}</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+              <div class="card elev-sm">
+                <div class="card-kicker">Transaksi Penjualan</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiTxCount }}</div>
+                <div class="card-meta">Rata-rata {{ kpiAvgSaleLabel }} / transaksi</div>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Pelanggan Dilayani</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiCustomersServed }}</div>
+                <div class="card-meta">{{ kpiItemsSold }} pcs terjual</div>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Transaksi Pembelian</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiPurchaseTx }}</div>
+                <div class="card-meta">{{ kpiSuppliersUsed }} suplier aktif · rata-rata {{ kpiAvgPurchaseLabel }}</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ lapTabIsPembelian }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+              <div class="card elev-sm"><div class="card-kicker">Total Nilai Pembelian</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalPembelianLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Total Item Dibeli</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalItemsPembelian }} pcs</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Rata-rata Nilai Faktur</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ avgInvoicePembelianLabel }}</div></div>
+            </div>
+            <div class="card elev-sm">
+              <div class="card-kicker">Rincian per Suplier</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Suplier</th><th>No. Faktur</th><th>Qty</th><th>Total</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ pembelianRowsView }}" as="h" hint-placeholder-count="3">
+                    <tr><td>{{ h.supplier }}</td><td>{{ h.noFaktur }}</td><td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ lapTabIsPenjualan }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+              <div class="card elev-sm"><div class="card-kicker">Total Penjualan</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalPenjualanLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Total Item Terjual</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalItemsTerjual }} pcs</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Rata-rata / Transaksi</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ avgSaleLabel }}</div><div class="card-meta">{{ penjualanTxCount }} transaksi</div></div>
+            </div>
+            <div class="card elev-sm">
+              <div class="card-kicker">Rincian per Pelanggan</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Pelanggan</th><th>No. Invoice</th><th>Jumlah Transaksi</th><th>Qty</th><th>Total</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ custRows }}" as="c" hint-placeholder-count="3">
+                    <tr><td>{{ c.custName }}</td><td>{{ c.invoiceLabel }}</td><td>{{ c.invoiceCount }}</td><td>{{ c.totalQty }} pcs</td><td>{{ c.totalAmountLabel }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ lapTabIsLaba }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+              <div class="card elev-sm"><div class="card-kicker">Total Pendapatan</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalRevenueLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Total Modal</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalCostLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Laba Kotor</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ grossProfitLabel }}</div><div class="card-meta">Margin {{ marginPctLabel }}</div></div>
+            </div>
+            <div class="card elev-sm">
+              <div class="card-kicker">Laba per Transaksi</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Laba</th><th>Margin</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ labaRows }}" as="r" hint-placeholder-count="3">
+                    <tr><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.profitLabel }}</td><td>{{ r.marginLabel }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ lapTabIsLaris }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+              <div class="card elev-sm">
+                <div class="card-kicker">Ranking berdasarkan Qty Terjual</div>
+                <table class="table" style="margin-top:8px;">
+                  <thead><tr><th>Barang</th><th>Qty</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ byQty }}" as="it" hint-placeholder-count="5">
+                      <tr><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card elev-sm">
+                <div class="card-kicker">Ranking berdasarkan Pendapatan</div>
+                <table class="table" style="margin-top:8px;">
+                  <thead><tr><th>Barang</th><th>Pendapatan</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ byRevenue }}" as="it" hint-placeholder-count="5">
+                      <tr><td>{{ it.nama }}</td><td>{{ it.revenueLabel }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ lapTabIsRetur }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm">
+              <div class="card-kicker">Laporan Retur</div>
+              <p style="margin:10px 0 0;font-size:14px;opacity:0.65;">Belum ada data retur — modul Retur akan dibangun pada tahap pengembangan selanjutnya.</p>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModRetur }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn {{ returTabIsPenjualan_class }}" style="min-height:44px;" onClick="{{ setReturTabPenjualan }}">Retur Penjualan</button>
+            <sc-if value="{{ returShowPembelianTab }}">
+              <button type="button" class="btn {{ returTabIsPembelian_class }}" style="min-height:44px;" onClick="{{ setReturTabPembelian }}">Retur Pembelian</button>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ returTabIsPenjualan }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+              <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                <div class="card elev-sm">
+                  <div class="card-kicker">Data Retur Penjualan</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
+                    <div class="field">
+                      <label for="rp-cust">Nama Pelanggan</label>
+                      <input class="input" id="rp-cust" style="min-height:46px;font-size:15px;" placeholder="Contoh: Hadi" value="{{ returPjCustomer }}" onChange="{{ setReturPjCustomer }}" />
+                    </div>
+                    <div class="field">
+                      <label for="rp-inv">No. Invoice Asal</label>
+                      <input class="input" id="rp-inv" style="min-height:46px;font-size:15px;" placeholder="Contoh: INV-260805-0003" value="{{ returPjInvoice }}" onChange="{{ setReturPjInvoice }}" />
+                    </div>
+                  </div>
+                  <div class="field" style="margin-top:16px;width:220px;">
+                    <label for="rp-tgl">Tanggal Retur</label>
+                    <input class="input" id="rp-tgl" type="date" style="min-height:46px;font-size:15px;" value="{{ returPjTanggal }}" onChange="{{ setReturPjTanggal }}" />
+                  </div>
+                </div>
+
+                <div class="card elev-sm">
+                  <div class="card-kicker">Tambah Barang Retur</div>
+                  <div style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
+                    <div class="field">
+                      <label for="rp-product">Barang</label>
+                      <select class="input" id="rp-product" style="min-height:46px;font-size:15px;" value="{{ returPjKode }}" onChange="{{ setReturPjKode }}">
+                        <sc-for list="{{ returProductOptions }}" as="p" hint-placeholder-count="8">
+                          <option value="{{ p.kode }}">{{ p.kode }} — {{ p.nama }}</option>
+                        </sc-for>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="rp-qty">Jumlah</label>
+                      <input class="input" id="rp-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ returPjQty }}" onChange="{{ setReturPjQty }}" />
+                    </div>
+                    <div class="field">
+                      <label for="rp-reason">Alasan</label>
+                      <select class="input" id="rp-reason" style="min-height:46px;font-size:15px;" value="{{ returPjReason }}" onChange="{{ setReturPjReason }}">
+                        <sc-for list="{{ reasonOptions }}" as="r" hint-placeholder-count="4">
+                          <option value="{{ r }}">{{ r }}</option>
+                        </sc-for>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addReturPjItem }}">+ Tambah Barang</button>
+                </div>
+
+                <div class="card elev-sm">
+                  <div class="card-kicker">Barang yang Diretur</div>
+                  <sc-if value="{{ returPjCartEmpty }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada barang ditambahkan.</p>
+                  </sc-if>
+                  <table class="table" style="margin-top:8px;">
+                    <thead><tr><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Alasan</th><th></th></tr></thead>
+                    <tbody>
+                      <sc-for list="{{ returPjCartView }}" as="item" hint-placeholder-count="2">
+                        <tr>
+                          <td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.reason }}</td>
+                          <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.removeHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button></td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                <div class="card elev-sm">
+                  <div class="card-kicker">Ringkasan Retur</div>
+                  <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ returPjTotalQty }} pcs akan dikembalikan ke stok</div>
+                  <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ returPjCannotComplete }}" onClick="{{ completeReturPj }}">Proses Retur</button>
+                </div>
+                <div class="card elev-sm">
+                  <div class="card-kicker">Riwayat Retur Penjualan</div>
+                  <table class="table" style="margin-top:8px;">
+                    <thead><tr><th>No. Retur</th><th>Pelanggan</th><th>Qty</th></tr></thead>
+                    <tbody>
+                      <sc-for list="{{ returPjHistoryView }}" as="h" hint-placeholder-count="2">
+                        <tr><td>{{ h.noRetur }}<div style="font-size:11px;opacity:0.55;">{{ h.invoice }}</div></td><td>{{ h.customer }}</td><td>{{ h.totalQty }} pcs</td></tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ returTabIsPembelian }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+              <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                <div class="card elev-sm">
+                  <div class="card-kicker">Data Retur Pembelian</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
+                    <div class="field">
+                      <label for="rb-supplier">Nama Suplier</label>
+                      <input class="input" id="rb-supplier" list="rb-supplier-list" style="min-height:46px;font-size:15px;" placeholder="Pilih atau ketik nama suplier" value="{{ returPbSupplier }}" onChange="{{ setReturPbSupplier }}" />
+                      <datalist id="rb-supplier-list">
+                        <sc-for list="{{ supplierOptions }}" as="sup" hint-placeholder-count="4">
+                          <option value="{{ sup }}"></option>
+                        </sc-for>
+                      </datalist>
+                    </div>
+                    <div class="field">
+                      <label for="rb-inv">No. Faktur Asal</label>
+                      <input class="input" id="rb-inv" style="min-height:46px;font-size:15px;" placeholder="Contoh: PB-260728-0001" value="{{ returPbInvoice }}" onChange="{{ setReturPbInvoice }}" />
+                    </div>
+                  </div>
+                  <div class="field" style="margin-top:16px;width:220px;">
+                    <label for="rb-tgl">Tanggal Retur</label>
+                    <input class="input" id="rb-tgl" type="date" style="min-height:46px;font-size:15px;" value="{{ returPbTanggal }}" onChange="{{ setReturPbTanggal }}" />
+                  </div>
+                </div>
+
+                <div class="card elev-sm">
+                  <div class="card-kicker">Tambah Barang Retur</div>
+                  <div style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
+                    <div class="field">
+                      <label for="rb-product">Barang</label>
+                      <select class="input" id="rb-product" style="min-height:46px;font-size:15px;" value="{{ returPbKode }}" onChange="{{ setReturPbKode }}">
+                        <sc-for list="{{ returProductOptions }}" as="p" hint-placeholder-count="8">
+                          <option value="{{ p.kode }}">{{ p.kode }} — {{ p.nama }}</option>
+                        </sc-for>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="rb-qty">Jumlah</label>
+                      <input class="input" id="rb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ returPbQty }}" onChange="{{ setReturPbQty }}" />
+                    </div>
+                    <div class="field">
+                      <label for="rb-reason">Alasan</label>
+                      <select class="input" id="rb-reason" style="min-height:46px;font-size:15px;" value="{{ returPbReason }}" onChange="{{ setReturPbReason }}">
+                        <sc-for list="{{ reasonOptions }}" as="r" hint-placeholder-count="4">
+                          <option value="{{ r }}">{{ r }}</option>
+                        </sc-for>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addReturPbItem }}">+ Tambah Barang</button>
+                </div>
+
+                <div class="card elev-sm">
+                  <div class="card-kicker">Barang yang Diretur</div>
+                  <sc-if value="{{ returPbCartEmpty }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada barang ditambahkan.</p>
+                  </sc-if>
+                  <table class="table" style="margin-top:8px;">
+                    <thead><tr><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Alasan</th><th></th></tr></thead>
+                    <tbody>
+                      <sc-for list="{{ returPbCartView }}" as="item" hint-placeholder-count="2">
+                        <tr>
+                          <td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.reason }}</td>
+                          <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.removeHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button></td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                <div class="card elev-sm">
+                  <div class="card-kicker">Ringkasan Retur</div>
+                  <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ returPbTotalQty }} pcs akan dikurangi dari stok</div>
+                  <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ returPbCannotComplete }}" onClick="{{ completeReturPb }}">Proses Retur</button>
+                </div>
+                <div class="card elev-sm">
+                  <div class="card-kicker">Riwayat Retur Pembelian</div>
+                  <table class="table" style="margin-top:8px;">
+                    <thead><tr><th>No. Retur</th><th>Suplier</th><th>Qty</th></tr></thead>
+                    <tbody>
+                      <sc-for list="{{ returPbHistoryView }}" as="h" hint-placeholder-count="2">
+                        <tr><td>{{ h.noRetur }}<div style="font-size:11px;opacity:0.55;">{{ h.invoice }}</div></td><td>{{ h.supplier }}</td><td>{{ h.totalQty }} pcs</td></tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModMaster }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn {{ masterTabSuplier_class }}" style="min-height:44px;" onClick="{{ setMasterTabSuplier }}">Suplier</button>
+            <button type="button" class="btn {{ masterTabPelanggan_class }}" style="min-height:44px;" onClick="{{ setMasterTabPelanggan }}">Pelanggan</button>
+            <button type="button" class="btn {{ masterTabKategori_class }}" style="min-height:44px;" onClick="{{ setMasterTabKategori }}">Kategori Barang</button>
+            <button type="button" class="btn {{ masterTabUser_class }}" style="min-height:44px;" onClick="{{ setMasterTabUser }}">Pengguna</button>
+          </div>
+
+          <sc-if value="{{ masterTabIsSuplier }}" hint-placeholder-val="{{ true }}">
+            <div class="card elev-sm">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-kicker">Daftar Suplier</div>
+                <button type="button" class="btn btn-primary" style="min-height:40px;" onClick="{{ openMasterAddSuplier }}">+ Tambah Suplier</button>
+              </div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Kode</th><th>Nama Suplier</th><th>Alamat</th><th>No. HP</th><th></th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ suplierRows }}" as="item" hint-placeholder-count="4">
+                    <tr>
+                      <td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.alamat }}</td><td>{{ item.noHp }}</td>
+                      <td>
+                        <div style="display:flex;gap:6px;">
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" onClick="{{ item.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterTabIsPelanggan }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-kicker">Daftar Pelanggan</div>
+                <button type="button" class="btn btn-primary" style="min-height:40px;" onClick="{{ openMasterAddPelanggan }}">+ Tambah Pelanggan</button>
+              </div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Kode</th><th>Nama Pelanggan</th><th>Alamat</th><th>No. HP</th><th></th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ pelangganRows }}" as="item" hint-placeholder-count="3">
+                    <tr>
+                      <td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.alamat }}</td><td>{{ item.noHp }}</td>
+                      <td>
+                        <div style="display:flex;gap:6px;">
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" onClick="{{ item.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterTabIsKategori }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-kicker">Kategori Barang</div>
+                <button type="button" class="btn btn-primary" style="min-height:40px;" onClick="{{ openMasterAddKategori }}">+ Tambah Kategori</button>
+              </div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Nama Kategori</th><th></th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ kategoriRows }}" as="item" hint-placeholder-count="4">
+                    <tr>
+                      <td>{{ item.nama }}</td>
+                      <td>
+                        <div style="display:flex;gap:6px;">
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" onClick="{{ item.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterTabIsUser }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-kicker">Pengguna</div>
+                <button type="button" class="btn btn-primary" style="min-height:40px;" onClick="{{ openMasterAddUser }}">+ Tambah Pengguna</button>
+              </div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Nama Pengguna</th><th>Peran</th><th></th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ userRows }}" as="item" hint-placeholder-count="2">
+                    <tr>
+                      <td>{{ item.username }}</td><td><span class="tag {{ item.roleTagClass }}">{{ item.roleLabel }}</span></td>
+                      <td>
+                        <div style="display:flex;gap:6px;">
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" onClick="{{ item.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterModalOpen }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog">
+                <div class="dialog-title">{{ masterModalTitle }}</div>
+                <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;">
+                  <div class="field">
+                    <label for="master-f-nama">{{ masterNamaLabel }}</label>
+                    <input class="input" id="master-f-nama" style="min-height:44px;font-size:15px;" placeholder="Nama" value="{{ masterForm.nama }}" onChange="{{ setMasterNama }}" />
+                  </div>
+                  <sc-if value="{{ masterTypeIsSuplier }}">
+                    <div class="field">
+                      <label for="master-f-alamat">Alamat</label>
+                      <input class="input" id="master-f-alamat" style="min-height:44px;font-size:15px;" placeholder="Alamat" value="{{ masterForm.alamat }}" onChange="{{ setMasterAlamat }}" />
+                    </div>
+                    <div class="field">
+                      <label for="master-f-nohp">No. HP</label>
+                      <input class="input" id="master-f-nohp" style="min-height:44px;font-size:15px;" placeholder="08xxxxxxxxxx" value="{{ masterForm.noHp }}" onChange="{{ setMasterNoHp }}" />
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ masterTypeIsPelanggan }}">
+                    <div class="field">
+                      <label for="master-f-alamat2">Alamat</label>
+                      <input class="input" id="master-f-alamat2" style="min-height:44px;font-size:15px;" placeholder="Alamat" value="{{ masterForm.alamat }}" onChange="{{ setMasterAlamat }}" />
+                    </div>
+                    <div class="field">
+                      <label for="master-f-nohp2">No. HP</label>
+                      <input class="input" id="master-f-nohp2" style="min-height:44px;font-size:15px;" placeholder="08xxxxxxxxxx" value="{{ masterForm.noHp }}" onChange="{{ setMasterNoHp }}" />
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ masterTypeIsUser }}">
+                    <div class="field">
+                      <label id="master-role-label">Peran</label>
+                      <div class="seg" role="radiogroup" aria-labelledby="master-role-label" style="width:100%;">
+                        <label class="seg-opt" style="flex:1;justify-content:center;padding:10px;font-size:14px;">
+                          <input type="radio" name="master-role" checked="{{ masterRoleIsOwner }}" onChange="{{ setMasterRoleOwner }}" />Owner
+                        </label>
+                        <label class="seg-opt" style="flex:1;justify-content:center;padding:10px;font-size:14px;">
+                          <input type="radio" name="master-role" checked="{{ masterRoleIsKaryawan }}" onChange="{{ setMasterRoleKaryawan }}" />Karyawan
+                        </label>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ masterFormError }}">
+                    <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ masterFormError }}</p>
+                  </sc-if>
+                </div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ closeMasterModal }}">Batal</button>
+                  <button type="button" class="btn btn-primary" onClick="{{ saveMasterForm }}">Simpan</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterDeleteTarget }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog">
+                <div class="dialog-title">Hapus Data</div>
+                <div class="dialog-body">Yakin ingin menghapus <strong>{{ masterDeleteTargetName }}</strong>? Tindakan ini tidak dapat dibatalkan.</div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ cancelDeleteMaster }}">Batal</button>
+                  <button type="button" class="btn btn-primary" onClick="{{ confirmDeleteMaster }}">Hapus</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isModOther }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:16px;padding:60px 0;">
+            <h3 style="margin:0;">{{ activeModuleLabel }}</h3>
+            <p style="margin:0;max-width:46ch;opacity:0.7;">Modul ini akan dibangun pada tahap pengembangan selanjutnya.</p>
+            <button type="button" class="btn btn-secondary" onClick="{{ goDashboard }}">Kembali ke Dashboard</button>
+          </div>
+        </sc-if>
+
+      </main>
+    </div>
+  </div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}, &quot;storeName&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;App-mini&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;defaultRole&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;owner&quot;, &quot;options&quot;: [&quot;owner&quot;, &quot;karyawan&quot;], &quot;tsType&quot;: &quot;string&quot;}}">
+const NAV_ACCESS = {
+  dashboard: ['owner', 'karyawan'],
+  penjualan: ['owner', 'karyawan'],
+  stok: ['owner'],
+  pembelian: ['owner'],
+  laporan: ['owner', 'karyawan'],
+  laporanLengkap: ['owner'],
+  retur: ['owner', 'karyawan'],
+  master: ['owner'],
+};
+
+const LOW_STOCK = [
+  { kode: 'BAN-001', nama: 'Ban Bridgestone Turanza 185/65 R15', kategori: 'BAN', stok: 3, status: 'Kritis' },
+  { kode: 'AKI-007', nama: 'Aki GS Astra NS40', kategori: 'AKI', stok: 2, status: 'Kritis' },
+  { kode: 'OLI-002', nama: 'Oli Federal Matic 0.8L', kategori: 'OLI', stok: 3, status: 'Kritis' },
+  { kode: 'OLI-014', nama: 'Oli Shell Helix HX7 4L', kategori: 'OLI', stok: 5, status: 'Menipis' },
+  { kode: 'SP-102', nama: 'Kanvas Rem Depan Honda Beat', kategori: 'SPAREPART', stok: 4, status: 'Menipis' },
+  { kode: 'BAN-018', nama: 'Ban Motor FDR Sportivo 90/80-17', kategori: 'BAN', stok: 6, status: 'Menipis' },
+];
+
+const TOP_PRODUCTS = [
+  { nama: 'Aki GS Astra NS40', qty: 22 },
+  { nama: 'Ban Motor FDR Sportivo 90/80-17', qty: 58 },
+  { nama: 'Oli Federal Matic 0.8L', qty: 142 },
+  { nama: 'Kanvas Rem Depan Honda Beat', qty: 96 },
+  { nama: 'Busi NGK CPR8EA-9', qty: 110 },
+];
+
+const TREND = [2.1, 2.6, 1.9, 3.0, 2.8, 3.5, 2.4, 3.1, 3.8, 2.9, 3.4, 4.0, 3.6, 3.24];
+
+const INITIAL_PRODUCTS = [
+  { kode: 'BAN-001', nama: 'Ban Bridgestone Turanza 185/65 R15', kategori: 'BAN', supplier: 'CV Sumber Ban Jaya', hargaFaktur: 700000, hargaNetto: 680000, priceListBasis: 'NETTO', ecer: 850000, bengkel: 800000, grosir: 750000, stok: 3, minStok: 10, pendingSetup: false },
+  { kode: 'OLI-014', nama: 'Oli Shell Helix HX7 4L', kategori: 'OLI', supplier: 'Toko Oli Makmur', hargaFaktur: 165000, hargaNetto: 160000, priceListBasis: 'NETTO', ecer: 210000, bengkel: 195000, grosir: 180000, stok: 5, minStok: 10, pendingSetup: false },
+  { kode: 'AKI-007', nama: 'Aki GS Astra NS40', kategori: 'AKI', supplier: 'UD Aki Sejahtera', hargaFaktur: 640000, hargaNetto: 620000, priceListBasis: 'NETTO', ecer: 750000, bengkel: 720000, grosir: 690000, stok: 2, minStok: 10, pendingSetup: false },
+  { kode: 'SP-102', nama: 'Kanvas Rem Depan Honda Beat', kategori: 'SPAREPART', supplier: 'PT Astra Otoparts', hargaFaktur: 78000, hargaNetto: 75000, priceListBasis: 'NETTO', ecer: 95000, bengkel: 90000, grosir: 85000, stok: 4, minStok: 10, pendingSetup: false },
+  { kode: 'OLI-002', nama: 'Oli Federal Matic 0.8L', kategori: 'OLI', supplier: 'Toko Oli Makmur', hargaFaktur: 34000, hargaNetto: 32000, priceListBasis: 'NETTO', ecer: 45000, bengkel: 42000, grosir: 38000, stok: 30, minStok: 10, pendingSetup: false },
+  { kode: 'BAN-018', nama: 'Ban Motor FDR Sportivo 90/80-17', kategori: 'BAN', supplier: 'CV Sumber Ban Jaya', hargaFaktur: 260000, hargaNetto: 250000, priceListBasis: 'NETTO', ecer: 320000, bengkel: 300000, grosir: 280000, stok: 6, minStok: 10, pendingSetup: false },
+  { kode: 'SP-045', nama: 'Busi NGK CPR8EA-9', kategori: 'SPAREPART', supplier: 'PT Astra Otoparts', hargaFaktur: 25000, hargaNetto: 24000, priceListBasis: 'NETTO', ecer: 35000, bengkel: 32000, grosir: 28000, stok: 40, minStok: 10, pendingSetup: false },
+  { kode: 'OLI-020', nama: 'Oli Yamalube Sport 1L', kategori: 'OLI', supplier: 'Toko Oli Makmur', hargaFaktur: 50000, hargaNetto: 48000, priceListBasis: 'NETTO', ecer: 65000, bengkel: 60000, grosir: 55000, stok: 25, minStok: 10, pendingSetup: false },
+];
+
+const KATEGORI_OPTIONS = ['BAN', 'OLI', 'AKI', 'SPAREPART'];
+
+const SUPPLIERS = ['CV Sumber Ban Jaya', 'PT Astra Otoparts', 'Toko Oli Makmur', 'UD Aki Sejahtera'];
+const RETUR_REASONS = ['Rusak', 'Cacat', 'Salah Kirim', 'Lainnya'];
+
+const INITIAL_PEMBELIAN_HISTORY = [
+  { noFaktur: 'PB-260728-0001', tanggal: 'Selasa, 28 Juli 2026', tanggalISO: '2026-07-28', supplier: 'CV Sumber Ban Jaya', totalItems: 2, totalQty: 20, totalBiaya: 6800000 },
+  { noFaktur: 'PB-260802-0002', tanggal: 'Minggu, 2 Agustus 2026', tanggalISO: '2026-08-02', supplier: 'Toko Oli Makmur', totalItems: 3, totalQty: 60, totalBiaya: 2450000 },
+];
+
+const INITIAL_PENJUALAN_HISTORY = [
+  { invoiceNo: 'INV-260803-0001', custName: 'Hendra', tanggal: 'Senin, 3 Agustus 2026', tanggalISO: '2026-08-03', paymentMethod: 'TUNAI', totalQty: 8, grandTotal: 336000, items: [{ kode: 'OLI-002', nama: 'Oli Federal Matic 0.8L', qty: 8, subtotal: 336000 }] },
+  { invoiceNo: 'INV-260804-0002', custName: 'Siti', tanggal: 'Selasa, 4 Agustus 2026', tanggalISO: '2026-08-04', paymentMethod: 'TRANSFER', totalQty: 22, grandTotal: 1200000, items: [{ kode: 'SP-045', nama: 'Busi NGK CPR8EA-9', qty: 20, subtotal: 560000 }, { kode: 'BAN-018', nama: 'Ban Motor FDR Sportivo 90/80-17', qty: 2, subtotal: 640000 }] },
+  { invoiceNo: 'INV-260805-0003', custName: 'Hadi', tanggal: 'Rabu, 5 Agustus 2026', tanggalISO: '2026-08-05', paymentMethod: 'TUNAI', totalQty: 5, grandTotal: 325000, items: [{ kode: 'OLI-020', nama: 'Oli Yamalube Sport 1L', qty: 5, subtotal: 325000 }] },
+];
+
+function formatRp(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+
+class Component extends DCLogic {
+  state = {
+    screen: 'login',
+    role: this.props.defaultRole === 'karyawan' ? 'karyawan' : 'owner',
+    username: '',
+    password: '',
+    userName: '',
+    loginError: '',
+    activeModule: 'dashboard',
+    showForgot: false,
+    forgotContact: '',
+    forgotSent: false,
+    forgotError: '',
+    penjCart: [],
+    penjCustName: '',
+    penjPaymentMethod: 'TUNAI',
+    penjAmountPaid: '',
+    penjSelectedKode: INITIAL_PRODUCTS[0].kode,
+    penjQty: 1,
+    penjInvoiceSeq: 1,
+    penjCompleted: false,
+    penjLastInvoice: null,
+    stokProducts: INITIAL_PRODUCTS.map((p) => ({ ...p })),
+    stokSearch: '',
+    stokKategoriFilter: 'ALL',
+    stokModalOpen: false,
+    stokEditKode: null,
+    stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
+    stokFormError: '',
+    stokDeleteTarget: null,
+    pembelianCart: [],
+    pembelianSupplierChoice: SUPPLIERS[0],
+    pembelianSupplierNew: '',
+    pembelianKategoriFilter: 'ALL',
+    pembelianSelectedKode: INITIAL_PRODUCTS[0].kode,
+    pembelianNewKode: '',
+    pembelianNewNama: '',
+    pembelianQty: 1,
+    pembelianHargaFaktur: '',
+    pembelianHargaNetto: '',
+    pembelianPricelist: '',
+    pembelianJatuhTempo: '',
+    pembelianPayment: 'CASH',
+    pembelianInvoiceSeq: 1,
+    pembelianHistory: INITIAL_PEMBELIAN_HISTORY.map((h) => ({ ...h })),
+    pembelianNote: '',
+    laporanSearch: '',
+    laporanKategoriFilter: 'ALL',
+    laporanSupplierFilter: 'ALL',
+    laporanStatusFilter: 'ALL',
+    penjualanHistory: INITIAL_PENJUALAN_HISTORY.map((h) => ({ ...h })),
+    laporanLengkapTab: 'global',
+    laporanDari: '2026-07-01',
+    laporanSampai: '2026-08-06',
+    laporanLengkapSearch: '',
+    returTab: 'penjualan',
+    returPjCustomer: '', returPjInvoice: '', returPjTanggal: '2026-08-06',
+    returPjKode: INITIAL_PRODUCTS[0].kode, returPjQty: 1, returPjReason: 'Rusak',
+    returPjCart: [], returPjHistory: [], returPjSeq: 1,
+    returPbSupplier: '', returPbInvoice: '', returPbTanggal: '2026-08-06',
+    returPbKode: INITIAL_PRODUCTS[0].kode, returPbQty: 1, returPbReason: 'Rusak',
+    returPbCart: [], returPbHistory: [], returPbSeq: 1,
+    pembelianCompleted: false,
+    pembelianPreview: null,
+    suplierList: SUPPLIERS.map((nama, i) => ({ kode: 'SUP-' + String(i + 1).padStart(4, '0'), nama, alamat: '-', noHp: '-' })),
+    suplierSeq: SUPPLIERS.length + 1,
+    pelangganList: [
+      { kode: 'CUST-0001', nama: 'Hendra', alamat: '-', noHp: '-' },
+      { kode: 'CUST-0002', nama: 'Siti', alamat: '-', noHp: '-' },
+      { kode: 'CUST-0003', nama: 'Hadi', alamat: '-', noHp: '-' },
+    ],
+    pelangganSeq: 4,
+    kategoriList: [...KATEGORI_OPTIONS],
+    userList: [{ username: 'Budi', role: 'owner' }, { username: 'Karyawan 1', role: 'karyawan' }],
+    masterTab: 'suplier',
+    masterModalOpen: false, masterModalType: null, masterEditKey: null,
+    masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan' },
+    masterFormError: '', masterDeleteTarget: null,
+  };
+
+  setUsername = (e) => this.setState({ username: e.target.value, loginError: '' });
+  setPassword = (e) => this.setState({ password: e.target.value, loginError: '' });
+  setRoleOwner = () => this.setState({ role: 'owner' });
+  setRoleKaryawan = () => this.setState({ role: 'karyawan' });
+
+  openForgot = () => this.setState({ showForgot: true, forgotSent: false, forgotContact: '', forgotError: '' });
+  closeForgot = () => this.setState({ showForgot: false, forgotSent: false, forgotContact: '', forgotError: '' });
+  setForgotContact = (e) => this.setState({ forgotContact: e.target.value, forgotError: '' });
+  sendForgot = () => {
+    if (!this.state.forgotContact.trim()) { this.setState({ forgotError: 'Isi email atau nomor HP Owner.' }); return; }
+    this.setState({ forgotSent: true });
+  };
+
+  setPenjCustName = (e) => this.setState({ penjCustName: e.target.value });
+  setPenjProduct = (e) => this.setState({ penjSelectedKode: e.target.value });
+  setPenjQty = (e) => this.setState({ penjQty: e.target.value });
+  setPenjAmountPaid = (e) => this.setState({ penjAmountPaid: e.target.value });
+  setPenjTunai = () => this.setState({ penjPaymentMethod: 'TUNAI' });
+  setPenjTransfer = () => this.setState({ penjPaymentMethod: 'TRANSFER' });
+
+  addToCart = () => {
+    const qty = parseInt(this.state.penjQty) || 0;
+    const product = this.state.stokProducts.find((p) => p.kode === this.state.penjSelectedKode);
+    if (!product || qty < 1) return;
+    const tier = qty >= 11 ? 'grosir' : qty >= 6 ? 'bengkel' : 'ecer';
+    const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : 'ECER';
+    const existingQty = this.state.penjCart.filter((i) => i.kode === product.kode).reduce((a, i) => a + i.qty, 0);
+    if (qty > product.stok - existingQty) return;
+    const unitPrice = product[tier];
+    this.setState((s) => ({
+      penjCart: [...s.penjCart, { kode: product.kode, nama: product.nama, tier, tierLabel, qty, unitPrice, subtotal: unitPrice * qty }],
+      penjQty: 1,
+    }));
+  };
+
+  removeFromCart = (idx) => this.setState((s) => ({ penjCart: s.penjCart.filter((_, i) => i !== idx) }));
+
+  completeTransaction = () => {
+    const s = this.state;
+    const invoiceNo = 'INV-260806-' + String(s.penjInvoiceSeq).padStart(4, '0');
+    const totalQty = s.penjCart.reduce((a, i) => a + i.qty, 0);
+    const grandTotal = s.penjCart.reduce((a, i) => a + i.subtotal, 0);
+    const amountPaidNum = parseFloat(s.penjAmountPaid) || 0;
+    const newInvoice = { invoiceNo, custName: s.penjCustName, tanggal: 'Kamis, 6 Agustus 2026', tanggalISO: '2026-08-06', items: s.penjCart, totalQty, grandTotal, paymentMethod: s.penjPaymentMethod, amountPaid: amountPaidNum, kembalian: amountPaidNum - grandTotal };
+    this.setState((st) => ({
+      penjCompleted: true,
+      penjLastInvoice: newInvoice,
+      penjualanHistory: [newInvoice, ...st.penjualanHistory],
+    }));
+  };
+
+  setLaporanLengkapTab = (key) => this.setState({ laporanLengkapTab: key });
+
+  setReturTab = (key) => this.setState({ returTab: key });
+
+  setReturPjCustomer = (e) => this.setState({ returPjCustomer: e.target.value });
+  setReturPjInvoice = (e) => this.setState({ returPjInvoice: e.target.value });
+  setReturPjTanggal = (e) => this.setState({ returPjTanggal: e.target.value });
+  setReturPjKode = (e) => this.setState({ returPjKode: e.target.value });
+  setReturPjQty = (e) => this.setState({ returPjQty: e.target.value });
+  setReturPjReason = (e) => this.setState({ returPjReason: e.target.value });
+
+  addReturPjItem = () => {
+    const s = this.state;
+    const qty = parseInt(s.returPjQty) || 0;
+    const product = s.stokProducts.find((p) => p.kode === s.returPjKode);
+    if (!product || qty < 1) return;
+    this.setState((st) => ({
+      returPjCart: [...st.returPjCart, { kode: product.kode, nama: product.nama, qty, reason: st.returPjReason }],
+      returPjQty: 1,
+    }));
+  };
+  removeReturPjItem = (idx) => this.setState((s) => ({ returPjCart: s.returPjCart.filter((_, i) => i !== idx) }));
+
+  completeReturPj = () => {
+    const s = this.state;
+    if (!s.returPjCustomer.trim() || !s.returPjInvoice.trim() || s.returPjCart.length === 0) return;
+    const noRetur = 'RJ-260806-' + String(s.returPjSeq).padStart(4, '0');
+    const totalQty = s.returPjCart.reduce((a, i) => a + i.qty, 0);
+    const record = { noRetur, customer: s.returPjCustomer.trim(), invoice: s.returPjInvoice.trim(), tanggal: s.returPjTanggal, items: s.returPjCart, totalQty };
+    this.setState((st) => ({
+      stokProducts: st.stokProducts.map((p) => {
+        const line = st.returPjCart.find((c) => c.kode === p.kode);
+        return line ? { ...p, stok: p.stok + line.qty } : p;
+      }),
+      returPjHistory: [record, ...st.returPjHistory],
+      returPjCustomer: '', returPjInvoice: '', returPjCart: [], returPjSeq: st.returPjSeq + 1,
+    }));
+  };
+
+  setReturPbSupplier = (e) => this.setState({ returPbSupplier: e.target.value });
+  setReturPbInvoice = (e) => this.setState({ returPbInvoice: e.target.value });
+  setReturPbTanggal = (e) => this.setState({ returPbTanggal: e.target.value });
+  setReturPbKode = (e) => this.setState({ returPbKode: e.target.value });
+  setReturPbQty = (e) => this.setState({ returPbQty: e.target.value });
+  setReturPbReason = (e) => this.setState({ returPbReason: e.target.value });
+
+  addReturPbItem = () => {
+    const s = this.state;
+    const qty = parseInt(s.returPbQty) || 0;
+    const product = s.stokProducts.find((p) => p.kode === s.returPbKode);
+    if (!product || qty < 1) return;
+    this.setState((st) => ({
+      returPbCart: [...st.returPbCart, { kode: product.kode, nama: product.nama, qty, reason: st.returPbReason }],
+      returPbQty: 1,
+    }));
+  };
+  removeReturPbItem = (idx) => this.setState((s) => ({ returPbCart: s.returPbCart.filter((_, i) => i !== idx) }));
+
+  completeReturPb = () => {
+    const s = this.state;
+    if (!s.returPbSupplier.trim() || !s.returPbInvoice.trim() || s.returPbCart.length === 0) return;
+    const noRetur = 'RB-260806-' + String(s.returPbSeq).padStart(4, '0');
+    const totalQty = s.returPbCart.reduce((a, i) => a + i.qty, 0);
+    const record = { noRetur, supplier: s.returPbSupplier.trim(), invoice: s.returPbInvoice.trim(), tanggal: s.returPbTanggal, items: s.returPbCart, totalQty };
+    this.setState((st) => ({
+      stokProducts: st.stokProducts.map((p) => {
+        const line = st.returPbCart.find((c) => c.kode === p.kode);
+        return line ? { ...p, stok: Math.max(0, p.stok - line.qty) } : p;
+      }),
+      returPbHistory: [record, ...st.returPbHistory],
+      returPbSupplier: '', returPbInvoice: '', returPbCart: [], returPbSeq: st.returPbSeq + 1,
+    }));
+  };
+
+  setMasterTab = (key) => this.setState({ masterTab: key });
+
+  openMasterAdd = (type) => this.setState({
+    masterModalOpen: true, masterModalType: type, masterEditKey: null, masterFormError: '',
+    masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan' },
+  });
+
+  openMasterEdit = (type, key) => {
+    const s = this.state;
+    let record = null;
+    if (type === 'suplier') record = s.suplierList.find((x) => x.kode === key);
+    else if (type === 'pelanggan') record = s.pelangganList.find((x) => x.kode === key);
+    else if (type === 'kategori') record = { nama: key };
+    else if (type === 'user') record = s.userList.find((x) => x.username === key);
+    if (!record) return;
+    this.setState({
+      masterModalOpen: true, masterModalType: type, masterEditKey: key, masterFormError: '',
+      masterForm: { nama: record.nama || record.username || '', alamat: record.alamat || '', noHp: record.noHp || '', role: record.role || 'karyawan' },
+    });
+  };
+
+  closeMasterModal = () => this.setState({ masterModalOpen: false, masterModalType: null, masterEditKey: null, masterFormError: '' });
+
+  setMasterFormField = (field) => (e) => this.setState((s) => ({ masterForm: { ...s.masterForm, [field]: e.target.value } }));
+  setMasterRoleOwner = () => this.setState((s) => ({ masterForm: { ...s.masterForm, role: 'owner' } }));
+  setMasterRoleKaryawan = () => this.setState((s) => ({ masterForm: { ...s.masterForm, role: 'karyawan' } }));
+
+  saveMasterForm = () => {
+    const s = this.state;
+    const f = s.masterForm;
+    const type = s.masterModalType;
+    const nama = f.nama.trim();
+    if (!nama) { this.setState({ masterFormError: 'Nama wajib diisi.' }); return; }
+
+    if (type === 'suplier') {
+      if (s.masterEditKey) {
+        this.setState((st) => ({
+          suplierList: st.suplierList.map((x) => (x.kode === st.masterEditKey ? { ...x, nama, alamat: f.alamat.trim(), noHp: f.noHp.trim() } : x)),
+          masterModalOpen: false, masterModalType: null, masterEditKey: null,
+        }));
+      } else {
+        this.setState((st) => ({
+          suplierList: [...st.suplierList, { kode: 'SUP-' + String(st.suplierSeq).padStart(4, '0'), nama, alamat: f.alamat.trim() || '-', noHp: f.noHp.trim() || '-' }],
+          suplierSeq: st.suplierSeq + 1, masterModalOpen: false, masterModalType: null,
+        }));
+      }
+    } else if (type === 'pelanggan') {
+      if (s.masterEditKey) {
+        this.setState((st) => ({
+          pelangganList: st.pelangganList.map((x) => (x.kode === st.masterEditKey ? { ...x, nama, alamat: f.alamat.trim(), noHp: f.noHp.trim() } : x)),
+          masterModalOpen: false, masterModalType: null, masterEditKey: null,
+        }));
+      } else {
+        this.setState((st) => ({
+          pelangganList: [...st.pelangganList, { kode: 'CUST-' + String(st.pelangganSeq).padStart(4, '0'), nama, alamat: f.alamat.trim() || '-', noHp: f.noHp.trim() || '-' }],
+          pelangganSeq: st.pelangganSeq + 1, masterModalOpen: false, masterModalType: null,
+        }));
+      }
+    } else if (type === 'kategori') {
+      if (s.masterEditKey) {
+        this.setState((st) => ({
+          kategoriList: st.kategoriList.map((k) => (k === st.masterEditKey ? nama.toUpperCase() : k)),
+          masterModalOpen: false, masterModalType: null, masterEditKey: null,
+        }));
+      } else {
+        if (s.kategoriList.includes(nama.toUpperCase())) { this.setState({ masterFormError: 'Kategori sudah ada.' }); return; }
+        this.setState((st) => ({ kategoriList: [...st.kategoriList, nama.toUpperCase()], masterModalOpen: false, masterModalType: null }));
+      }
+    } else if (type === 'user') {
+      if (!s.masterEditKey && s.userList.some((u) => u.username.toLowerCase() === nama.toLowerCase())) { this.setState({ masterFormError: 'Nama pengguna sudah digunakan.' }); return; }
+      if (s.masterEditKey) {
+        this.setState((st) => ({
+          userList: st.userList.map((u) => (u.username === st.masterEditKey ? { username: nama, role: f.role } : u)),
+          masterModalOpen: false, masterModalType: null, masterEditKey: null,
+        }));
+      } else {
+        this.setState((st) => ({ userList: [...st.userList, { username: nama, role: f.role }], masterModalOpen: false, masterModalType: null }));
+      }
+    }
+  };
+
+  requestDeleteMaster = (type, key) => this.setState({ masterDeleteTarget: { type, key } });
+  cancelDeleteMaster = () => this.setState({ masterDeleteTarget: null });
+  confirmDeleteMaster = () => {
+    const t = this.state.masterDeleteTarget;
+    if (!t) return;
+    if (t.type === 'suplier') this.setState((st) => ({ suplierList: st.suplierList.filter((x) => x.kode !== t.key), masterDeleteTarget: null }));
+    else if (t.type === 'pelanggan') this.setState((st) => ({ pelangganList: st.pelangganList.filter((x) => x.kode !== t.key), masterDeleteTarget: null }));
+    else if (t.type === 'kategori') this.setState((st) => ({ kategoriList: st.kategoriList.filter((k) => k !== t.key), masterDeleteTarget: null }));
+    else if (t.type === 'user') this.setState((st) => ({ userList: st.userList.filter((u) => u.username !== t.key), masterDeleteTarget: null }));
+  };
+
+  setLaporanDari = (e) => this.setState({ laporanDari: e.target.value });
+  setLaporanSampai = (e) => this.setState({ laporanSampai: e.target.value });
+  setLaporanLengkapSearch = (e) => this.setState({ laporanLengkapSearch: e.target.value });
+
+  newTransaction = () => this.setState((s) => ({
+    penjCart: [], penjCustName: '', penjAmountPaid: '', penjPaymentMethod: 'TUNAI',
+    penjSelectedKode: s.stokProducts[0].kode, penjQty: 1, penjCompleted: false, penjLastInvoice: null,
+    penjInvoiceSeq: s.penjInvoiceSeq + 1,
+  }));
+
+  setStokSearch = (e) => this.setState({ stokSearch: e.target.value });
+  setStokKategoriFilter = (e) => this.setState({ stokKategoriFilter: e.target.value });
+
+  openStokAdd = () => this.setState({
+    stokModalOpen: true, stokEditKode: null, stokFormError: '',
+    stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: this.state.suplierList[0].nama, hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '10' },
+  });
+
+  openStokEdit = (kode) => {
+    const p = this.state.stokProducts.find((x) => x.kode === kode);
+    if (!p) return;
+    this.setState({
+      stokModalOpen: true, stokEditKode: kode, stokFormError: '',
+      stokForm: {
+        kode: p.kode, nama: p.nama, kategori: p.kategori, supplier: p.supplier || this.state.suplierList[0].nama,
+        hargaFaktur: p.hargaFaktur ? String(p.hargaFaktur) : '', hargaNetto: p.hargaNetto ? String(p.hargaNetto) : '',
+        priceListBasis: p.priceListBasis || 'NETTO',
+        ecer: p.ecer ? String(p.ecer) : '', bengkel: p.bengkel ? String(p.bengkel) : '', grosir: p.grosir ? String(p.grosir) : '',
+        stok: String(p.stok), minStok: String(p.minStok),
+      },
+    });
+  };
+
+  closeStokModal = () => this.setState({ stokModalOpen: false, stokEditKode: null, stokFormError: '' });
+
+  setStokFormField = (field) => (e) => this.setState((s) => ({ stokForm: { ...s.stokForm, [field]: e.target.value } }));
+  setStokPriceFaktur = () => this.setState((s) => ({ stokForm: { ...s.stokForm, priceListBasis: 'FAKTUR' } }));
+  setStokPriceNetto = () => this.setState((s) => ({ stokForm: { ...s.stokForm, priceListBasis: 'NETTO' } }));
+
+  saveStokForm = () => {
+    const s = this.state;
+    const f = s.stokForm;
+    const kode = f.kode.trim();
+    const nama = f.nama.trim();
+    const ecer = parseFloat(f.ecer), bengkel = parseFloat(f.bengkel), grosir = parseFloat(f.grosir);
+    const stok = parseInt(f.stok), minStok = parseInt(f.minStok);
+    const hargaFaktur = parseFloat(f.hargaFaktur) || 0, hargaNetto = parseFloat(f.hargaNetto) || 0;
+    if (!kode || !nama) { this.setState({ stokFormError: 'Kode dan nama barang wajib diisi.' }); return; }
+    if (!s.stokEditKode && s.stokProducts.some((p) => p.kode === kode)) { this.setState({ stokFormError: 'Kode barang sudah digunakan.' }); return; }
+    if (!(ecer > 0) || !(bengkel > 0) || !(grosir > 0)) { this.setState({ stokFormError: 'Isi semua harga jual dengan angka lebih dari 0.' }); return; }
+    if (!(stok >= 0) || !(minStok >= 0)) { this.setState({ stokFormError: 'Isi stok dan stok minimum dengan angka valid.' }); return; }
+    const record = { kode, nama, kategori: f.kategori, supplier: f.supplier, hargaFaktur, hargaNetto, priceListBasis: f.priceListBasis, ecer, bengkel, grosir, stok, minStok, pendingSetup: false };
+    this.setState((st) => ({
+      stokProducts: st.stokEditKode
+        ? st.stokProducts.map((p) => (p.kode === st.stokEditKode ? record : p))
+        : [...st.stokProducts, record],
+      stokModalOpen: false, stokEditKode: null, stokFormError: '',
+    }));
+  };
+
+  requestDeleteStok = (kode) => this.setState({ stokDeleteTarget: kode });
+  cancelDeleteStok = () => this.setState({ stokDeleteTarget: null });
+  confirmDeleteStok = () => this.setState((s) => ({
+    stokProducts: s.stokProducts.filter((p) => p.kode !== s.stokDeleteTarget), stokDeleteTarget: null,
+  }));
+
+  setPembelianSupplierChoice = (e) => this.setState({ pembelianSupplierChoice: e.target.value });
+  setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
+  resolvePembelianSupplier = (s) => (s.pembelianSupplierChoice === '__NEW__' ? s.pembelianSupplierNew.trim() : s.pembelianSupplierChoice);
+  setPembelianKategoriFilter = (e) => {
+    const kategori = e.target.value;
+    this.setState((s) => {
+      const list = s.stokProducts.filter((p) => kategori === 'ALL' || p.kategori === kategori);
+      return { pembelianKategoriFilter: kategori, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode };
+    });
+  };
+  setPembelianProduct = (e) => this.setState({ pembelianSelectedKode: e.target.value });
+  setPembelianNewKode = (e) => this.setState({ pembelianNewKode: e.target.value });
+  setPembelianNewNama = (e) => this.setState({ pembelianNewNama: e.target.value });
+  setPembelianQty = (e) => this.setState({ pembelianQty: e.target.value });
+  setPembelianHargaFaktur = (e) => this.setState({ pembelianHargaFaktur: e.target.value });
+  setPembelianHargaNetto = (e) => this.setState({ pembelianHargaNetto: e.target.value });
+  setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value });
+  setPembelianJatuhTempo = (e) => this.setState({ pembelianJatuhTempo: e.target.value });
+  setLaporanSearch = (e) => this.setState({ laporanSearch: e.target.value });
+  setLaporanKategoriFilter = (e) => this.setState({ laporanKategoriFilter: e.target.value });
+  setLaporanSupplierFilter = (e) => this.setState({ laporanSupplierFilter: e.target.value });
+  setLaporanStatusFilter = (e) => this.setState({ laporanStatusFilter: e.target.value });
+
+  exportLaporanCsv = () => {
+    const rows = this.laporanFilteredRows(this.state);
+    const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
+    const lines = [header.join(',')].concat(rows.map((p) => [p.kode, '"' + p.nama.replace(/"/g, '""') + '"', p.kategori, '"' + (p.supplier || '') + '"', p.stok, p.ecer, p.bengkel, p.grosir, this.stokStatusOf(p)].join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'laporan-stok.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  printLaporan = () => window.print();
+  printPage = () => window.print();
+
+  stokStatusOf = (p) => (p.stok <= p.minStok / 2 ? 'Kritis' : p.stok <= p.minStok ? 'Menipis' : 'Aman');
+
+  laporanFilteredRows = (s) => {
+    const search = s.laporanSearch.trim().toLowerCase();
+    return s.stokProducts.filter((p) => {
+      const matchesSearch = !search || p.nama.toLowerCase().includes(search) || p.kode.toLowerCase().includes(search);
+      const matchesKategori = s.laporanKategoriFilter === 'ALL' || p.kategori === s.laporanKategoriFilter;
+      const matchesSupplier = s.laporanSupplierFilter === 'ALL' || p.supplier === s.laporanSupplierFilter;
+      const matchesStatus = s.laporanStatusFilter === 'ALL' || this.stokStatusOf(p) === s.laporanStatusFilter;
+      return matchesSearch && matchesKategori && matchesSupplier && matchesStatus;
+    });
+  };
+  setPembelianCash = () => this.setState({ pembelianPayment: 'CASH' });
+  setPembelianTop = () => this.setState({ pembelianPayment: 'TOP' });
+
+  addToPembelianCart = () => {
+    const s = this.state;
+    const qty = parseInt(s.pembelianQty) || 0;
+    const hargaFaktur = parseFloat(s.pembelianHargaFaktur) || 0;
+    const hargaNetto = parseFloat(s.pembelianHargaNetto) || 0;
+    const pricelist = parseFloat(s.pembelianPricelist) || 0;
+    if (qty < 1 || hargaFaktur <= 0 || hargaNetto <= 0) return;
+    if (s.pembelianSelectedKode === '__NEW__') {
+      const kode = s.pembelianNewKode.trim();
+      const nama = s.pembelianNewNama.trim();
+      if (!kode || !nama) return;
+      if (s.stokProducts.some((p) => p.kode === kode) || s.pembelianCart.some((c) => c.kode === kode)) return;
+      const kategori = s.pembelianKategoriFilter === 'ALL' ? 'BAN' : s.pembelianKategoriFilter;
+      this.setState((st) => ({
+        pembelianCart: [...st.pembelianCart, { kode, nama, kategori, isNew: true, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
+        pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
+      }));
+      return;
+    }
+    const product = s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
+    if (!product) return;
+    this.setState((st) => ({
+      pembelianCart: [...st.pembelianCart, { kode: product.kode, nama: product.nama, kategori: product.kategori, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
+      pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '',
+    }));
+  };
+
+  removeFromPembelianCart = (idx) => this.setState((s) => ({ pembelianCart: s.pembelianCart.filter((_, i) => i !== idx) }));
+
+  completeSPembelian = () => {
+    const s = this.state;
+    const supplierName = this.resolvePembelianSupplier(s);
+    if (!supplierName || s.pembelianCart.length === 0) return;
+    const noFaktur = 'PB-260806-' + String(s.pembelianInvoiceSeq).padStart(4, '0');
+    const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
+    const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
+    this.setState({
+      pembelianCompleted: true,
+      pembelianPreview: {
+        noFaktur, supplier: supplierName, tanggal: 'Kamis, 6 Agustus 2026', tanggalISO: '2026-08-06',
+        jatuhTempo: s.pembelianJatuhTempo, payment: s.pembelianPayment,
+        kategori: s.pembelianKategoriFilter === 'ALL' ? [...new Set(s.pembelianCart.map((i) => i.kategori))].join(', ') : s.pembelianKategoriFilter,
+        pricelist: s.pembelianCart.map((i) => formatRp(i.pricelist || 0)).join(', '),
+        hargaFaktur: s.pembelianCart.map((i) => formatRp(i.hargaFaktur)).join(', '),
+        items: s.pembelianCart, totalItems: s.pembelianCart.length, totalQty, totalBiaya,
+      },
+    });
+  };
+
+  editPembelianPreview = () => this.setState({ pembelianCompleted: false });
+
+  finalizePembelian = () => {
+    const s = this.state;
+    const preview = s.pembelianPreview;
+    if (!preview) return;
+    const record = { noFaktur: preview.noFaktur, tanggal: preview.tanggal, tanggalISO: preview.tanggalISO, supplier: preview.supplier, totalItems: preview.totalItems, totalQty: preview.totalQty, totalBiaya: preview.totalBiaya, payment: preview.payment, jatuhTempo: preview.jatuhTempo };
+    this.setState((st) => {
+      const updated = st.stokProducts.map((p) => {
+        const line = preview.items.find((c) => c.kode === p.kode);
+        return line ? { ...p, stok: p.stok + line.qty, hargaFaktur: line.hargaFaktur, hargaNetto: line.hargaNetto } : p;
+      });
+      const newLines = preview.items.filter((c) => !st.stokProducts.some((p) => p.kode === c.kode));
+      const newProducts = newLines.map((line) => ({
+        kode: line.kode, nama: line.nama, kategori: line.kategori, supplier: preview.supplier,
+        hargaFaktur: line.hargaFaktur, hargaNetto: line.hargaNetto, priceListBasis: line.priceListBasis || 'NETTO',
+        ecer: 0, bengkel: 0, grosir: 0, stok: line.qty, minStok: 10, pendingSetup: true,
+      }));
+      return { stokProducts: [...updated, ...newProducts] };
+    });
+    this.setState((st) => ({
+      pembelianHistory: [record, ...st.pembelianHistory],
+      pembelianCart: [], pembelianSupplierChoice: st.suplierList[0].nama, pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH',
+      pembelianInvoiceSeq: st.pembelianInvoiceSeq + 1,
+      pembelianCompleted: false, pembelianPreview: null,
+    }));
+  };
+
+  doLogin = () => {
+    const name = this.state.username.trim();
+    if (!name) { this.setState({ loginError: 'Isi nama pengguna terlebih dahulu.' }); return; }
+    this.setState({ screen: 'app', userName: name, activeModule: 'dashboard' });
+  };
+
+  doLogout = () => {
+    this.setState({ screen: 'login', username: '', password: '', userName: '', loginError: '', activeModule: 'dashboard' });
+  };
+
+  goTo = (key) => {
+    if (!NAV_ACCESS[key].includes(this.state.role)) return;
+    this.setState({ activeModule: key });
+  };
+
+  navStyle(key) {
+    const active = this.state.activeModule === key;
+    const locked = !NAV_ACCESS[key].includes(this.state.role);
+    return {
+      display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left',
+      padding: '12px 14px', minHeight: '46px', borderRadius: 'var(--radius-md)', border: 'none',
+      fontFamily: 'var(--font-body)', fontSize: '15px', fontWeight: active ? 600 : 400,
+      cursor: locked ? 'not-allowed' : 'pointer',
+      background: active ? 'var(--color-accent)' : 'transparent',
+      color: active ? 'var(--color-bg)' : (locked ? 'color-mix(in srgb, var(--color-bg) 38%, transparent)' : 'color-mix(in srgb, var(--color-bg) 88%, transparent)'),
+    };
+  }
+
+  penjualanVals(s) {
+    const selectedProduct = s.stokProducts.find((p) => p.kode === s.penjSelectedKode) || s.stokProducts[0];
+    const qtyNum = parseInt(s.penjQty) || 0;
+    const tier = qtyNum >= 11 ? 'grosir' : qtyNum >= 6 ? 'bengkel' : qtyNum >= 1 ? 'ecer' : null;
+    const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : tier === 'ecer' ? 'ECER' : '';
+    const unitPrice = tier ? selectedProduct[tier] : 0;
+    const cartQtyForSelected = s.penjCart.filter((i) => i.kode === selectedProduct.kode).reduce((a, i) => a + i.qty, 0);
+    const availableStok = selectedProduct.stok - cartQtyForSelected;
+    const qtyExceedsStock = qtyNum > 0 && qtyNum > availableStok;
+    const canAdd = qtyNum > 0 && !qtyExceedsStock;
+
+    const penjCartView = s.penjCart.map((item, idx) => ({
+      ...item, unitPriceLabel: formatRp(item.unitPrice), subtotalLabel: formatRp(item.subtotal),
+      removeHandler: () => this.removeFromCart(idx),
+    }));
+    const penjTotalItems = s.penjCart.length;
+    const penjTotalQty = s.penjCart.reduce((a, i) => a + i.qty, 0);
+    const penjGrandTotal = s.penjCart.reduce((a, i) => a + i.subtotal, 0);
+    const penjAmountPaidNum = parseFloat(s.penjAmountPaid) || 0;
+    const penjKembalian = penjAmountPaidNum - penjGrandTotal;
+    const penjCanComplete = s.penjCart.length > 0 && s.penjCustName.trim() !== '' && penjAmountPaidNum >= penjGrandTotal;
+    let penjNote = '';
+    if (s.penjCart.length === 0) penjNote = 'Tambahkan barang ke keranjang terlebih dahulu.';
+    else if (s.penjCustName.trim() === '') penjNote = 'Isi nama pelanggan.';
+    else if (penjAmountPaidNum < penjGrandTotal) penjNote = 'Jumlah bayar kurang dari total.';
+
+    let penjLastInvoiceView = null;
+    if (s.penjLastInvoice) {
+      const li = s.penjLastInvoice;
+      penjLastInvoiceView = {
+        invoiceNo: li.invoiceNo, custName: li.custName || '-', totalQtyLabel: li.totalQty + ' pcs',
+        grandTotalLabel: formatRp(li.grandTotal), paymentMethod: li.paymentMethod === 'TUNAI' ? 'Tunai' : 'Transfer',
+        amountPaidLabel: formatRp(li.amountPaid), kembalianLabel: formatRp(li.kembalian),
+        items: li.items.map((i, idx) => ({ ...i, no: idx + 1, subtotalLabel: formatRp(i.subtotal) })),
+      };
+    }
+
+    return {
+      productOptions: s.stokProducts,
+      penjSelectedKode: s.penjSelectedKode, setPenjProduct: this.setPenjProduct,
+      penjQty: s.penjQty, setPenjQty: this.setPenjQty,
+      availableStokLabel: String(availableStok), hasTier: !!tier, tierLabel, unitPriceLabel: formatRp(unitPrice),
+      qtyExceedsStock, cannotAdd: !canAdd, addToCart: this.addToCart,
+      cartEmpty: s.penjCart.length === 0, cartNotEmpty: s.penjCart.length > 0, penjCartView,
+      penjCustName: s.penjCustName, setPenjCustName: this.setPenjCustName,
+      previewInvoiceNo: 'INV-260806-' + String(s.penjInvoiceSeq).padStart(4, '0'),
+      penjTotalItems, penjTotalQty, penjGrandTotalLabel: formatRp(penjGrandTotal),
+      payIsTunai: s.penjPaymentMethod === 'TUNAI', payIsTransfer: s.penjPaymentMethod === 'TRANSFER',
+      setPenjTunai: this.setPenjTunai, setPenjTransfer: this.setPenjTransfer,
+      penjAmountPaid: s.penjAmountPaid, setPenjAmountPaid: this.setPenjAmountPaid,
+      penjKembalianLabel: (penjKembalian < 0 ? '-' : '') + formatRp(Math.abs(penjKembalian)),
+      penjCannotComplete: !penjCanComplete, completeTransaction: this.completeTransaction, penjNote,
+      penjNotCompleted: !s.penjCompleted, penjCompletedFlag: s.penjCompleted,
+      penjLastInvoiceView, newTransaction: this.newTransaction,
+    };
+  }
+
+  stokVals(s) {
+    const search = s.stokSearch.trim().toLowerCase();
+    const filtered = s.stokProducts.filter((p) => {
+      const matchesSearch = !search || p.nama.toLowerCase().includes(search) || p.kode.toLowerCase().includes(search);
+      const matchesKategori = s.stokKategoriFilter === 'ALL' || p.kategori === s.stokKategoriFilter;
+      return matchesSearch && matchesKategori;
+    });
+    const statusOf = (p) => (p.stok <= p.minStok / 2 ? 'Kritis' : p.stok <= p.minStok ? 'Menipis' : 'Aman');
+    const stokRows = filtered.map((p) => {
+      const status = statusOf(p);
+      const priceListValue = p.priceListBasis === 'FAKTUR' ? p.hargaFaktur : p.hargaNetto;
+      return {
+        ...p, ecerLabel: p.pendingSetup ? '—' : formatRp(p.ecer), bengkelLabel: p.pendingSetup ? '—' : formatRp(p.bengkel), grosirLabel: p.pendingSetup ? '—' : formatRp(p.grosir),
+        priceListBasisLabel: p.priceListBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
+        priceListValueLabel: priceListValue ? formatRp(priceListValue) : '—',
+        statusIsKritis: !p.pendingSetup && status === 'Kritis', statusIsMenipis: !p.pendingSetup && status === 'Menipis', statusIsAman: !p.pendingSetup && status === 'Aman',
+        editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
+      };
+    });
+    const stokKritisCount = s.stokProducts.filter((p) => !p.pendingSetup && statusOf(p) === 'Kritis').length;
+    const stokMenipisCount = s.stokProducts.filter((p) => !p.pendingSetup && statusOf(p) === 'Menipis').length;
+    const stokPendingCount = s.stokProducts.filter((p) => p.pendingSetup).length;
+    const deleteTargetProduct = s.stokProducts.find((p) => p.kode === s.stokDeleteTarget);
+
+    return {
+      isModStok: s.activeModule === 'stok',
+      stokSearch: s.stokSearch, setStokSearch: this.setStokSearch,
+      stokKategoriFilter: s.stokKategoriFilter, setStokKategoriFilter: this.setStokKategoriFilter,
+      kategoriOptions: s.kategoriList,
+      stokRows, stokRowsEmpty: stokRows.length === 0,
+      stokKritisCount, stokMenipisCount, stokPendingCount, stokHasAlert: stokKritisCount + stokMenipisCount + stokPendingCount > 0,
+      openStokAdd: this.openStokAdd,
+      stokModalOpen: s.stokModalOpen, closeStokModal: this.closeStokModal,
+      stokModalTitle: s.stokEditKode ? 'Ubah Barang' : 'Tambah Barang',
+      stokIsEdit: !!s.stokEditKode,
+      stokForm: s.stokForm,
+      supplierOptions: s.suplierList.map((x) => x.nama),
+      setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
+      setStokKategori: this.setStokFormField('kategori'), setStokSupplier: this.setStokFormField('supplier'), setStokEcer: this.setStokFormField('ecer'),
+      setStokBengkel: this.setStokFormField('bengkel'), setStokGrosir: this.setStokFormField('grosir'),
+      stokHargaSourceLabel: (parseFloat(s.stokForm.hargaFaktur) || parseFloat(s.stokForm.hargaNetto))
+        ? formatRp(parseFloat(s.stokForm.hargaFaktur) || 0) + ' / ' + formatRp(parseFloat(s.stokForm.hargaNetto) || 0)
+        : 'Belum ada data pembelian',
+      stokPriceIsFaktur: s.stokForm.priceListBasis === 'FAKTUR', stokPriceIsNetto: s.stokForm.priceListBasis !== 'FAKTUR',
+      setStokPriceFaktur: this.setStokPriceFaktur, setStokPriceNetto: this.setStokPriceNetto,
+      setStokStok: this.setStokFormField('stok'), setStokMinStok: this.setStokFormField('minStok'),
+      stokFormError: s.stokFormError, saveStokForm: this.saveStokForm,
+      stokDeleteTarget: s.stokDeleteTarget, deleteTargetName: deleteTargetProduct ? deleteTargetProduct.nama : '',
+      cancelDeleteStok: this.cancelDeleteStok, confirmDeleteStok: this.confirmDeleteStok,
+    };
+  }
+
+  pembelianVals(s) {
+    const filteredProducts = s.stokProducts.filter((p) => s.pembelianKategoriFilter === 'ALL' || p.kategori === s.pembelianKategoriFilter);
+    const pembelianCartView = s.pembelianCart.map((item, idx) => ({
+      ...item, hargaFakturLabel: formatRp(item.hargaFaktur), hargaNettoLabel: formatRp(item.hargaNetto), subtotalLabel: formatRp(item.subtotal),
+      pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
+      removeHandler: () => this.removeFromPembelianCart(idx),
+    }));
+    const totalItems = s.pembelianCart.length;
+    const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
+    const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
+    const canComplete = this.resolvePembelianSupplier(s) !== '' && s.pembelianCart.length > 0;
+    let pembelianNote = '';
+    if (s.pembelianCart.length === 0) pembelianNote = 'Tambahkan barang ke daftar pembelian terlebih dahulu.';
+    else if (this.resolvePembelianSupplier(s) === '') pembelianNote = 'Pilih atau isi nama suplier.';
+
+    return {
+      isModPembelian: s.activeModule === 'pembelian',
+      supplierOptions: s.suplierList.map((x) => x.nama),
+      pembelianSupplierChoice: s.pembelianSupplierChoice, setPembelianSupplierChoice: this.setPembelianSupplierChoice,
+      pembelianSupplierIsNew: s.pembelianSupplierChoice === '__NEW__',
+      pembelianSupplierNew: s.pembelianSupplierNew, setPembelianSupplierNew: this.setPembelianSupplierNew,
+      pembelianKategoriOptions: s.kategoriList,
+      pembelianKategoriFilter: s.pembelianKategoriFilter, setPembelianKategoriFilter: this.setPembelianKategoriFilter,
+      pembelianProductOptions: filteredProducts,
+      pembelianSelectedKode: s.pembelianSelectedKode, setPembelianProduct: this.setPembelianProduct,
+      pembelianIsNewItem: s.pembelianSelectedKode === '__NEW__',
+      pembelianNewKode: s.pembelianNewKode, setPembelianNewKode: this.setPembelianNewKode,
+      pembelianNewNama: s.pembelianNewNama, setPembelianNewNama: this.setPembelianNewNama,
+      pembelianQty: s.pembelianQty, setPembelianQty: this.setPembelianQty,
+      pembelianHargaFaktur: s.pembelianHargaFaktur, setPembelianHargaFaktur: this.setPembelianHargaFaktur,
+      pembelianHargaNetto: s.pembelianHargaNetto, setPembelianHargaNetto: this.setPembelianHargaNetto,
+      pembelianPricelist: s.pembelianPricelist, setPembelianPricelist: this.setPembelianPricelist,
+      pembelianJatuhTempo: s.pembelianJatuhTempo, setPembelianJatuhTempo: this.setPembelianJatuhTempo,
+      payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
+      setPembelianCash: this.setPembelianCash, setPembelianTop: this.setPembelianTop,
+      addToPembelianCart: this.addToPembelianCart,
+      pembelianCartEmpty: s.pembelianCart.length === 0, pembelianCartNotEmpty: s.pembelianCart.length > 0,
+      pembelianCartView,
+      pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
+      previewPembelianNo: 'PB-260806-' + String(s.pembelianInvoiceSeq).padStart(4, '0'),
+      pembelianCannotComplete: !canComplete, completeSPembelian: this.completeSPembelian, pembelianNote,
+      pembelianHistoryView: s.pembelianHistory.map((h) => ({ ...h, totalBiayaLabel: formatRp(h.totalBiaya) })),
+      pembelianNotCompleted: !s.pembelianCompleted, pembelianCompletedFlag: s.pembelianCompleted,
+      editPembelianPreview: this.editPembelianPreview, finalizePembelian: this.finalizePembelian,
+      pembelianPreviewView: s.pembelianPreview ? {
+        ...s.pembelianPreview,
+        paymentLabel: s.pembelianPreview.payment === 'CASH' ? 'Cash' : 'TOP',
+        jatuhTempoLabel: s.pembelianPreview.jatuhTempo || '-',
+        totalBiayaLabel: formatRp(s.pembelianPreview.totalBiaya),
+        itemsView: s.pembelianPreview.items.map((i) => ({ ...i, hargaNettoLabel: formatRp(i.hargaNetto), subtotalLabel: formatRp(i.subtotal) })),
+      } : null,
+    };
+  }
+
+  laporanVals(s) {
+    const filtered = this.laporanFilteredRows(s);
+    const rows = filtered.map((p) => {
+      const status = this.stokStatusOf(p);
+      return {
+        ...p, ecerLabel: formatRp(p.ecer), bengkelLabel: formatRp(p.bengkel), grosirLabel: formatRp(p.grosir),
+        statusIsKritis: status === 'Kritis', statusIsMenipis: status === 'Menipis', statusIsAman: status === 'Aman',
+      };
+    });
+    return {
+      isModLaporan: s.activeModule === 'laporan',
+      laporanSearch: s.laporanSearch, setLaporanSearch: this.setLaporanSearch,
+      laporanKategoriFilter: s.laporanKategoriFilter, setLaporanKategoriFilter: this.setLaporanKategoriFilter,
+      laporanSupplierFilter: s.laporanSupplierFilter, setLaporanSupplierFilter: this.setLaporanSupplierFilter,
+      laporanStatusFilter: s.laporanStatusFilter, setLaporanStatusFilter: this.setLaporanStatusFilter,
+      laporanKategoriOptions: s.kategoriList, laporanSupplierOptions: s.suplierList.map((x) => x.nama),
+      laporanRows: rows, laporanRowsEmpty: rows.length === 0,
+      laporanTotalStok: filtered.reduce((a, p) => a + p.stok, 0),
+      laporanTotalNilaiJualLabel: formatRp(filtered.reduce((a, p) => a + p.stok * p.ecer, 0)),
+      exportLaporanCsv: this.exportLaporanCsv, printLaporan: this.printLaporan,
+    };
+  }
+
+  laporanLengkapVals(rawS) {
+    const inRange = (iso) => (!rawS.laporanDari || iso >= rawS.laporanDari) && (!rawS.laporanSampai || iso <= rawS.laporanSampai);
+    const s = { ...rawS, pembelianHistory: rawS.pembelianHistory.filter((h) => inRange(h.tanggalISO)), penjualanHistory: rawS.penjualanHistory.filter((h) => inRange(h.tanggalISO)) };
+    const q = rawS.laporanLengkapSearch.trim().toLowerCase();
+    const matches = (...vals) => !q || vals.some((v) => String(v || '').toLowerCase().includes(q));
+    const TABS = [
+      { key: 'global', label: 'Global' },
+      { key: 'pembelian', label: 'Pembelian' },
+      { key: 'penjualan', label: 'Penjualan' },
+      { key: 'laba', label: 'Laba' },
+      { key: 'laris', label: 'Stok Laris' },
+      { key: 'retur', label: 'Retur' },
+    ];
+    const tabsView = TABS.map((t) => {
+      const active = s.laporanLengkapTab === t.key;
+      return {
+        key: t.key, label: t.label, isActive: active,
+        clickHandler: () => this.setLaporanLengkapTab(t.key),
+        style: {
+          padding: '9px 16px', borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
+          fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: active ? 600 : 400, whiteSpace: 'nowrap',
+          background: active ? 'var(--color-accent)' : 'var(--color-neutral-100)',
+          color: active ? 'var(--color-bg)' : 'var(--color-text)',
+        },
+      };
+    });
+
+    const totalPembelian = s.pembelianHistory.reduce((a, h) => a + h.totalBiaya, 0);
+    const totalItemsPembelian = s.pembelianHistory.reduce((a, h) => a + h.totalQty, 0);
+    const avgInvoicePembelian = s.pembelianHistory.length ? totalPembelian / s.pembelianHistory.length : 0;
+    const suppliersUsed = new Set(s.pembelianHistory.map((h) => h.supplier)).size;
+
+    const totalPenjualan = s.penjualanHistory.reduce((a, h) => a + h.grandTotal, 0);
+    const totalItemsTerjual = s.penjualanHistory.reduce((a, h) => a + h.totalQty, 0);
+    const avgSale = s.penjualanHistory.length ? totalPenjualan / s.penjualanHistory.length : 0;
+    const customersServed = new Set(s.penjualanHistory.map((h) => h.custName)).size;
+    const custMap = {};
+    s.penjualanHistory.forEach((h) => {
+      const c = custMap[h.custName] || { custName: h.custName, invoiceCount: 0, totalQty: 0, totalAmount: 0, invoiceNos: [] };
+      c.invoiceCount += 1; c.totalQty += h.totalQty; c.totalAmount += h.grandTotal; c.invoiceNos.push(h.invoiceNo);
+      custMap[h.custName] = c;
+    });
+    const custRows = Object.values(custMap).sort((a, b) => b.totalAmount - a.totalAmount).map((c) => ({ ...c, invoiceLabel: c.invoiceNos.join(', '), totalAmountLabel: formatRp(c.totalAmount) }));
+
+    const costOfLine = (item) => {
+      const p = s.stokProducts.find((x) => x.kode === item.kode);
+      const unitCost = p ? (p.hargaNetto || p.hargaFaktur || 0) : 0;
+      return unitCost * item.qty;
+    };
+    const labaRows = s.penjualanHistory.map((h) => {
+      const cost = h.items.reduce((a, i) => a + costOfLine(i), 0);
+      const profit = h.grandTotal - cost;
+      const margin = h.grandTotal ? (profit / h.grandTotal) * 100 : 0;
+      return { invoiceNo: h.invoiceNo, custName: h.custName, profitLabel: formatRp(profit), marginLabel: margin.toFixed(1) + '%' };
+    });
+    const totalCost = s.penjualanHistory.reduce((a, h) => a + h.items.reduce((b, i) => b + costOfLine(i), 0), 0);
+    const grossProfit = totalPenjualan - totalCost;
+    const marginPct = totalPenjualan ? (grossProfit / totalPenjualan) * 100 : 0;
+    const roiPct = totalCost ? (grossProfit / totalCost) * 100 : 0;
+
+    const itemAgg = {};
+    s.penjualanHistory.forEach((h) => h.items.forEach((i) => {
+      const a = itemAgg[i.kode] || { kode: i.kode, nama: i.nama, qty: 0, revenue: 0 };
+      a.qty += i.qty; a.revenue += i.subtotal;
+      itemAgg[i.kode] = a;
+    }));
+    const byQty = Object.values(itemAgg).sort((a, b) => b.qty - a.qty).slice(0, 5).map((a) => ({ ...a, revenueLabel: formatRp(a.revenue) }));
+    const byRevenue = Object.values(itemAgg).sort((a, b) => b.revenue - a.revenue).slice(0, 5).map((a) => ({ ...a, revenueLabel: formatRp(a.revenue) }));
+
+    return {
+      isModLaporanLengkap: s.activeModule === 'laporanLengkap',
+      laporanDari: s.laporanDari, setLaporanDari: this.setLaporanDari,
+      laporanSampai: s.laporanSampai, setLaporanSampai: this.setLaporanSampai,
+      laporanLengkapSearch: rawS.laporanLengkapSearch, setLaporanLengkapSearch: this.setLaporanLengkapSearch,
+      laporanLengkapTabs: tabsView,
+      lapTabIsGlobal: s.laporanLengkapTab === 'global', lapTabIsPembelian: s.laporanLengkapTab === 'pembelian',
+      lapTabIsPenjualan: s.laporanLengkapTab === 'penjualan', lapTabIsLaba: s.laporanLengkapTab === 'laba',
+      lapTabIsLaris: s.laporanLengkapTab === 'laris', lapTabIsRetur: s.laporanLengkapTab === 'retur',
+
+      pembelianRowsView: s.pembelianHistory.map((h) => ({ ...h, totalBiayaLabel: formatRp(h.totalBiaya) })).filter((h) => matches(h.supplier, h.noFaktur)),
+      totalPembelianLabel: formatRp(totalPembelian), totalItemsPembelian, avgInvoicePembelianLabel: formatRp(avgInvoicePembelian),
+
+      custRows: custRows.filter((c) => matches(c.custName, c.invoiceLabel)), totalPenjualanLabel: formatRp(totalPenjualan), totalItemsTerjual,
+      avgSaleLabel: formatRp(avgSale), penjualanTxCount: s.penjualanHistory.length,
+
+      labaRows: labaRows.filter((r) => matches(r.invoiceNo, r.custName)), totalRevenueLabel: formatRp(totalPenjualan), totalCostLabel: formatRp(totalCost),
+      grossProfitLabel: formatRp(grossProfit), marginPctLabel: marginPct.toFixed(1) + '%',
+
+      byQty: byQty.filter((it) => matches(it.nama, it.kode)), byRevenue: byRevenue.filter((it) => matches(it.nama, it.kode)),
+
+      kpiTotalRevenueLabel: formatRp(totalPenjualan), kpiTotalCostLabel: formatRp(totalCost),
+      kpiNetProfitLabel: formatRp(grossProfit), kpiMarginLabel: marginPct.toFixed(1) + '%', kpiRoiLabel: roiPct.toFixed(1) + '%',
+      kpiTxCount: s.penjualanHistory.length, kpiAvgSaleLabel: formatRp(avgSale), kpiCustomersServed: customersServed,
+      kpiItemsSold: totalItemsTerjual, kpiPurchaseTx: s.pembelianHistory.length, kpiSuppliersUsed: suppliersUsed,
+      kpiAvgPurchaseLabel: formatRp(avgInvoicePembelian),
+    };
+  }
+
+  returVals(s) {
+    const isOwner = s.role === 'owner';
+    const effectiveTab = (!isOwner && s.returTab === 'pembelian') ? 'penjualan' : s.returTab;
+    const returPjCartView = s.returPjCart.map((item, idx) => ({ ...item, removeHandler: () => this.removeReturPjItem(idx) }));
+    const returPbCartView = s.returPbCart.map((item, idx) => ({ ...item, removeHandler: () => this.removeReturPbItem(idx) }));
+    const canCompletePj = s.returPjCustomer.trim() !== '' && s.returPjInvoice.trim() !== '' && s.returPjCart.length > 0;
+    const canCompletePb = s.returPbSupplier.trim() !== '' && s.returPbInvoice.trim() !== '' && s.returPbCart.length > 0;
+    return {
+      isModRetur: s.activeModule === 'retur',
+      returTabIsPenjualan: effectiveTab === 'penjualan', returTabIsPembelian: effectiveTab === 'pembelian',
+      returTabIsPenjualan_class: effectiveTab === 'penjualan' ? 'btn-primary' : 'btn-secondary',
+      returTabIsPembelian_class: effectiveTab === 'pembelian' ? 'btn-primary' : 'btn-secondary',
+      setReturTabPenjualan: () => this.setReturTab('penjualan'), setReturTabPembelian: () => this.setReturTab('pembelian'),
+      returShowPembelianTab: isOwner,
+      returProductOptions: s.stokProducts, reasonOptions: RETUR_REASONS,
+
+      returPjCustomer: s.returPjCustomer, setReturPjCustomer: this.setReturPjCustomer,
+      returPjInvoice: s.returPjInvoice, setReturPjInvoice: this.setReturPjInvoice,
+      returPjTanggal: s.returPjTanggal, setReturPjTanggal: this.setReturPjTanggal,
+      returPjKode: s.returPjKode, setReturPjKode: this.setReturPjKode,
+      returPjQty: s.returPjQty, setReturPjQty: this.setReturPjQty,
+      returPjReason: s.returPjReason, setReturPjReason: this.setReturPjReason,
+      addReturPjItem: this.addReturPjItem, returPjCartView, returPjCartEmpty: returPjCartView.length === 0,
+      returPjTotalQty: s.returPjCart.reduce((a, i) => a + i.qty, 0),
+      completeReturPj: this.completeReturPj, returPjCannotComplete: !canCompletePj,
+      returPjHistoryView: s.returPjHistory,
+
+      returPbSupplier: s.returPbSupplier, setReturPbSupplier: this.setReturPbSupplier,
+      returPbInvoice: s.returPbInvoice, setReturPbInvoice: this.setReturPbInvoice,
+      returPbTanggal: s.returPbTanggal, setReturPbTanggal: this.setReturPbTanggal,
+      returPbKode: s.returPbKode, setReturPbKode: this.setReturPbKode,
+      returPbQty: s.returPbQty, setReturPbQty: this.setReturPbQty,
+      returPbReason: s.returPbReason, setReturPbReason: this.setReturPbReason,
+      addReturPbItem: this.addReturPbItem, returPbCartView, returPbCartEmpty: returPbCartView.length === 0,
+      returPbTotalQty: s.returPbCart.reduce((a, i) => a + i.qty, 0),
+      completeReturPb: this.completeReturPb, returPbCannotComplete: !canCompletePb,
+      returPbHistoryView: s.returPbHistory,
+    };
+  }
+
+  masterVals(s) {
+    const t = s.masterModalType;
+    const deleteTarget = s.masterDeleteTarget;
+    let deleteTargetName = '';
+    if (deleteTarget) {
+      if (deleteTarget.type === 'suplier') deleteTargetName = (s.suplierList.find((x) => x.kode === deleteTarget.key) || {}).nama || '';
+      else if (deleteTarget.type === 'pelanggan') deleteTargetName = (s.pelangganList.find((x) => x.kode === deleteTarget.key) || {}).nama || '';
+      else deleteTargetName = deleteTarget.key;
+    }
+    return {
+      isModMaster: s.activeModule === 'master',
+      masterTabIsSuplier: s.masterTab === 'suplier', masterTabIsPelanggan: s.masterTab === 'pelanggan',
+      masterTabIsKategori: s.masterTab === 'kategori', masterTabIsUser: s.masterTab === 'user',
+      setMasterTabSuplier: () => this.setMasterTab('suplier'), setMasterTabPelanggan: () => this.setMasterTab('pelanggan'),
+      setMasterTabKategori: () => this.setMasterTab('kategori'), setMasterTabUser: () => this.setMasterTab('user'),
+      masterTabSuplier_class: s.masterTab === 'suplier' ? 'btn-primary' : 'btn-secondary',
+      masterTabPelanggan_class: s.masterTab === 'pelanggan' ? 'btn-primary' : 'btn-secondary',
+      masterTabKategori_class: s.masterTab === 'kategori' ? 'btn-primary' : 'btn-secondary',
+      masterTabUser_class: s.masterTab === 'user' ? 'btn-primary' : 'btn-secondary',
+
+      suplierRows: s.suplierList.map((x) => ({ ...x, editHandler: () => this.openMasterEdit('suplier', x.kode), deleteHandler: () => this.requestDeleteMaster('suplier', x.kode) })),
+      pelangganRows: s.pelangganList.map((x) => ({ ...x, editHandler: () => this.openMasterEdit('pelanggan', x.kode), deleteHandler: () => this.requestDeleteMaster('pelanggan', x.kode) })),
+      kategoriRows: s.kategoriList.map((k) => ({ nama: k, editHandler: () => this.openMasterEdit('kategori', k), deleteHandler: () => this.requestDeleteMaster('kategori', k) })),
+      userRows: s.userList.map((u) => ({ ...u, roleLabel: u.role === 'owner' ? 'Owner' : 'Karyawan', roleTagClass: u.role === 'owner' ? 'tag-accent' : 'tag-accent-2', editHandler: () => this.openMasterEdit('user', u.username), deleteHandler: () => this.requestDeleteMaster('user', u.username) })),
+
+      openMasterAddSuplier: () => this.openMasterAdd('suplier'), openMasterAddPelanggan: () => this.openMasterAdd('pelanggan'),
+      openMasterAddKategori: () => this.openMasterAdd('kategori'), openMasterAddUser: () => this.openMasterAdd('user'),
+
+      masterModalOpen: s.masterModalOpen, closeMasterModal: this.closeMasterModal,
+      masterIsEdit: !!s.masterEditKey,
+      masterTypeIsSuplier: t === 'suplier', masterTypeIsPelanggan: t === 'pelanggan', masterTypeIsKategori: t === 'kategori', masterTypeIsUser: t === 'user',
+      masterModalTitle: (s.masterEditKey ? 'Ubah ' : 'Tambah ') + (t === 'suplier' ? 'Suplier' : t === 'pelanggan' ? 'Pelanggan' : t === 'kategori' ? 'Kategori' : 'Pengguna'),
+      masterNamaLabel: t === 'suplier' ? 'Nama Suplier' : t === 'pelanggan' ? 'Nama Pelanggan' : t === 'kategori' ? 'Nama Kategori' : 'Nama Pengguna',
+      masterForm: s.masterForm,
+      setMasterNama: this.setMasterFormField('nama'), setMasterAlamat: this.setMasterFormField('alamat'), setMasterNoHp: this.setMasterFormField('noHp'),
+      masterRoleIsOwner: s.masterForm.role === 'owner', masterRoleIsKaryawan: s.masterForm.role !== 'owner',
+      setMasterRoleOwner: this.setMasterRoleOwner, setMasterRoleKaryawan: this.setMasterRoleKaryawan,
+      masterFormError: s.masterFormError, saveMasterForm: this.saveMasterForm,
+      masterDeleteTarget: s.masterDeleteTarget, masterDeleteTargetName: deleteTargetName,
+      cancelDeleteMaster: this.cancelDeleteMaster, confirmDeleteMaster: this.confirmDeleteMaster,
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isOwner = s.role === 'owner';
+    const storeName = this.props.storeName || 'App-mini';
+    const finalUserName = s.userName || (isOwner ? 'Owner Toko' : 'Karyawan Toko');
+
+    const w = 560, h = 160, pad = 12;
+    const min = Math.min(...TREND), max = Math.max(...TREND);
+    const stepX = (w - pad * 2) / (TREND.length - 1);
+    const pts = TREND.map((v, i) => {
+      const x = pad + i * stepX;
+      const y = pad + (1 - (v - min) / (max - min || 1)) * (h - pad * 2);
+      return [x, y];
+    });
+    const linePath = 'M' + pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L');
+    const areaPath = linePath + ` L${pts[pts.length - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z`;
+
+    const maxQty = Math.max(...TOP_PRODUCTS.map((p) => p.qty));
+    const moduleLabels = { dashboard: 'Dashboard', penjualan: 'Transaksi Penjualan', stok: 'Data Barang', pembelian: 'Input Pembelian', laporan: 'Laporan Stok', laporanLengkap: 'Laporan', retur: 'Retur', master: 'Master Data' };
+
+    return {
+      isLogin: s.screen === 'login',
+      isApp: s.screen === 'app',
+      isOwner, isKaryawan: !isOwner,
+      storeName,
+      username: s.username, password: s.password, loginError: s.loginError,
+      setUsername: this.setUsername, setPassword: this.setPassword,
+      setRoleOwner: this.setRoleOwner, setRoleKaryawan: this.setRoleKaryawan,
+      doLogin: this.doLogin, doLogout: this.doLogout,
+      showForgot: s.showForgot, forgotSent: s.forgotSent, forgotNotSent: !s.forgotSent,
+      forgotContact: s.forgotContact, forgotError: s.forgotError,
+      openForgot: this.openForgot, closeForgot: this.closeForgot,
+      setForgotContact: this.setForgotContact, sendForgot: this.sendForgot,
+      userName: finalUserName,
+      userInitial: finalUserName.trim()[0].toUpperCase(),
+      roleLabel: isOwner ? 'Owner' : 'Karyawan',
+      roleTagClass: isOwner ? 'tag-accent' : 'tag-accent-2',
+
+      printPage: this.printPage,
+      goDashboard: () => this.goTo('dashboard'),
+      goPenjualan: () => this.goTo('penjualan'),
+      goStok: () => this.goTo('stok'),
+      goPembelian: () => this.goTo('pembelian'),
+      goLaporan: () => this.goTo('laporan'),
+      goLaporanLengkap: () => this.goTo('laporanLengkap'),
+      goRetur: () => this.goTo('retur'),
+      goMaster: () => this.goTo('master'),
+
+      navDashboardStyle: this.navStyle('dashboard'),
+      navPenjualanStyle: this.navStyle('penjualan'),
+      navStokStyle: this.navStyle('stok'),
+      navPembelianStyle: this.navStyle('pembelian'),
+      navLaporanStyle: this.navStyle('laporan'),
+      navLaporanLengkapStyle: this.navStyle('laporanLengkap'),
+      navReturStyle: this.navStyle('retur'),
+      navMasterStyle: this.navStyle('master'),
+
+      stokLocked: !isOwner, pembelianLocked: !isOwner, masterLocked: !isOwner, laporanLengkapLocked: !isOwner,
+      stokTitle: !isOwner ? 'Khusus akses Owner' : '',
+      pembelianTitle: !isOwner ? 'Khusus akses Owner' : '',
+      masterTitle: !isOwner ? 'Khusus akses Owner' : '',
+      laporanLengkapTitle: !isOwner ? 'Khusus akses Owner' : '',
+
+      isModDashboard: s.activeModule === 'dashboard',
+      isModPenjualan: s.activeModule === 'penjualan',
+      isModOther: s.activeModule !== 'dashboard' && s.activeModule !== 'penjualan' && s.activeModule !== 'stok' && s.activeModule !== 'pembelian' && s.activeModule !== 'laporan' && s.activeModule !== 'laporanLengkap' && s.activeModule !== 'retur' && s.activeModule !== 'master',
+      activeModuleLabel: moduleLabels[s.activeModule] || '',
+
+      ...this.penjualanVals(s),
+      ...this.stokVals(s),
+      ...this.pembelianVals(s),
+      ...this.laporanVals(s),
+      ...this.laporanLengkapVals(s),
+      ...this.returVals(s),
+      ...this.masterVals(s),
+
+      lowStock: LOW_STOCK.map((item) => ({ ...item, statusIsKritis: item.status === 'Kritis', statusIsMenipis: item.status === 'Menipis' })),
+      topProducts: TOP_PRODUCTS.map((p) => ({ ...p, barPct: Math.round((p.qty / maxQty) * 100) })),
+
+      trendLinePath: linePath,
+      trendAreaPath: areaPath,
+      trendLastLabel: 'Rp ' + TREND[TREND.length - 1].toFixed(1).replace('.', ',') + ' jt',
+
+      todayLabel: 'Kamis, 6 Agustus 2026',
+    };
+  }
+}
+</script>
+</body>
+</html>
+
