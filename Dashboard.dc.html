@@ -32,6 +32,42 @@
       #app-shell { display: none !important; }
       #stok-print-sheet { display: flex !important; }
     }
+
+    /* ── Responsif: tablet & Android ─────────────────────────────────
+       Breakpoint 900px ≈ lebar tablet dalam mode potrait (iPad/Android
+       tablet umum 768-834px) — di bawah itu sidebar jadi drawer geser,
+       dan layout dua-kolom (kelas .rg) turun jadi satu kolom. Breakpoint
+       640px khusus HP: sembunyikan panel dekoratif login, kecilkan padding. */
+    .nav-burger { display: none; }
+    .nav-backdrop { display: none; }
+
+    @media (max-width: 900px) {
+      .rg { grid-template-columns: 1fr !important; }
+      .nav-burger { display: inline-flex !important; }
+      #app-sidebar {
+        position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
+        transform: translateX(-100%); transition: transform .2s ease;
+        box-shadow: var(--shadow-lg);
+      }
+      #app-sidebar.nav-open { transform: translateX(0); }
+      .nav-backdrop {
+        display: block; position: fixed; inset: 0; z-index: 40;
+        background: color-mix(in srgb, var(--color-neutral-900) 55%, transparent);
+      }
+      #app-shell header { padding-left: 20px !important; padding-right: 20px !important; }
+      #app-shell main { padding-left: 20px !important; padding-right: 20px !important; }
+      /* tabel lebar mempertahankan lebar minimum & scroll ke samping di
+         dalam card-nya sendiri, bukan mendorong seluruh halaman melebar
+         atau meremukkan kolom jadi tidak terbaca */
+      table.table { min-width: 640px; }
+    }
+
+    @media (max-width: 640px) {
+      .login-brand-panel { display: none !important; }
+      .login-form-panel { padding: 20px !important; }
+    }
+
+    .card:has(table.table) { overflow-x: auto; }
   </style>
 </helmet>
 
@@ -41,7 +77,7 @@
 
 <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
   <div style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
-    <div style="width:42%;min-width:340px;background:var(--color-neutral-900);color:var(--color-bg);display:flex;flex-direction:column;justify-content:space-between;padding:48px;box-sizing:border-box;">
+    <div class="login-brand-panel" style="width:42%;min-width:340px;background:var(--color-neutral-900);color:var(--color-bg);display:flex;flex-direction:column;justify-content:space-between;padding:48px;box-sizing:border-box;">
       <div>
         <div style="font-family:var(--font-heading);font-weight:600;font-size:30px;">{{ storeName }}</div>
         <div style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 65%, transparent);margin-top:8px;">Sistem Stok &amp; Kasir Toko</div>
@@ -71,8 +107,8 @@
       <div style="font-size:11px;color:color-mix(in srgb, var(--color-bg) 45%, transparent);">App-mini v1.0 — dijalankan lokal di toko.</div>
     </div>
 
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px;box-sizing:border-box;">
-      <div style="width:380px;display:flex;flex-direction:column;gap:22px;">
+    <div class="login-form-panel" style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px;box-sizing:border-box;">
+      <div style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:22px;">
         <div>
           <h2 style="margin:0 0 6px;">Masuk ke Aplikasi</h2>
           <p style="margin:0;font-size:14px;opacity:0.7;">Masukkan akun Anda. Peran (Owner/Karyawan) mengikuti akun.</p>
@@ -129,7 +165,10 @@
 
 <sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
   <div id="app-shell" style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
-    <aside style="width:252px;flex:none;background:var(--color-neutral-900);display:flex;flex-direction:column;padding:24px 16px;gap:22px;box-sizing:border-box;">
+    <sc-if value="{{ navMobileOpen }}">
+      <div class="nav-backdrop" onClick="{{ closeNavMobile }}"></div>
+    </sc-if>
+    <aside id="app-sidebar" class="{{ navMobileOpenClass }}" style="width:252px;flex:none;background:var(--color-neutral-900);display:flex;flex-direction:column;padding:24px 16px;gap:22px;box-sizing:border-box;">
       <div style="padding:0 8px;">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-bg);">{{ storeName }}</div>
         <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 55%, transparent);margin-top:4px;">Sistem Stok &amp; Kasir</div>
@@ -190,12 +229,17 @@
     </aside>
 
     <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
-      <header style="display:flex;align-items:center;justify-content:space-between;padding:28px 40px 0;box-sizing:border-box;">
-        <div>
-          <h2 style="margin:0;">{{ activeModuleLabel }}</h2>
-          <div style="font-size:13px;opacity:0.6;margin-top:4px;">{{ todayLabel }}</div>
+      <header style="display:flex;align-items:center;justify-content:space-between;padding:28px 40px 0;box-sizing:border-box;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+          <button type="button" class="nav-burger btn btn-secondary btn-icon" style="flex:none;" aria-label="Buka menu" onClick="{{ toggleNavMobile }}">
+            <svg width="18" height="18" viewBox="0 0 256 256"><rect x="32" y="60" width="192" height="16" rx="8" fill="currentColor"></rect><rect x="32" y="120" width="192" height="16" rx="8" fill="currentColor"></rect><rect x="32" y="180" width="192" height="16" rx="8" fill="currentColor"></rect></svg>
+          </button>
+          <div style="min-width:0;">
+            <h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ activeModuleLabel }}</h2>
+            <div style="font-size:13px;opacity:0.6;margin-top:4px;">{{ todayLabel }}</div>
+          </div>
         </div>
-        <span class="tag {{ roleTagClass }}" style="font-size:12px;padding:5px 12px;">{{ roleLabel }}</span>
+        <span class="tag {{ roleTagClass }}" style="font-size:12px;padding:5px 12px;flex:none;">{{ roleLabel }}</span>
       </header>
 
       <sc-if value="{{ globalError }}">
@@ -234,7 +278,7 @@
           </div>
 
           <sc-if value="{{ isOwner }}">
-            <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;">
+            <div class="rg" style="display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;">
               <div class="card elev-sm">
                 <div class="card-kicker">Tren Penjualan — 14 Hari Terakhir</div>
                 <svg viewBox="0 0 560 160" style="width:100%;height:160px;margin-top:10px;display:block;">
@@ -309,11 +353,11 @@
 
         <sc-if value="{{ isModPenjualan }}" hint-placeholder-val="{{ false }}">
           <sc-if value="{{ penjNotCompleted }}" hint-placeholder-val="{{ true }}">
-            <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+            <div class="rg" style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
               <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
                 <div class="card elev-sm">
                   <div class="card-kicker">Tambah Barang</div>
-                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:10px;">
+                  <div class="rg" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:10px;">
                     <div class="field">
                       <label for="penj-product">Cari Barang</label>
                       <select class="input" id="penj-product" style="min-height:46px;font-size:15px;" value="{{ penjSelectedKode }}" onChange="{{ setPenjProduct }}">
@@ -417,7 +461,7 @@
 
           <sc-if value="{{ penjCompletedFlag }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex;justify-content:center;">
-              <div class="card elev-md" style="width:520px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
+              <div class="card elev-md" style="width:100%;max-width:520px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
                 <div>
                   <div class="card-kicker">Transaksi Berhasil</div>
                   <h3 style="margin:6px 0 0;">{{ penjLastInvoiceView.invoiceNo }}</h3>
@@ -603,7 +647,7 @@
                     </div>
                   </div>
                   <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-top:4px;">Harga Jual</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
                     <div class="field">
                       <label for="stok-f-ecer">Harga Ecer</label>
                       <input class="input" id="stok-f-ecer" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.ecer }}" onChange="{{ setStokEcer }}" />
@@ -617,7 +661,7 @@
                       <input class="input" id="stok-f-grosir" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.grosir }}" onChange="{{ setStokGrosir }}" />
                     </div>
                   </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div class="field">
                       <label for="stok-f-stok">Stok</label>
                       <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
@@ -682,7 +726,7 @@
 
         <sc-if value="{{ isModPembelian }}" hint-placeholder-val="{{ false }}">
           <sc-if value="{{ pembelianNotCompleted }}" hint-placeholder-val="{{ true }}">
-          <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+          <div class="rg" style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
             <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
               <div class="card elev-sm">
                 <div class="card-kicker">Data Pembelian</div>
@@ -701,7 +745,7 @@
                     <input class="input" id="pb-supplier-new" style="min-height:46px;font-size:15px;" placeholder="Nama suplier" value="{{ pembelianSupplierNew }}" onChange="{{ setPembelianSupplierNew }}" />
                   </div>
                 </sc-if>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;margin-top:12px;">
+                <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;margin-top:12px;">
                   <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;">
                     <span>No. Faktur</span><span style="font-weight:600;opacity:1;">{{ previewPembelianNo }}</span>
                   </div>
@@ -728,7 +772,7 @@
 
               <div class="card elev-sm">
                 <div class="card-kicker">Tambah Barang</div>
-                <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
+                <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
                   <div class="field" style="position:relative;">
                     <label for="pb-kategori">Kategori</label>
                     <button type="button" class="btn btn-ghost btn-icon" aria-label="Tambah kategori baru" title="Tambah kategori baru" style="position:absolute;top:-4px;right:0;min-height:24px;min-width:24px;padding:0;" onClick="{{ goMaster }}"><svg width="13" height="13" viewBox="0 0 256 256"><line x1="128" y1="40" x2="128" y2="216" stroke="currentColor" stroke-width="24"></line><line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="24"></line></svg></button>
@@ -750,7 +794,7 @@
                   </div>
                 </div>
                 <sc-if value="{{ pembelianIsNewItem }}" hint-placeholder-val="{{ false }}">
-                  <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px;">
                     <div class="field">
                       <label for="pb-new-kode">Kode Barang Baru</label>
                       <input class="input" id="pb-new-kode" style="min-height:46px;font-size:15px;" placeholder="Contoh: BAN-030" value="{{ pembelianNewKode }}" onChange="{{ setPembelianNewKode }}" />
@@ -761,7 +805,7 @@
                     </div>
                   </div>
                 </sc-if>
-                <div style="display:grid;grid-template-columns:1fr 1fr 0.7fr;gap:16px;margin-top:16px;">
+                <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 0.7fr;gap:16px;margin-top:16px;">
                   <div class="field">
                     <label for="pb-harga-faktur">Harga Faktur</label>
                     <input class="input" id="pb-harga-faktur" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaFaktur }}" onChange="{{ setPembelianHargaFaktur }}" />
@@ -841,7 +885,7 @@
 
           <sc-if value="{{ pembelianCompletedFlag }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex;justify-content:center;">
-              <div class="card elev-md" style="width:560px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
+              <div class="card elev-md" style="width:100%;max-width:560px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
                 <div>
                   <div class="card-kicker">Pembelian Siap Disimpan</div>
                   <h3 style="margin:6px 0 0;">{{ pembelianPreviewView.noFaktur }}</h3>
@@ -1078,7 +1122,7 @@
           </sc-if>
 
           <sc-if value="{{ lapTabIsLaris }}" hint-placeholder-val="{{ false }}">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+            <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
               <div class="card elev-sm">
                 <div class="card-kicker">Ranking berdasarkan Qty Terjual</div>
                 <table class="table" style="margin-top:8px;">
@@ -1144,11 +1188,11 @@
           </div>
 
           <sc-if value="{{ returTabIsPenjualan }}" hint-placeholder-val="{{ true }}">
-            <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+            <div class="rg" style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
               <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
                 <div class="card elev-sm">
                   <div class="card-kicker">Data Retur Penjualan</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
                     <div class="field">
                       <label for="rp-cust">Nama Pelanggan</label>
                       <input class="input" id="rp-cust" style="min-height:46px;font-size:15px;" placeholder="Contoh: Hadi" value="{{ returPjCustomer }}" onChange="{{ setReturPjCustomer }}" />
@@ -1166,7 +1210,7 @@
 
                 <div class="card elev-sm">
                   <div class="card-kicker">Tambah Barang Retur</div>
-                  <div style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
+                  <div class="rg" style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
                     <div class="field">
                       <label for="rp-product">Barang</label>
                       <select class="input" id="rp-product" style="min-height:46px;font-size:15px;" value="{{ returPjKode }}" onChange="{{ setReturPjKode }}">
@@ -1235,11 +1279,11 @@
           </sc-if>
 
           <sc-if value="{{ returTabIsPembelian }}" hint-placeholder-val="{{ false }}">
-            <div style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
+            <div class="rg" style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
               <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
                 <div class="card elev-sm">
                   <div class="card-kicker">Data Retur Pembelian</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
                     <div class="field">
                       <label for="rb-supplier">Nama Suplier</label>
                       <input class="input" id="rb-supplier" list="rb-supplier-list" style="min-height:46px;font-size:15px;" placeholder="Pilih atau ketik nama suplier" value="{{ returPbSupplier }}" onChange="{{ setReturPbSupplier }}" />
@@ -1262,7 +1306,7 @@
 
                 <div class="card elev-sm">
                   <div class="card-kicker">Tambah Barang Retur</div>
-                  <div style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
+                  <div class="rg" style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
                     <div class="field">
                       <label for="rb-product">Barang</label>
                       <select class="input" id="rb-product" style="min-height:46px;font-size:15px;" value="{{ returPbKode }}" onChange="{{ setReturPbKode }}">
@@ -1597,6 +1641,7 @@ class Component extends DCLogic {
     busy: false,
     globalError: '',
     activeModule: 'dashboard',
+    navMobileOpen: false,
     showForgot: false,
     forgotContact: '',
     forgotSent: false,
@@ -2282,9 +2327,12 @@ class Component extends DCLogic {
 
   goTo = (key) => {
     if (!NAV_ACCESS[key].includes(this.state.role)) return;
-    this.setState({ activeModule: key });
+    this.setState({ activeModule: key, navMobileOpen: false });
     this.loadModuleData(key);
   };
+
+  toggleNavMobile = () => this.setState((s) => ({ navMobileOpen: !s.navMobileOpen }));
+  closeNavMobile = () => this.setState({ navMobileOpen: false });
 
   navStyle(key) {
     const active = this.state.activeModule === key;
@@ -2727,6 +2775,8 @@ class Component extends DCLogic {
       navLaporanLengkapStyle: this.navStyle('laporanLengkap'),
       navReturStyle: this.navStyle('retur'),
       navMasterStyle: this.navStyle('master'),
+      navMobileOpen: s.navMobileOpen, navMobileOpenClass: s.navMobileOpen ? 'nav-open' : '',
+      toggleNavMobile: this.toggleNavMobile, closeNavMobile: this.closeNavMobile,
 
       stokLocked: !isOwner, pembelianLocked: !isOwner, masterLocked: !isOwner, laporanLengkapLocked: !isOwner,
       stokTitle: !isOwner ? 'Khusus akses Owner' : '',
