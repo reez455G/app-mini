@@ -2183,7 +2183,7 @@ class Component extends DCLogic {
   }
 
   penjualanVals(s) {
-    const selectedProduct = s.stokProducts.find((p) => p.kode === s.penjSelectedKode) || s.stokProducts[0];
+    const selectedProduct = s.stokProducts.find((p) => p.kode === s.penjSelectedKode) || s.stokProducts[0] || { kode: '', stok: 0, ecer: 0, bengkel: 0, grosir: 0 };
     const qtyNum = parseInt(s.penjQty) || 0;
     const tier = qtyNum >= 11 ? 'grosir' : qtyNum >= 6 ? 'bengkel' : qtyNum >= 1 ? 'ecer' : null;
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : tier === 'ecer' ? 'ECER' : '';
