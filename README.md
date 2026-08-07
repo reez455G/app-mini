@@ -64,6 +64,15 @@ jangan dobel klik file-nya langsung (`file:///...`): `support.js` melakukan
 
 Detail schema database + referensi API lengkap ada di **`docs/BACKEND.md`**.
 
+### Mau data yang lebih banyak buat testing?
+
+`backend/schema.sql` cuma isi 8 barang secukupnya. Kalau mau coba fitur
+laporan/dashboard/tren dengan data yang lebih ramai (22 barang, riwayat
+pembelian & penjualan sebulan terakhir, beberapa retur), import juga
+`backend/dummy_data.sql` (lewat phpMyAdmin, atau `mysql -u root app_mini <
+backend/dummy_data.sql`) — aman dijalankan kapan saja di atas database yang
+sudah ada, cuma nambah data, tidak menghapus apa pun.
+
 ## Offline — tidak butuh internet
 
 Semua yang tadinya dimuat dari CDN sudah di-download dan disimpan lokal di
