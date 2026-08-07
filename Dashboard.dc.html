@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // support.js loads React/ReactDOM from unpkg by default; this override (its own
+  // documented hook — see cdnScriptFor() in support.js) points it at the vendored
+  // copies in vendor/react/ instead, so the app boots with no internet connection.
+  window.__resources = {
+    "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "vendor/react/react.production.min.js",
+    "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "vendor/react/react-dom.production.min.js"
+  };
+</script>
 <script src="./support.js"></script>
 </head>
 <body>

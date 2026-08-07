@@ -12,6 +12,9 @@ app-mini/
 ├── index.html              # redirect ke Dashboard.dc.html (biar bisa akses via folder root)
 ├── Dashboard.dc.html        # halaman utama: markup + logika (React, di dalam <script>)
 ├── support.js               # runtime yang membaca Dashboard.dc.html dan merender React-nya
+├── vendor/                   # React/ReactDOM + font, di-download lokal — lihat § Offline
+│   ├── react/
+│   └── fonts/
 ├── _ds/broadsheet-.../
 │   ├── styles.css            # design tokens & style komponen (warna, font, spacing)
 │   ├── _ds_bundle.js          # efek visual tambahan (filter cetak/plate)
@@ -58,16 +61,20 @@ bersama file-file di atas ke `htdocs` yang sama, akun demo `Budi`/`owner123`
 (Owner) dan `Karyawan1`/`karyawan123` (Karyawan) — ganti passwordnya sebelum
 dipakai sungguhan.
 
-## Kebutuhan koneksi internet
+## Offline — tidak butuh internet
 
-Halaman ini memuat beberapa file dari CDN saat dibuka:
-- React & ReactDOM dari `unpkg.com`
-- Font "Source Serif 4" dari `fonts.googleapis.com`
+Semua yang tadinya dimuat dari CDN sudah di-download dan disimpan lokal di
+folder `vendor/`:
+- React & ReactDOM (tadinya dari `unpkg.com`) → `vendor/react/`, di-load lewat
+  `window.__resources` (hook resmi `support.js` sendiri untuk override sumber
+  CDN — bukan hasil edit file `support.js`, lihat `<head>` di `Dashboard.dc.html`).
+- Font "Source Serif 4" (tadinya dari `fonts.googleapis.com`) → `vendor/fonts/`,
+  di-load lewat `@font-face` di `styles.css`. Cuma subset "latin" yang
+  disimpan (huruf Latin standar) — cukup untuk UI berbahasa Indonesia, bukan
+  full 6-subset Google Fonts (cyrillic/greek/vietnamese/dst tidak terpakai).
 
-Jadi komputer/toko yang menjalankannya **butuh koneksi internet aktif**
-walau server web-nya sendiri jalan lokal. Kalau nanti perlu jalan tanpa
-internet sama sekali, file-file CDN itu perlu di-download dan disimpan
-lokal (belum dilakukan di versi ini).
+Halaman ini sekarang jalan 100% tanpa koneksi internet, dari awal buka
+sampai dipakai — cocok untuk toko yang sinyalnya tidak stabil.
 
 ## ⚠️ Batasan penting sebelum dipakai sungguhan di toko
 

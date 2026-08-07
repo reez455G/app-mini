@@ -1,5 +1,20 @@
 /* Broadsheet — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
+/* Source Serif 4, vendored locally from Google Fonts (see vendor/fonts/) so the
+   app renders offline — only the "latin" subset, this app is Indonesian-language UI. */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../vendor/fonts/source-serif-4-italic-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../../vendor/fonts/source-serif-4-normal.woff2') format('woff2');
+}
 
 :root {
   --color-bg: #f3f2f2;
