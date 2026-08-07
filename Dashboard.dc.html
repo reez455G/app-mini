@@ -526,7 +526,7 @@
               </div>
             </div>
             <div style="display:flex;gap:10px;flex:none;">
-              <button type="button" class="btn btn-secondary" style="min-height:46px;white-space:nowrap;" onClick="{{ openStokScan }}">
+              <button type="button" class="btn btn-secondary" style="min-height:46px;white-space:nowrap;" onClick="{{ openQrScan }}">
                 <svg width="16" height="16" viewBox="0 0 256 256"><rect x="32" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="56" width="24" height="24" fill="currentColor"></rect><rect x="152" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="176" y="56" width="24" height="24" fill="currentColor"></rect><rect x="32" y="152" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="176" width="24" height="24" fill="currentColor"></rect><rect x="152" y="152" width="24" height="24" fill="currentColor"></rect><rect x="200" y="152" width="24" height="24" fill="currentColor"></rect><rect x="152" y="200" width="24" height="24" fill="currentColor"></rect><rect x="200" y="200" width="24" height="24" fill="currentColor"></rect></svg>
                 Scan QR
               </button>
@@ -570,24 +570,6 @@
               </tbody>
             </table>
           </div>
-
-          <sc-if value="{{ stokScanOpen }}" hint-placeholder-val="{{ false }}">
-            <div class="dialog-backdrop">
-              <div class="dialog">
-                <div class="dialog-title">Pindai QR Barang</div>
-                <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
-                  <sc-if value="{{ stokScanError }}">
-                    <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ stokScanError }}</p>
-                  </sc-if>
-                  <video id="stok-qr-video" muted playsInline style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius-md);background:var(--color-neutral-900);display:block;"></video>
-                  <p style="margin:0;font-size:12px;opacity:0.6;">Arahkan kamera ke QR kode barang. Kalau kamera tidak tersedia, ketik kode langsung di kolom Cari Barang.</p>
-                </div>
-                <div class="dialog-actions">
-                  <button type="button" class="btn btn-ghost" onClick="{{ closeStokScan }}">Tutup</button>
-                </div>
-              </div>
-            </div>
-          </sc-if>
 
           <sc-if value="{{ stokModalOpen }}" hint-placeholder-val="{{ false }}">
             <div class="dialog-backdrop">
@@ -765,7 +747,13 @@
               </div>
 
               <div class="card elev-sm">
-                <div class="card-kicker">Tambah Barang</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                  <div class="card-kicker">Tambah Barang</div>
+                  <button type="button" class="btn btn-secondary" style="min-height:36px;font-size:12px;padding:6px 12px;white-space:nowrap;" onClick="{{ scanIntoPembelian }}">
+                    <svg width="14" height="14" viewBox="0 0 256 256"><rect x="32" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="56" width="24" height="24" fill="currentColor"></rect><rect x="152" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="176" y="56" width="24" height="24" fill="currentColor"></rect><rect x="32" y="152" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="176" width="24" height="24" fill="currentColor"></rect><rect x="152" y="152" width="24" height="24" fill="currentColor"></rect><rect x="200" y="152" width="24" height="24" fill="currentColor"></rect><rect x="152" y="200" width="24" height="24" fill="currentColor"></rect><rect x="200" y="200" width="24" height="24" fill="currentColor"></rect></svg>
+                    Scan
+                  </button>
+                </div>
                 <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
                   <div class="field" style="position:relative;">
                     <label for="pb-kategori">Kategori</label>
@@ -1558,6 +1546,24 @@
         </sc-if>
 
       </main>
+
+      <sc-if value="{{ qrScanOpen }}" hint-placeholder-val="{{ false }}">
+        <div class="dialog-backdrop">
+          <div class="dialog">
+            <div class="dialog-title">Pindai QR / Barcode</div>
+            <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+              <sc-if value="{{ qrScanError }}">
+                <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ qrScanError }}</p>
+              </sc-if>
+              <video id="qr-scan-video" muted playsInline style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius-md);background:var(--color-neutral-900);display:block;"></video>
+              <p style="margin:0;font-size:12px;opacity:0.6;">Arahkan kamera ke QR/barcode. Kalau kamera tidak tersedia, ketik kode secara manual.</p>
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-ghost" onClick="{{ closeQrScan }}">Tutup</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
     </div>
   </div>
 
@@ -1657,8 +1663,8 @@ class Component extends DCLogic {
     stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
     stokFormError: '',
     stokDeleteTarget: null,
-    stokScanOpen: false,
-    stokScanError: '',
+    qrScanOpen: false,
+    qrScanError: '',
     stokPrintOpen: false,
     stokPrintTarget: null,
     stokPrintType: 'qr',
@@ -2002,26 +2008,26 @@ class Component extends DCLogic {
   // onResult: opsional — dipanggil dengan teks hasil scan. Default
   // handleQrResult (cari/buka form). Dipakai juga dari dalam form Tambah
   // Barang, di mana hasil scan cuma perlu mengisi field Kode saja.
-  openStokScan = (onResult) => {
+  openQrScan = (onResult) => {
     this._qrOnResult = onResult || this.handleQrResult;
-    this.setState({ stokScanOpen: true, stokScanError: '' }, () => this.startQrScan());
+    this.setState({ qrScanOpen: true, qrScanError: '' }, () => this.startQrScan());
   };
 
-  closeStokScan = () => {
+  closeQrScan = () => {
     this.stopQrScan();
-    this.setState({ stokScanOpen: false });
+    this.setState({ qrScanOpen: false });
   };
 
   startQrScan = () => {
-    const video = document.getElementById('stok-qr-video');
+    const video = document.getElementById('qr-scan-video');
     if (!video) return;
     if (!('BarcodeDetector' in window)) {
-      this.setState({ stokScanError: 'Kamera pemindai tidak didukung browser ini. Ketik kode barang langsung di kolom Cari Barang.' });
+      this.setState({ qrScanError: 'Kamera pemindai tidak didukung browser ini. Ketik kode barang langsung di kolom Cari Barang.' });
       return;
     }
     const detector = new BarcodeDetector({ formats: ['qr_code', 'ean_13', 'code_128'] });
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((stream) => {
-      if (!this.state.stokScanOpen) { stream.getTracks().forEach((t) => t.stop()); return; }
+      if (!this.state.qrScanOpen) { stream.getTracks().forEach((t) => t.stop()); return; }
       this._qrStream = stream;
       video.srcObject = stream;
       video.play();
@@ -2034,7 +2040,7 @@ class Component extends DCLogic {
       };
       tick();
     }).catch((e) => {
-      this.setState({ stokScanError: 'Tidak bisa mengakses kamera: ' + (e && e.message ? e.message : 'izin ditolak.') });
+      this.setState({ qrScanError: 'Tidak bisa mengakses kamera: ' + (e && e.message ? e.message : 'izin ditolak.') });
     });
   };
 
@@ -2050,13 +2056,13 @@ class Component extends DCLogic {
     if (!code) return;
     const match = this.state.stokProducts.find((p) => p.kode.toLowerCase() === code.toLowerCase());
     if (match) {
-      this.setState({ stokScanOpen: false, stokSearch: '', stokKategoriFilter: 'ALL' }, () => this.openStokEdit(match.kode));
+      this.setState({ qrScanOpen: false, stokSearch: '', stokKategoriFilter: 'ALL' }, () => this.openStokEdit(match.kode));
     } else {
       // Barang baru cuma didaftarkan lewat Input Pembelian (bukan dari Data
       // Barang) — jadi kode yang belum terdaftar cuma dikasih tahu, tidak
       // membuka form tambah apa pun.
       this.setState({
-        stokScanOpen: false, stokSearch: code, stokKategoriFilter: 'ALL',
+        qrScanOpen: false, stokSearch: code, stokKategoriFilter: 'ALL',
         globalError: `Kode "${code}" belum terdaftar. Tambahkan barang baru lewat Input Pembelian.`,
       });
     }
@@ -2181,6 +2187,22 @@ class Component extends DCLogic {
     });
   };
   setPembelianProduct = (e) => this.setState({ pembelianSelectedKode: e.target.value });
+
+  // Scan barang saat menerima kiriman dari suplier — cocok: langsung pilih
+  // barang itu di dropdown. Tidak cocok: pindah ke mode "Barang Baru" dengan
+  // kode sudah terisi, tinggal isi nama & harga (barang baru cuma boleh
+  // masuk lewat sini, bukan dari Data Barang).
+  scanIntoPembelian = () => this.openQrScan((text) => {
+    this.stopQrScan();
+    const code = String(text || '').trim();
+    if (!code) return;
+    this.setState((s) => {
+      const match = s.stokProducts.find((p) => p.kode.toLowerCase() === code.toLowerCase());
+      return match
+        ? { qrScanOpen: false, pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode }
+        : { qrScanOpen: false, pembelianSelectedKode: '__NEW__', pembelianNewKode: code };
+    });
+  });
   setPembelianNewKode = (e) => this.setState({ pembelianNewKode: e.target.value });
   setPembelianNewNama = (e) => this.setState({ pembelianNewNama: e.target.value });
   setPembelianQty = (e) => this.setState({ pembelianQty: e.target.value });
@@ -2417,8 +2439,8 @@ class Component extends DCLogic {
       kategoriOptions: s.kategoriList,
       stokRows, stokRowsEmpty: stokRows.length === 0,
       stokKritisCount, stokMenipisCount, stokPendingCount, stokHasAlert: stokKritisCount + stokMenipisCount + stokPendingCount > 0,
-      stokScanOpen: s.stokScanOpen, stokScanError: s.stokScanError,
-      openStokScan: this.openStokScan, closeStokScan: this.closeStokScan,
+      qrScanOpen: s.qrScanOpen, qrScanError: s.qrScanError,
+      openQrScan: this.openQrScan, closeQrScan: this.closeQrScan,
       stokPrintOpen: s.stokPrintOpen, stokPrintTarget: s.stokPrintTarget || { kode: '', nama: '' },
       openStokPrint: () => this.openStokPrint(s.stokForm.kode, s.stokForm.nama),
       closeStokPrint: this.closeStokPrint, printStokLabel: this.printStokLabel,
@@ -2472,6 +2494,7 @@ class Component extends DCLogic {
       pembelianKategoriFilter: s.pembelianKategoriFilter, setPembelianKategoriFilter: this.setPembelianKategoriFilter,
       pembelianProductOptions: filteredProducts,
       pembelianSelectedKode: s.pembelianSelectedKode, setPembelianProduct: this.setPembelianProduct,
+      scanIntoPembelian: this.scanIntoPembelian,
       pembelianIsNewItem: s.pembelianSelectedKode === '__NEW__',
       pembelianNewKode: s.pembelianNewKode, setPembelianNewKode: this.setPembelianNewKode,
       pembelianNewNama: s.pembelianNewNama, setPembelianNewNama: this.setPembelianNewNama,
