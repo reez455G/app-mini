@@ -12,6 +12,8 @@
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "vendor/react/react-dom.production.min.js"
   };
 </script>
+<script src="vendor/barcode/qrcode-generator.js"></script>
+<script src="vendor/barcode/jsbarcode.min.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -25,6 +27,11 @@
     body { margin: 0; }
     a { color: var(--color-accent); }
     a:hover { color: var(--color-accent-700); }
+    #stok-print-sheet { display: none; }
+    @media print {
+      #app-shell { display: none !important; }
+      #stok-print-sheet { display: flex !important; }
+    }
   </style>
 </helmet>
 
@@ -121,7 +128,7 @@
 </sc-if>
 
 <sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
-  <div style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
+  <div id="app-shell" style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
     <aside style="width:252px;flex:none;background:var(--color-neutral-900);display:flex;flex-direction:column;padding:24px 16px;gap:22px;box-sizing:border-box;">
       <div style="padding:0 8px;">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-bg);">{{ storeName }}</div>
@@ -510,6 +517,7 @@
                     </td>
                     <td>
                       <div style="display:flex;gap:6px;">
+                        <button type="button" class="btn btn-ghost btn-icon" aria-label="Cetak Barcode" title="Cetak Barcode" onClick="{{ item.printHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg></button>
                         <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" onClick="{{ item.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
                         <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
                       </div>
@@ -545,7 +553,19 @@
                 <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;">
                   <div class="field">
                     <label for="stok-f-kode">Kode Barang</label>
-                    <input class="input" id="stok-f-kode" style="min-height:44px;font-size:15px;" disabled="{{ stokIsEdit }}" placeholder="Contoh: BAN-030" value="{{ stokForm.kode }}" onChange="{{ setStokKode }}" />
+                    <div style="display:flex;gap:8px;align-items:center;">
+                      <input class="input" id="stok-f-kode" style="min-height:44px;font-size:15px;flex:1;" disabled="{{ stokIsEdit }}" placeholder="Contoh: BAN-030" value="{{ stokForm.kode }}" onChange="{{ setStokKode }}" />
+                      <sc-if value="{{ stokIsAdd }}">
+                        <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Scan Kode" title="Scan Kode" onClick="{{ scanIntoStokForm }}">
+                          <svg width="16" height="16" viewBox="0 0 256 256"><rect x="32" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="56" width="24" height="24" fill="currentColor"></rect><rect x="152" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="176" y="56" width="24" height="24" fill="currentColor"></rect><rect x="32" y="152" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="176" width="24" height="24" fill="currentColor"></rect><rect x="152" y="152" width="24" height="24" fill="currentColor"></rect><rect x="200" y="152" width="24" height="24" fill="currentColor"></rect><rect x="152" y="200" width="24" height="24" fill="currentColor"></rect><rect x="200" y="200" width="24" height="24" fill="currentColor"></rect></svg>
+                        </button>
+                      </sc-if>
+                      <sc-if value="{{ stokCanPrintFromForm }}">
+                        <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Cetak Barcode" title="Cetak Barcode" onClick="{{ openStokPrint }}">
+                          <svg width="15" height="15" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg>
+                        </button>
+                      </sc-if>
+                    </div>
                   </div>
                   <div class="field">
                     <label for="stok-f-nama">Nama Barang</label>
@@ -627,6 +647,33 @@
                 <div class="dialog-actions">
                   <button type="button" class="btn btn-ghost" onClick="{{ cancelDeleteStok }}">Batal</button>
                   <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteStok }}">Hapus</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ stokPrintOpen }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog">
+                <div class="dialog-title">Cetak Barcode</div>
+                <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+                  <div class="seg" role="radiogroup" aria-label="Tipe kode" style="width:100%;">
+                    <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                      <input type="radio" name="stok-print-type" checked="{{ stokPrintIsQr }}" onChange="{{ setStokPrintQr }}" />QR Code
+                    </label>
+                    <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                      <input type="radio" name="stok-print-type" checked="{{ stokPrintIsCode128 }}" onChange="{{ setStokPrintCode128 }}" />Barcode (Code128)
+                    </label>
+                  </div>
+                  <canvas id="stok-print-canvas-preview" style="max-width:100%;"></canvas>
+                  <div style="text-align:center;">
+                    <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;">{{ stokPrintTarget.nama }}</div>
+                    <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+                  </div>
+                </div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ closeStokPrint }}">Tutup</button>
+                  <button type="button" class="btn btn-primary" onClick="{{ printStokLabel }}">Cetak</button>
                 </div>
               </div>
             </div>
@@ -1475,6 +1522,14 @@
       </main>
     </div>
   </div>
+
+  <sc-if value="{{ stokPrintOpen }}">
+    <div id="stok-print-sheet" style="flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;">
+      <canvas id="stok-print-canvas"></canvas>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;">{{ stokPrintTarget.nama }}</div>
+      <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+    </div>
+  </sc-if>
 </sc-if>
 
 </x-dc>
@@ -1565,6 +1620,9 @@ class Component extends DCLogic {
     stokDeleteTarget: null,
     stokScanOpen: false,
     stokScanError: '',
+    stokPrintOpen: false,
+    stokPrintTarget: null,
+    stokPrintType: 'qr',
     pembelianCart: [],
     pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
@@ -1902,7 +1960,13 @@ class Component extends DCLogic {
   // QR library — no CDN dependency, but Safari/Firefox have no camera scan;
   // the search box in Data Barang still takes a typed/hardware-scanner kode
   // as a fallback either way.
-  openStokScan = () => this.setState({ stokScanOpen: true, stokScanError: '' }, () => this.startQrScan());
+  // onResult: opsional — dipanggil dengan teks hasil scan. Default
+  // handleQrResult (cari/buka form). Dipakai juga dari dalam form Tambah
+  // Barang, di mana hasil scan cuma perlu mengisi field Kode saja.
+  openStokScan = (onResult) => {
+    this._qrOnResult = onResult || this.handleQrResult;
+    this.setState({ stokScanOpen: true, stokScanError: '' }, () => this.startQrScan());
+  };
 
   closeStokScan = () => {
     this.stopQrScan();
@@ -1925,7 +1989,7 @@ class Component extends DCLogic {
       const tick = () => {
         if (!this._qrStream) return;
         detector.detect(video).then((codes) => {
-          if (codes.length) this.handleQrResult(codes[0].rawValue);
+          if (codes.length) this._qrOnResult(codes[0].rawValue);
           else if (this._qrStream) this._qrRaf = requestAnimationFrame(tick);
         }).catch(() => { if (this._qrStream) this._qrRaf = requestAnimationFrame(tick); });
       };
@@ -1951,12 +2015,65 @@ class Component extends DCLogic {
     } else {
       // Kode belum terdaftar: langsung buka form "Tambah Barang" dengan kode
       // hasil scan sudah terisi, siap dilengkapi.
-      this.setState({
+      this.setState((s) => ({
         stokScanOpen: false, stokModalOpen: true, stokEditKode: null, stokFormError: '',
-        stokForm: { kode: code, nama: '', kategori: 'BAN', supplier: this.state.suplierList[0].nama, hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '10' },
-      });
+        stokForm: { kode: code, nama: '', kategori: s.kategoriList[0] || 'BAN', supplier: (s.suplierList[0] || {}).nama || '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '10' },
+      }));
     }
   };
+
+  // Dipakai dari tombol scan kecil di dalam form Tambah Barang — cuma isi
+  // field Kode di form yang sedang terbuka, tidak menavigasi ke mana-mana.
+  fillStokKodeFromScan = (text) => {
+    this.stopQrScan();
+    const code = String(text || '').trim();
+    if (!code) return;
+    this.setState((s) => ({ stokScanOpen: false, stokForm: { ...s.stokForm, kode: code } }));
+  };
+
+  openStokPrint = (kode, nama) => {
+    this.setState({ stokPrintOpen: true, stokPrintTarget: { kode, nama } }, () => this.drawStokPrintCanvas());
+  };
+
+  closeStokPrint = () => this.setState({ stokPrintOpen: false, stokPrintTarget: null });
+
+  setStokPrintType = (type) => this.setState({ stokPrintType: type }, () => this.drawStokPrintCanvas());
+
+  // ponytail: dua library kecil di-vendor lokal (vendor/barcode/) khusus buat
+  // menggambar — QR (qrcode-generator) tidak punya native browser API buat
+  // MEMBUAT kode (cuma BarcodeDetector buat BACA), begitu juga Code128.
+  // Digambar ke DUA canvas — satu buat preview di dialog, satu lagi di
+  // #stok-print-sheet yang tersembunyi (cuma tampil saat window.print()).
+  drawStokPrintCanvas = () => {
+    const t = this.state.stokPrintTarget;
+    if (!t) return;
+    ['stok-print-canvas-preview', 'stok-print-canvas'].forEach((id) => {
+      const canvas = document.getElementById(id);
+      if (!canvas) return;
+      if (this.state.stokPrintType === 'qr') {
+        const qr = qrcode(0, 'M');
+        qr.addData(t.kode);
+        qr.make();
+        const count = qr.getModuleCount();
+        const cell = Math.max(2, Math.floor(220 / count));
+        canvas.width = cell * count;
+        canvas.height = cell * count;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#000';
+        for (let r = 0; r < count; r++) {
+          for (let c = 0; c < count; c++) {
+            if (qr.isDark(r, c)) ctx.fillRect(c * cell, r * cell, cell, cell);
+          }
+        }
+      } else {
+        JsBarcode(canvas, t.kode, { format: 'CODE128', displayValue: false, margin: 8, height: 70 });
+      }
+    });
+  };
+
+  printStokLabel = () => window.print();
 
   componentWillUnmount() {
     this.stopQrScan();
@@ -2256,6 +2373,7 @@ class Component extends DCLogic {
         priceListValueLabel: priceListValue ? formatRp(priceListValue) : '—',
         statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
+        printHandler: () => this.openStokPrint(p.kode, p.nama),
       };
     });
     const stokKritisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Kritis').length;
@@ -2273,9 +2391,16 @@ class Component extends DCLogic {
       openStokAdd: this.openStokAdd,
       stokScanOpen: s.stokScanOpen, stokScanError: s.stokScanError,
       openStokScan: this.openStokScan, closeStokScan: this.closeStokScan,
+      scanIntoStokForm: () => this.openStokScan((text) => this.fillStokKodeFromScan(text)),
+      stokPrintOpen: s.stokPrintOpen, stokPrintTarget: s.stokPrintTarget || { kode: '', nama: '' },
+      openStokPrint: () => this.openStokPrint(s.stokForm.kode, s.stokForm.nama),
+      closeStokPrint: this.closeStokPrint, printStokLabel: this.printStokLabel,
+      stokPrintIsQr: s.stokPrintType === 'qr', stokPrintIsCode128: s.stokPrintType !== 'qr',
+      setStokPrintQr: () => this.setStokPrintType('qr'), setStokPrintCode128: () => this.setStokPrintType('code128'),
       stokModalOpen: s.stokModalOpen, closeStokModal: this.closeStokModal,
       stokModalTitle: s.stokEditKode ? 'Ubah Barang' : 'Tambah Barang',
-      stokIsEdit: !!s.stokEditKode,
+      stokIsEdit: !!s.stokEditKode, stokIsAdd: !s.stokEditKode,
+      stokCanPrintFromForm: s.stokForm.kode.trim() !== '',
       stokForm: s.stokForm,
       supplierOptions: s.suplierList.map((x) => x.nama),
       setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
