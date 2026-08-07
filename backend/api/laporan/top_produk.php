@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../../db.php';
 require_once __DIR__ . '/../../auth.php';
 
-require_owner(); // Laporan Stok Laris: Owner only
+// Dashboard "Produk Terlaris" dipakai Owner & Karyawan — tapi profit (data
+// finansial) disembunyikan untuk Karyawan, sama seperti barang.php.
+$me = require_login();
+$isOwner = $me['role'] === 'owner';
 $pdo = db();
 $from = $_GET['from'] ?? '1970-01-01';
 $to = $_GET['to'] ?? date('Y-m-d');
@@ -19,13 +22,16 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([$from, $to]);
 $agg = $stmt->fetchAll();
+if (!$isOwner) {
+    $agg = array_map(fn($r) => ['kode' => $r['kode'], 'nama' => $r['nama'], 'qty' => $r['qty'], 'revenue' => $r['revenue']], $agg);
+}
 
 $byQty = $agg; usort($byQty, fn($a, $b) => $b['qty'] <=> $a['qty']);
 $byRevenue = $agg; usort($byRevenue, fn($a, $b) => $b['revenue'] <=> $a['revenue']);
-$byProfit = $agg; usort($byProfit, fn($a, $b) => $b['profit'] <=> $a['profit']);
 
-json_ok([
-    'by_qty' => array_slice($byQty, 0, $limit),
-    'by_revenue' => array_slice($byRevenue, 0, $limit),
-    'by_profit' => array_slice($byProfit, 0, $limit),
-]);
+$out = ['by_qty' => array_slice($byQty, 0, $limit), 'by_revenue' => array_slice($byRevenue, 0, $limit)];
+if ($isOwner) {
+    $byProfit = $agg; usort($byProfit, fn($a, $b) => $b['profit'] <=> $a['profit']);
+    $out['by_profit'] = array_slice($byProfit, 0, $limit);
+}
+json_ok($out);

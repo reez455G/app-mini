@@ -1,9 +1,10 @@
 # App-mini — Sistem Stok & Kasir Toko
 
-Prototipe web interaktif untuk sistem stok dan kasir toko (login, dashboard,
-transaksi penjualan, data barang, input pembelian, laporan, retur, dan master
-data). Dibuat dari Claude Design (`Dashboard.dc.html`) dan sudah bisa langsung
-dijalankan sebagai halaman web statis — tidak perlu proses build.
+Aplikasi web untuk sistem stok dan kasir toko (login, dashboard, transaksi
+penjualan, data barang, input pembelian, laporan, retur, dan master data).
+Frontend (`Dashboard.dc.html`, awalnya dari Claude Design) sudah tersambung
+ke backend PHP + MySQL (`backend/`) — data beneran tersimpan, login
+memvalidasi password sungguhan, role Owner/Karyawan ditegakkan di server.
 
 ## Struktur file
 
@@ -20,7 +21,7 @@ app-mini/
 │   ├── _ds_bundle.js          # efek visual tambahan (filter cetak/plate)
 │   ├── _ds_manifest.json      # metadata design system (tidak dipakai saat runtime)
 │   └── readme.md              # dokumentasi design system aslinya
-├── backend/                  # PHP + MySQL — API, belum tersambung ke frontend di atas
+├── backend/                  # PHP + MySQL — API yang dipanggil Dashboard.dc.html
 │   └── ...                    # lihat docs/BACKEND.md
 └── docs/
     ├── BACKEND.md              # dokumentasi schema database + referensi API lengkap
@@ -35,31 +36,33 @@ tampilan/perilaku, edit `Dashboard.dc.html`.
 
 ## Cara jalankan lokal dengan XAMPP
 
-1. Copy seluruh folder `app-mini` ke `htdocs`, misalnya:
+Aplikasi ini butuh Apache **dan** MySQL — bukan cuma file statis lagi, karena
+sekarang datanya beneran tersimpan di database.
+
+1. Import `backend/schema.sql` lewat phpMyAdmin (`http://localhost/phpmyadmin`
+   → Import), atau `mysql -u root -p < backend/schema.sql`. Ini membuat
+   database `app_mini` + data contoh.
+2. Copy seluruh folder `app-mini` (termasuk `backend/`) ke `htdocs`, misalnya:
    `C:\xampp\htdocs\app-mini` (Windows) atau `/opt/lampp/htdocs/app-mini` (Linux).
-2. Jalankan Apache dari XAMPP Control Panel (tidak perlu MySQL/PHP — aplikasi ini
-   full client-side, tidak ada backend).
-3. Buka browser ke `http://localhost/app-mini/`.
+3. Jalankan **Apache dan MySQL** dari XAMPP Control Panel.
+4. Buka browser ke `http://localhost/app-mini/`, login dengan akun demo:
 
-Tidak perlu langkah install/build apa pun (tidak ada `npm install`, tidak ada
-database) — Apache di XAMPP cukup untuk menyajikan file statis ini. Selalu
-akses lewat `http://localhost/...`, jangan dobel klik file-nya langsung
-(`file:///...`): `support.js` melakukan `fetch()` ke halaman itu sendiri saat
-boot, dan sebagian browser memblokir `fetch()` untuk skema `file://` sehingga
-perilakunya jadi tidak konsisten.
+   | Username | Password | Role |
+   |---|---|---|
+   | `Budi` | `owner123` | Owner |
+   | `Karyawan1` | `karyawan123` | Karyawan |
 
-## Backend + database (PHP + MySQL)
+   ⚠️ Ganti password akun-akun ini (lewat Master Data → Pengguna) sebelum
+   dipakai sungguhan.
 
-Ada backend PHP + MySQL di folder `backend/` — schema database dan REST API
-untuk auth, master data, pembelian, penjualan, stok, retur, dan semua laporan
-di `docs/Sistem Stok - Complete Business Flow.md`. **Belum tersambung ke
-`Dashboard.dc.html`** (lihat batasan di bawah) — jalan sendiri, sudah dites
-lewat `curl`. Setup dan referensi API lengkap ada di **`docs/BACKEND.md`**.
+Tidak perlu langkah install/build tambahan (tidak ada `npm install`) — cukup
+Apache + MySQL bawaan XAMPP. Selalu akses lewat `http://localhost/...`,
+jangan dobel klik file-nya langsung (`file:///...`): `support.js` melakukan
+`fetch()` ke halaman itu sendiri saat boot (browser memblokir itu untuk
+`file://`), dan semua panggilan ke `backend/api/` juga butuh HTTP, bukan
+`file://`.
 
-Ringkas: import `backend/schema.sql` lewat phpMyAdmin, copy folder `backend/`
-bersama file-file di atas ke `htdocs` yang sama, akun demo `Budi`/`owner123`
-(Owner) dan `Karyawan1`/`karyawan123` (Karyawan) — ganti passwordnya sebelum
-dipakai sungguhan.
+Detail schema database + referensi API lengkap ada di **`docs/BACKEND.md`**.
 
 ## Offline — tidak butuh internet
 
@@ -76,23 +79,24 @@ folder `vendor/`:
 Halaman ini sekarang jalan 100% tanpa koneksi internet, dari awal buka
 sampai dipakai — cocok untuk toko yang sinyalnya tidak stabil.
 
-## ⚠️ Batasan penting sebelum dipakai sungguhan di toko
+## ⚠️ Yang perlu diketahui sebelum dipakai sungguhan di toko
 
-`Dashboard.dc.html` (halaman yang jalan sekarang) dan `backend/` (API yang
-sudah dibangun) **belum saling terhubung** — dua hal terpisah:
+- **"Lupa kata sandi" di layar login masih pura-pura.** Tombol itu cuma
+  menunjukkan pesan konfirmasi di layar, tidak benar-benar mengirim apa pun
+  atau mereset password di database. Reset password sungguhan: Owner login,
+  buka Master Data → Pengguna, edit user itu, isi password baru.
+- **Single server, satu database.** Semua kasir/perangkat yang mengakses
+  `http://<ip-komputer-server>/app-mini/` dari jaringan yang sama akan
+  berbagi data yang sama (ini yang diinginkan) — tapi kalau server (komputer
+  yang menjalankan XAMPP) mati, seluruh toko tidak bisa transaksi sampai
+  server hidup lagi. Tidak ada mode offline-lalu-sync.
+- **Tidak ada rate limiting pada percobaan login.** Cukup untuk pemakaian
+  normal satu toko; bukan sesuatu yang perlu dikhawatirkan selama server ini
+  tidak diekspos ke internet terbuka.
 
-- **Frontend masih 100% in-memory.** Semua data di `Dashboard.dc.html` (produk,
-  transaksi, stok, suplier, dst) cuma tersimpan di memori browser (React
-  state). Refresh halaman → balik ke data contoh (`INITIAL_PRODUCTS`, dst).
-  Login di layar ini juga tidak memvalidasi kata sandi apa pun.
-- **Backend sudah punya penyimpanan data + autentikasi asli** (MySQL, password
-  di-hash, role Owner/Karyawan ditegakkan di server) — tapi frontend belum
-  memanggilnya. Lihat `docs/BACKEND.md`.
-
-Supaya bisa dipakai transaksi nyata: `Dashboard.dc.html` perlu diubah supaya
-tiap aksi (login, tambah barang, transaksi, dst) benar-benar `fetch()` ke API
-di `backend/api/`, bukan lagi `setState` in-memory. Itu pekerjaan terpisah
-yang belum dikerjakan.
+Selebihnya — data barang, transaksi, laporan, retur, master data — sudah
+tersambung penuh ke database lewat `backend/api/`. Detail tiap endpoint ada
+di `docs/BACKEND.md`.
 
 ## Rencana upload ke repo Git
 

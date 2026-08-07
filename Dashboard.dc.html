@@ -28,6 +28,10 @@
   </style>
 </helmet>
 
+<sc-if value="{{ isBooting }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;min-height:100vh;align-items:center;justify-content:center;background:var(--color-bg);font-family:var(--font-body);color:var(--color-text);opacity:0.6;font-size:14px;">Memuat…</div>
+</sc-if>
+
 <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
   <div style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
     <div style="width:42%;min-width:340px;background:var(--color-neutral-900);color:var(--color-bg);display:flex;flex-direction:column;justify-content:space-between;padding:48px;box-sizing:border-box;">
@@ -64,19 +68,7 @@
       <div style="width:380px;display:flex;flex-direction:column;gap:22px;">
         <div>
           <h2 style="margin:0 0 6px;">Masuk ke Aplikasi</h2>
-          <p style="margin:0;font-size:14px;opacity:0.7;">Pilih peran dan masukkan akun Anda.</p>
-        </div>
-
-        <div class="field">
-          <label id="role-label">Peran</label>
-          <div class="seg" role="radiogroup" aria-labelledby="role-label" style="width:100%;">
-            <label class="seg-opt" style="flex:1;justify-content:center;padding:13px;font-size:15px;">
-              <input type="radio" name="role" checked="{{ isOwner }}" onChange="{{ setRoleOwner }}" />Owner
-            </label>
-            <label class="seg-opt" style="flex:1;justify-content:center;padding:13px;font-size:15px;">
-              <input type="radio" name="role" checked="{{ isKaryawan }}" onChange="{{ setRoleKaryawan }}" />Karyawan
-            </label>
-          </div>
+          <p style="margin:0;font-size:14px;opacity:0.7;">Masukkan akun Anda. Peran (Owner/Karyawan) mengikuti akun.</p>
         </div>
 
         <div class="field">
@@ -93,7 +85,7 @@
           <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ loginError }}</p>
         </sc-if>
 
-        <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" onClick="{{ doLogin }}">Masuk</button>
+        <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" disabled="{{ busy }}" onClick="{{ doLogin }}">Masuk</button>
         <button type="button" style="margin:0;font-size:12px;background:none;border:none;color:var(--color-accent);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0;text-align:center;font-family:var(--font-body);" onClick="{{ openForgot }}">Lupa kata sandi?</button>
       </div>
     </div>
@@ -199,30 +191,37 @@
         <span class="tag {{ roleTagClass }}" style="font-size:12px;padding:5px 12px;">{{ roleLabel }}</span>
       </header>
 
+      <sc-if value="{{ globalError }}">
+        <div style="margin:16px 40px 0;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <span>{{ globalError }}</span>
+          <button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:0;" onClick="{{ dismissGlobalError }}">Tutup</button>
+        </div>
+      </sc-if>
+
       <main style="flex:1;padding:24px 40px 48px;display:flex;flex-direction:column;gap:30px;box-sizing:border-box;">
 
         <sc-if value="{{ isModDashboard }}" hint-placeholder-val="{{ true }}">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
             <div class="card elev-sm">
               <div class="card-kicker">Penjualan Hari Ini</div>
-              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">Rp 3.240.000</div>
-              <div class="card-meta">18 transaksi</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashPenjualanHariIniLabel }}</div>
+              <div class="card-meta">{{ dashPenjualanHariIniTx }} transaksi</div>
             </div>
             <sc-if value="{{ isOwner }}">
               <div class="card elev-sm">
                 <div class="card-kicker">Pembelian Bulan Ini</div>
-                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">Rp 18.750.000</div>
-                <div class="card-meta">12 faktur suplier</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashPembelianBulanIniLabel }}</div>
+                <div class="card-meta">{{ dashPembelianBulanIniFaktur }} faktur suplier</div>
               </div>
               <div class="card elev-sm">
                 <div class="card-kicker">Laba Kotor Bulan Ini</div>
-                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">Rp 6.120.000</div>
-                <div class="card-meta">Margin kotor 24%</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashLabaBulanIniLabel }}</div>
+                <div class="card-meta">Margin kotor {{ dashLabaBulanIniMarginLabel }}</div>
               </div>
             </sc-if>
             <div class="card elev-sm">
               <div class="card-kicker">Stok Menipis</div>
-              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">6 produk</div>
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashStokMenipisCount }} produk</div>
               <div class="card-meta">Perlu pembelian ulang</div>
             </div>
           </div>
@@ -614,7 +613,7 @@
                 </div>
                 <div class="dialog-actions">
                   <button type="button" class="btn btn-ghost" onClick="{{ closeStokModal }}">Batal</button>
-                  <button type="button" class="btn btn-primary" onClick="{{ saveStokForm }}">Simpan</button>
+                  <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ saveStokForm }}">Simpan</button>
                 </div>
               </div>
             </div>
@@ -627,7 +626,7 @@
                 <div class="dialog-body">Yakin ingin menghapus <strong>{{ deleteTargetName }}</strong> dari daftar barang? Tindakan ini tidak dapat dibatalkan.</div>
                 <div class="dialog-actions">
                   <button type="button" class="btn btn-ghost" onClick="{{ cancelDeleteStok }}">Batal</button>
-                  <button type="button" class="btn btn-primary" onClick="{{ confirmDeleteStok }}">Hapus</button>
+                  <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteStok }}">Hapus</button>
                 </div>
               </div>
             </div>
@@ -820,7 +819,10 @@
                 <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:20px;">
                   <span>Total</span><span>{{ pembelianPreviewView.totalBiayaLabel }}</span>
                 </div>
-                <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" onClick="{{ finalizePembelian }}">Simpan &amp; Masuk Riwayat</button>
+                <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" disabled="{{ busy }}" onClick="{{ finalizePembelian }}">Simpan &amp; Masuk Riwayat</button>
+                <sc-if value="{{ pembelianNote }}">
+                  <p style="margin:0;font-size:12px;text-align:center;color:var(--color-accent-2-700);">{{ pembelianNote }}</p>
+                </sc-if>
                 <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ printPage }}">Cetak</button>
                 <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ editPembelianPreview }}">Kembali / Edit</button>
               </div>
@@ -1056,9 +1058,32 @@
           </sc-if>
 
           <sc-if value="{{ lapTabIsRetur }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ returLaporanEmpty }}">
+              <div class="card elev-sm">
+                <p style="margin:0;font-size:14px;opacity:0.65;">Tidak ada data retur pada periode ini.</p>
+              </div>
+            </sc-if>
             <div class="card elev-sm">
-              <div class="card-kicker">Laporan Retur</div>
-              <p style="margin:10px 0 0;font-size:14px;opacity:0.65;">Belum ada data retur — modul Retur akan dibangun pada tahap pengembangan selanjutnya.</p>
+              <div class="card-kicker">Retur Penjualan</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>No. Retur</th><th>Pelanggan</th><th>Invoice Asal</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ returPjLaporanRows }}" as="r" hint-placeholder-count="2">
+                    <tr><td>{{ r.noRetur }}</td><td>{{ r.customer }}</td><td>{{ r.invoice }}</td><td>{{ r.tanggalLabel }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div class="card elev-sm">
+              <div class="card-kicker">Retur Pembelian</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>No. Retur</th><th>Suplier</th><th>Faktur Asal</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ returPbLaporanRows }}" as="r" hint-placeholder-count="2">
+                    <tr><td>{{ r.noRetur }}</td><td>{{ r.supplier }}</td><td>{{ r.invoice }}</td><td>{{ r.tanggalLabel }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
             </div>
           </sc-if>
         </sc-if>
@@ -1143,6 +1168,9 @@
                   <div class="card-kicker">Ringkasan Retur</div>
                   <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ returPjTotalQty }} pcs akan dikembalikan ke stok</div>
                   <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ returPjCannotComplete }}" onClick="{{ completeReturPj }}">Proses Retur</button>
+                  <sc-if value="{{ returSubmitError }}">
+                    <p style="margin:8px 0 0;font-size:12px;text-align:center;color:var(--color-accent-2-700);">{{ returSubmitError }}</p>
+                  </sc-if>
                 </div>
                 <div class="card elev-sm">
                   <div class="card-kicker">Riwayat Retur Penjualan</div>
@@ -1236,6 +1264,9 @@
                   <div class="card-kicker">Ringkasan Retur</div>
                   <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ returPbTotalQty }} pcs akan dikurangi dari stok</div>
                   <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ returPbCannotComplete }}" onClick="{{ completeReturPb }}">Proses Retur</button>
+                  <sc-if value="{{ returSubmitError }}">
+                    <p style="margin:8px 0 0;font-size:12px;text-align:center;color:var(--color-accent-2-700);">{{ returSubmitError }}</p>
+                  </sc-if>
                 </div>
                 <div class="card elev-sm">
                   <div class="card-kicker">Riwayat Retur Pembelian</div>
@@ -1402,6 +1433,10 @@
                         </label>
                       </div>
                     </div>
+                    <div class="field">
+                      <label for="master-f-password">{{ masterPasswordLabel }}</label>
+                      <input class="input" id="master-f-password" type="password" style="min-height:44px;font-size:15px;" placeholder="Minimal 6 karakter" value="{{ masterForm.password }}" onChange="{{ setMasterPassword }}" />
+                    </div>
                   </sc-if>
                   <sc-if value="{{ masterFormError }}">
                     <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ masterFormError }}</p>
@@ -1409,7 +1444,7 @@
                 </div>
                 <div class="dialog-actions">
                   <button type="button" class="btn btn-ghost" onClick="{{ closeMasterModal }}">Batal</button>
-                  <button type="button" class="btn btn-primary" onClick="{{ saveMasterForm }}">Simpan</button>
+                  <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ saveMasterForm }}">Simpan</button>
                 </div>
               </div>
             </div>
@@ -1422,7 +1457,7 @@
                 <div class="dialog-body">Yakin ingin menghapus <strong>{{ masterDeleteTargetName }}</strong>? Tindakan ini tidak dapat dibatalkan.</div>
                 <div class="dialog-actions">
                   <button type="button" class="btn btn-ghost" onClick="{{ cancelDeleteMaster }}">Batal</button>
-                  <button type="button" class="btn btn-primary" onClick="{{ confirmDeleteMaster }}">Hapus</button>
+                  <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteMaster }}">Hapus</button>
                 </div>
               </div>
             </div>
@@ -1455,62 +1490,57 @@ const NAV_ACCESS = {
   master: ['owner'],
 };
 
-const LOW_STOCK = [
-  { kode: 'BAN-001', nama: 'Ban Bridgestone Turanza 185/65 R15', kategori: 'BAN', stok: 3, status: 'Kritis' },
-  { kode: 'AKI-007', nama: 'Aki GS Astra NS40', kategori: 'AKI', stok: 2, status: 'Kritis' },
-  { kode: 'OLI-002', nama: 'Oli Federal Matic 0.8L', kategori: 'OLI', stok: 3, status: 'Kritis' },
-  { kode: 'OLI-014', nama: 'Oli Shell Helix HX7 4L', kategori: 'OLI', stok: 5, status: 'Menipis' },
-  { kode: 'SP-102', nama: 'Kanvas Rem Depan Honda Beat', kategori: 'SPAREPART', stok: 4, status: 'Menipis' },
-  { kode: 'BAN-018', nama: 'Ban Motor FDR Sportivo 90/80-17', kategori: 'BAN', stok: 6, status: 'Menipis' },
-];
-
-const TOP_PRODUCTS = [
-  { nama: 'Aki GS Astra NS40', qty: 22 },
-  { nama: 'Ban Motor FDR Sportivo 90/80-17', qty: 58 },
-  { nama: 'Oli Federal Matic 0.8L', qty: 142 },
-  { nama: 'Kanvas Rem Depan Honda Beat', qty: 96 },
-  { nama: 'Busi NGK CPR8EA-9', qty: 110 },
-];
-
-const TREND = [2.1, 2.6, 1.9, 3.0, 2.8, 3.5, 2.4, 3.1, 3.8, 2.9, 3.4, 4.0, 3.6, 3.24];
-
-const INITIAL_PRODUCTS = [
-  { kode: 'BAN-001', nama: 'Ban Bridgestone Turanza 185/65 R15', kategori: 'BAN', supplier: 'CV Sumber Ban Jaya', hargaFaktur: 700000, hargaNetto: 680000, priceListBasis: 'NETTO', ecer: 850000, bengkel: 800000, grosir: 750000, stok: 3, minStok: 10, pendingSetup: false },
-  { kode: 'OLI-014', nama: 'Oli Shell Helix HX7 4L', kategori: 'OLI', supplier: 'Toko Oli Makmur', hargaFaktur: 165000, hargaNetto: 160000, priceListBasis: 'NETTO', ecer: 210000, bengkel: 195000, grosir: 180000, stok: 5, minStok: 10, pendingSetup: false },
-  { kode: 'AKI-007', nama: 'Aki GS Astra NS40', kategori: 'AKI', supplier: 'UD Aki Sejahtera', hargaFaktur: 640000, hargaNetto: 620000, priceListBasis: 'NETTO', ecer: 750000, bengkel: 720000, grosir: 690000, stok: 2, minStok: 10, pendingSetup: false },
-  { kode: 'SP-102', nama: 'Kanvas Rem Depan Honda Beat', kategori: 'SPAREPART', supplier: 'PT Astra Otoparts', hargaFaktur: 78000, hargaNetto: 75000, priceListBasis: 'NETTO', ecer: 95000, bengkel: 90000, grosir: 85000, stok: 4, minStok: 10, pendingSetup: false },
-  { kode: 'OLI-002', nama: 'Oli Federal Matic 0.8L', kategori: 'OLI', supplier: 'Toko Oli Makmur', hargaFaktur: 34000, hargaNetto: 32000, priceListBasis: 'NETTO', ecer: 45000, bengkel: 42000, grosir: 38000, stok: 30, minStok: 10, pendingSetup: false },
-  { kode: 'BAN-018', nama: 'Ban Motor FDR Sportivo 90/80-17', kategori: 'BAN', supplier: 'CV Sumber Ban Jaya', hargaFaktur: 260000, hargaNetto: 250000, priceListBasis: 'NETTO', ecer: 320000, bengkel: 300000, grosir: 280000, stok: 6, minStok: 10, pendingSetup: false },
-  { kode: 'SP-045', nama: 'Busi NGK CPR8EA-9', kategori: 'SPAREPART', supplier: 'PT Astra Otoparts', hargaFaktur: 25000, hargaNetto: 24000, priceListBasis: 'NETTO', ecer: 35000, bengkel: 32000, grosir: 28000, stok: 40, minStok: 10, pendingSetup: false },
-  { kode: 'OLI-020', nama: 'Oli Yamalube Sport 1L', kategori: 'OLI', supplier: 'Toko Oli Makmur', hargaFaktur: 50000, hargaNetto: 48000, priceListBasis: 'NETTO', ecer: 65000, bengkel: 60000, grosir: 55000, stok: 25, minStok: 10, pendingSetup: false },
-];
-
-const KATEGORI_OPTIONS = ['BAN', 'OLI', 'AKI', 'SPAREPART'];
-
-const SUPPLIERS = ['CV Sumber Ban Jaya', 'PT Astra Otoparts', 'Toko Oli Makmur', 'UD Aki Sejahtera'];
 const RETUR_REASONS = ['Rusak', 'Cacat', 'Salah Kirim', 'Lainnya'];
 
-const INITIAL_PEMBELIAN_HISTORY = [
-  { noFaktur: 'PB-260728-0001', tanggal: 'Selasa, 28 Juli 2026', tanggalISO: '2026-07-28', supplier: 'CV Sumber Ban Jaya', totalItems: 2, totalQty: 20, totalBiaya: 6800000 },
-  { noFaktur: 'PB-260802-0002', tanggal: 'Minggu, 2 Agustus 2026', tanggalISO: '2026-08-02', supplier: 'Toko Oli Makmur', totalItems: 3, totalQty: 60, totalBiaya: 2450000 },
-];
-
-const INITIAL_PENJUALAN_HISTORY = [
-  { invoiceNo: 'INV-260803-0001', custName: 'Hendra', tanggal: 'Senin, 3 Agustus 2026', tanggalISO: '2026-08-03', paymentMethod: 'TUNAI', totalQty: 8, grandTotal: 336000, items: [{ kode: 'OLI-002', nama: 'Oli Federal Matic 0.8L', qty: 8, subtotal: 336000 }] },
-  { invoiceNo: 'INV-260804-0002', custName: 'Siti', tanggal: 'Selasa, 4 Agustus 2026', tanggalISO: '2026-08-04', paymentMethod: 'TRANSFER', totalQty: 22, grandTotal: 1200000, items: [{ kode: 'SP-045', nama: 'Busi NGK CPR8EA-9', qty: 20, subtotal: 560000 }, { kode: 'BAN-018', nama: 'Ban Motor FDR Sportivo 90/80-17', qty: 2, subtotal: 640000 }] },
-  { invoiceNo: 'INV-260805-0003', custName: 'Hadi', tanggal: 'Rabu, 5 Agustus 2026', tanggalISO: '2026-08-05', paymentMethod: 'TUNAI', totalQty: 5, grandTotal: 325000, items: [{ kode: 'OLI-020', nama: 'Oli Yamalube Sport 1L', qty: 5, subtotal: 325000 }] },
-];
-
 function formatRp(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+
+function formatTanggal(iso) {
+  if (!iso) return '-';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const API_BASE = 'backend/api/';
+
+function api(method, path, body) {
+  return fetch(API_BASE + path, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  }).then((r) => r.json()).then((json) => {
+    if (!json.ok) throw new Error(json.error || 'Terjadi kesalahan.');
+    return json.data;
+  });
+}
+
+// Normalisasi field snake_case dari API ke bentuk camelCase yang sudah
+// dipakai di seluruh template & *Vals() di bawah — supaya kode konsumsinya
+// tidak perlu diubah sama sekali.
+function normalizeBarang(r) {
+  return {
+    id: r.id, kode: r.kode, nama: r.nama, kategori: r.kategori, stok: r.stok,
+    ecer: r.harga_ecer, bengkel: r.harga_bengkel, grosir: r.harga_grosir, status: r.status,
+    supplier: r.suplier || '', hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
+    priceListBasis: r.price_list_basis || 'NETTO', minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
+  };
+}
+function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
+function normalizePelanggan(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
+function normalizeUser(r) { return { id: r.id, username: r.username, role: r.role }; }
+function normalizePembelian(r) { return { noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya) }; }
+function normalizeReturPj(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, customer: r.customer_name, tanggal: r.tanggal, totalQty: r.total_qty }; }
+function normalizeReturPb(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, supplier: r.suplier, tanggal: r.tanggal, totalQty: r.total_qty }; }
 
 class Component extends DCLogic {
   state = {
     screen: 'login',
-    role: this.props.defaultRole === 'karyawan' ? 'karyawan' : 'owner',
+    booting: true,
+    role: 'owner',
     username: '',
     password: '',
     userName: '',
     loginError: '',
+    busy: false,
+    globalError: '',
     activeModule: 'dashboard',
     showForgot: false,
     forgotContact: '',
@@ -1520,12 +1550,12 @@ class Component extends DCLogic {
     penjCustName: '',
     penjPaymentMethod: 'TUNAI',
     penjAmountPaid: '',
-    penjSelectedKode: INITIAL_PRODUCTS[0].kode,
+    penjSelectedKode: '',
     penjQty: 1,
-    penjInvoiceSeq: 1,
     penjCompleted: false,
     penjLastInvoice: null,
-    stokProducts: INITIAL_PRODUCTS.map((p) => ({ ...p })),
+    penjSubmitError: '',
+    stokProducts: [],
     stokSearch: '',
     stokKategoriFilter: 'ALL',
     stokModalOpen: false,
@@ -1536,10 +1566,10 @@ class Component extends DCLogic {
     stokScanOpen: false,
     stokScanError: '',
     pembelianCart: [],
-    pembelianSupplierChoice: SUPPLIERS[0],
+    pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
     pembelianKategoriFilter: 'ALL',
-    pembelianSelectedKode: INITIAL_PRODUCTS[0].kode,
+    pembelianSelectedKode: '',
     pembelianNewKode: '',
     pembelianNewNama: '',
     pembelianQty: 1,
@@ -1548,47 +1578,123 @@ class Component extends DCLogic {
     pembelianPricelist: '',
     pembelianJatuhTempo: '',
     pembelianPayment: 'CASH',
-    pembelianInvoiceSeq: 1,
-    pembelianHistory: INITIAL_PEMBELIAN_HISTORY.map((h) => ({ ...h })),
+    pembelianHistory: [],
     pembelianNote: '',
+    pembelianSubmitError: '',
     laporanSearch: '',
     laporanKategoriFilter: 'ALL',
     laporanSupplierFilter: 'ALL',
     laporanStatusFilter: 'ALL',
-    penjualanHistory: INITIAL_PENJUALAN_HISTORY.map((h) => ({ ...h })),
     laporanLengkapTab: 'global',
-    laporanDari: '2026-07-01',
-    laporanSampai: '2026-08-06',
+    laporanDari: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+    laporanSampai: new Date().toISOString().slice(0, 10),
     laporanLengkapSearch: '',
+    remoteLaporanGlobal: null, remoteLaporanPembelian: null, remoteLaporanPenjualan: null,
+    remoteLaporanLaba: null, remoteLaporanTop: null, remoteLaporanRetur: null,
+    dashboardTrend: null, dashboardTopProducts: null, dashboardToday: null,
+    dashboardPembelianBulanIni: null, dashboardLabaBulanIni: null,
     returTab: 'penjualan',
-    returPjCustomer: '', returPjInvoice: '', returPjTanggal: '2026-08-06',
-    returPjKode: INITIAL_PRODUCTS[0].kode, returPjQty: 1, returPjReason: 'Rusak',
-    returPjCart: [], returPjHistory: [], returPjSeq: 1,
-    returPbSupplier: '', returPbInvoice: '', returPbTanggal: '2026-08-06',
-    returPbKode: INITIAL_PRODUCTS[0].kode, returPbQty: 1, returPbReason: 'Rusak',
-    returPbCart: [], returPbHistory: [], returPbSeq: 1,
+    returPjCustomer: '', returPjInvoice: '', returPjTanggal: new Date().toISOString().slice(0, 10),
+    returPjKode: '', returPjQty: 1, returPjReason: 'Rusak',
+    returPjCart: [], returPjHistory: [],
+    returSubmitError: '',
+    returPbSupplier: '', returPbInvoice: '', returPbTanggal: new Date().toISOString().slice(0, 10),
+    returPbKode: '', returPbQty: 1, returPbReason: 'Rusak',
+    returPbCart: [], returPbHistory: [],
     pembelianCompleted: false,
     pembelianPreview: null,
-    suplierList: SUPPLIERS.map((nama, i) => ({ kode: 'SUP-' + String(i + 1).padStart(4, '0'), nama, alamat: '-', noHp: '-' })),
-    suplierSeq: SUPPLIERS.length + 1,
-    pelangganList: [
-      { kode: 'CUST-0001', nama: 'Hendra', alamat: '-', noHp: '-' },
-      { kode: 'CUST-0002', nama: 'Siti', alamat: '-', noHp: '-' },
-      { kode: 'CUST-0003', nama: 'Hadi', alamat: '-', noHp: '-' },
-    ],
-    pelangganSeq: 4,
-    kategoriList: [...KATEGORI_OPTIONS],
-    userList: [{ username: 'Budi', role: 'owner' }, { username: 'Karyawan 1', role: 'karyawan' }],
+    suplierList: [],
+    pelangganList: [],
+    kategoriList: [],
+    userList: [],
     masterTab: 'suplier',
     masterModalOpen: false, masterModalType: null, masterEditKey: null,
-    masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan' },
+    masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan', password: '' },
     masterFormError: '', masterDeleteTarget: null,
+  };
+
+  componentDidMount() {
+    api('GET', 'auth/me.php').then((user) => {
+      if (user) this.afterLogin(user);
+      else this.setState({ booting: false });
+    }).catch(() => this.setState({ booting: false }));
+  }
+
+  afterLogin = (user) => {
+    this.setState({ screen: 'app', role: user.role, userName: user.username, booting: false, loginError: '', password: '' });
+    this.loadCoreData();
+    this.loadModuleData(this.state.activeModule);
+  };
+
+  loadCoreData = () => {
+    api('GET', 'kategori.php').then((rows) => {
+      this._kategoriIds = {};
+      rows.forEach((r) => { this._kategoriIds[r.nama] = r.id; });
+      this.setState({ kategoriList: rows.map((r) => r.nama) });
+    }).catch((e) => this.setState({ globalError: e.message }));
+    api('GET', 'suplier.php').then((rows) => this.setState((s) => ({
+      suplierList: rows.map(normalizeSuplier),
+      pembelianSupplierChoice: s.pembelianSupplierChoice || (rows[0] ? rows[0].nama : ''),
+    }))).catch((e) => this.setState({ globalError: e.message }));
+    api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.setState({ globalError: e.message }));
+    if (this.state.role === 'owner') {
+      api('GET', 'users.php').then((rows) => this.setState({ userList: rows.map(normalizeUser) })).catch((e) => this.setState({ globalError: e.message }));
+    }
+    this.refreshBarang();
+  };
+
+  refreshBarang = () => api('GET', 'barang.php').then((rows) => {
+    const list = rows.map(normalizeBarang);
+    this.setState((s) => ({
+      stokProducts: list,
+      penjSelectedKode: list.some((p) => p.kode === s.penjSelectedKode) ? s.penjSelectedKode : (list[0] ? list[0].kode : ''),
+      pembelianSelectedKode: list.some((p) => p.kode === s.pembelianSelectedKode) ? s.pembelianSelectedKode : (list[0] ? list[0].kode : ''),
+      returPjKode: list.some((p) => p.kode === s.returPjKode) ? s.returPjKode : (list[0] ? list[0].kode : ''),
+      returPbKode: list.some((p) => p.kode === s.returPbKode) ? s.returPbKode : (list[0] ? list[0].kode : ''),
+    }));
+  }).catch((e) => this.setState({ globalError: e.message }));
+
+  refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.setState({ globalError: e.message }));
+  refreshReturPj = () => api('GET', 'retur_penjualan.php').then((rows) => this.setState({ returPjHistory: rows.map(normalizeReturPj) })).catch((e) => this.setState({ globalError: e.message }));
+  refreshReturPb = () => api('GET', 'retur_pembelian.php').then((rows) => this.setState({ returPbHistory: rows.map(normalizeReturPb) })).catch((e) => this.setState({ globalError: e.message }));
+
+  loadDashboardWidgets = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const firstOfMonth = today.slice(0, 8) + '01';
+
+    api('GET', 'laporan/top_produk.php?limit=5').then((data) => this.setState({ dashboardTopProducts: data.by_qty })).catch((e) => this.setState({ globalError: e.message }));
+    api('GET', 'laporan/penjualan.php?from=' + today + '&to=' + today).then((data) => this.setState({ dashboardToday: data })).catch((e) => this.setState({ globalError: e.message }));
+
+    if (this.state.role === 'owner') {
+      api('GET', 'laporan/tren_penjualan.php?days=14').then((rows) => this.setState({ dashboardTrend: rows })).catch((e) => this.setState({ globalError: e.message }));
+      api('GET', 'laporan/pembelian.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardPembelianBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
+      api('GET', 'laporan/laba.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardLabaBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
+    }
+  };
+
+  loadLaporanTab = (tab) => {
+    const { laporanDari: from, laporanSampai: to } = this.state;
+    const qs = 'from=' + from + '&to=' + to;
+    const setters = {
+      global: () => api('GET', 'laporan/global.php?' + qs).then((data) => this.setState({ remoteLaporanGlobal: data })),
+      pembelian: () => api('GET', 'laporan/pembelian.php?' + qs).then((data) => this.setState({ remoteLaporanPembelian: data })),
+      penjualan: () => api('GET', 'laporan/penjualan.php?' + qs).then((data) => this.setState({ remoteLaporanPenjualan: data })),
+      laba: () => api('GET', 'laporan/laba.php?' + qs).then((data) => this.setState({ remoteLaporanLaba: data })),
+      laris: () => api('GET', 'laporan/top_produk.php?' + qs).then((data) => this.setState({ remoteLaporanTop: data })),
+      retur: () => api('GET', 'laporan/retur.php?' + qs).then((data) => this.setState({ remoteLaporanRetur: data })),
+    };
+    (setters[tab] || setters.global)().catch((e) => this.setState({ globalError: e.message }));
+  };
+
+  loadModuleData = (key) => {
+    if (key === 'pembelian') this.refreshPembelianHistory();
+    else if (key === 'retur') { this.refreshReturPj(); if (this.state.role === 'owner') this.refreshReturPb(); }
+    else if (key === 'laporanLengkap') this.loadLaporanTab(this.state.laporanLengkapTab);
+    else if (key === 'dashboard') this.loadDashboardWidgets();
   };
 
   setUsername = (e) => this.setState({ username: e.target.value, loginError: '' });
   setPassword = (e) => this.setState({ password: e.target.value, loginError: '' });
-  setRoleOwner = () => this.setState({ role: 'owner' });
-  setRoleKaryawan = () => this.setState({ role: 'karyawan' });
 
   openForgot = () => this.setState({ showForgot: true, forgotSent: false, forgotContact: '', forgotError: '' });
   closeForgot = () => this.setState({ showForgot: false, forgotSent: false, forgotContact: '', forgotError: '' });
@@ -1624,19 +1730,24 @@ class Component extends DCLogic {
 
   completeTransaction = () => {
     const s = this.state;
-    const invoiceNo = 'INV-260806-' + String(s.penjInvoiceSeq).padStart(4, '0');
-    const totalQty = s.penjCart.reduce((a, i) => a + i.qty, 0);
-    const grandTotal = s.penjCart.reduce((a, i) => a + i.subtotal, 0);
     const amountPaidNum = parseFloat(s.penjAmountPaid) || 0;
-    const newInvoice = { invoiceNo, custName: s.penjCustName, tanggal: 'Kamis, 6 Agustus 2026', tanggalISO: '2026-08-06', items: s.penjCart, totalQty, grandTotal, paymentMethod: s.penjPaymentMethod, amountPaid: amountPaidNum, kembalian: amountPaidNum - grandTotal };
-    this.setState((st) => ({
-      penjCompleted: true,
-      penjLastInvoice: newInvoice,
-      penjualanHistory: [newInvoice, ...st.penjualanHistory],
-    }));
+    const items = s.penjCart.map((i) => ({ kode: i.kode, qty: i.qty }));
+    this.setState({ busy: true, penjSubmitError: '' });
+    api('POST', 'penjualan.php', { cust_name: s.penjCustName, payment_method: s.penjPaymentMethod, amount_paid: amountPaidNum, items }).then((res) => {
+      const newInvoice = {
+        invoiceNo: res.invoice_no, custName: s.penjCustName, items: s.penjCart,
+        totalQty: res.total_qty, grandTotal: res.grand_total, paymentMethod: s.penjPaymentMethod,
+        amountPaid: amountPaidNum, kembalian: res.kembalian,
+      };
+      this.setState({ busy: false, penjCompleted: true, penjLastInvoice: newInvoice });
+      this.refreshBarang();
+    }).catch((e) => this.setState({ busy: false, penjSubmitError: e.message }));
   };
 
-  setLaporanLengkapTab = (key) => this.setState({ laporanLengkapTab: key });
+  setLaporanLengkapTab = (key) => {
+    this.setState({ laporanLengkapTab: key });
+    this.loadLaporanTab(key);
+  };
 
   setReturTab = (key) => this.setState({ returTab: key });
 
@@ -1662,17 +1773,13 @@ class Component extends DCLogic {
   completeReturPj = () => {
     const s = this.state;
     if (!s.returPjCustomer.trim() || !s.returPjInvoice.trim() || s.returPjCart.length === 0) return;
-    const noRetur = 'RJ-260806-' + String(s.returPjSeq).padStart(4, '0');
-    const totalQty = s.returPjCart.reduce((a, i) => a + i.qty, 0);
-    const record = { noRetur, customer: s.returPjCustomer.trim(), invoice: s.returPjInvoice.trim(), tanggal: s.returPjTanggal, items: s.returPjCart, totalQty };
-    this.setState((st) => ({
-      stokProducts: st.stokProducts.map((p) => {
-        const line = st.returPjCart.find((c) => c.kode === p.kode);
-        return line ? { ...p, stok: p.stok + line.qty } : p;
-      }),
-      returPjHistory: [record, ...st.returPjHistory],
-      returPjCustomer: '', returPjInvoice: '', returPjCart: [], returPjSeq: st.returPjSeq + 1,
-    }));
+    const items = s.returPjCart.map((i) => ({ kode: i.kode, qty: i.qty, reason: i.reason }));
+    this.setState({ busy: true, returSubmitError: '' });
+    api('POST', 'retur_penjualan.php', { customer_name: s.returPjCustomer.trim(), original_invoice_no: s.returPjInvoice.trim(), tanggal: s.returPjTanggal, items }).then(() => {
+      this.setState({ busy: false, returPjCustomer: '', returPjInvoice: '', returPjCart: [] });
+      this.refreshBarang();
+      this.refreshReturPj();
+    }).catch((e) => this.setState({ busy: false, returSubmitError: e.message }));
   };
 
   setReturPbSupplier = (e) => this.setState({ returPbSupplier: e.target.value });
@@ -1697,24 +1804,20 @@ class Component extends DCLogic {
   completeReturPb = () => {
     const s = this.state;
     if (!s.returPbSupplier.trim() || !s.returPbInvoice.trim() || s.returPbCart.length === 0) return;
-    const noRetur = 'RB-260806-' + String(s.returPbSeq).padStart(4, '0');
-    const totalQty = s.returPbCart.reduce((a, i) => a + i.qty, 0);
-    const record = { noRetur, supplier: s.returPbSupplier.trim(), invoice: s.returPbInvoice.trim(), tanggal: s.returPbTanggal, items: s.returPbCart, totalQty };
-    this.setState((st) => ({
-      stokProducts: st.stokProducts.map((p) => {
-        const line = st.returPbCart.find((c) => c.kode === p.kode);
-        return line ? { ...p, stok: Math.max(0, p.stok - line.qty) } : p;
-      }),
-      returPbHistory: [record, ...st.returPbHistory],
-      returPbSupplier: '', returPbInvoice: '', returPbCart: [], returPbSeq: st.returPbSeq + 1,
-    }));
+    const items = s.returPbCart.map((i) => ({ kode: i.kode, qty: i.qty, reason: i.reason }));
+    this.setState({ busy: true, returSubmitError: '' });
+    api('POST', 'retur_pembelian.php', { suplier: s.returPbSupplier.trim(), original_invoice_no: s.returPbInvoice.trim(), tanggal: s.returPbTanggal, items }).then(() => {
+      this.setState({ busy: false, returPbSupplier: '', returPbInvoice: '', returPbCart: [] });
+      this.refreshBarang();
+      this.refreshReturPb();
+    }).catch((e) => this.setState({ busy: false, returSubmitError: e.message }));
   };
 
   setMasterTab = (key) => this.setState({ masterTab: key });
 
   openMasterAdd = (type) => this.setState({
     masterModalOpen: true, masterModalType: type, masterEditKey: null, masterFormError: '',
-    masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan' },
+    masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan', password: '' },
   });
 
   openMasterEdit = (type, key) => {
@@ -1727,15 +1830,27 @@ class Component extends DCLogic {
     if (!record) return;
     this.setState({
       masterModalOpen: true, masterModalType: type, masterEditKey: key, masterFormError: '',
-      masterForm: { nama: record.nama || record.username || '', alamat: record.alamat || '', noHp: record.noHp || '', role: record.role || 'karyawan' },
+      masterForm: { nama: record.nama || record.username || '', alamat: record.alamat || '', noHp: record.noHp || '', role: record.role || 'karyawan', password: '' },
     });
   };
 
   closeMasterModal = () => this.setState({ masterModalOpen: false, masterModalType: null, masterEditKey: null, masterFormError: '' });
 
   setMasterFormField = (field) => (e) => this.setState((s) => ({ masterForm: { ...s.masterForm, [field]: e.target.value } }));
+  setMasterPassword = (e) => this.setState((s) => ({ masterForm: { ...s.masterForm, password: e.target.value } }));
   setMasterRoleOwner = () => this.setState((s) => ({ masterForm: { ...s.masterForm, role: 'owner' } }));
   setMasterRoleKaryawan = () => this.setState((s) => ({ masterForm: { ...s.masterForm, role: 'karyawan' } }));
+
+  // suplier/pelanggan/kategori/user semua "kelola daftar" dengan bentuk yang
+  // sama (nama wajib, submit ke API, refetch list-nya) — endpoint & id lookup
+  // saja yang beda per tipe.
+  masterEntityConfig = (type) => {
+    const s = this.state;
+    if (type === 'suplier') return { path: 'suplier.php', list: 'suplierList', findId: (key) => (s.suplierList.find((x) => x.kode === key) || {}).id, refresh: () => api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })) };
+    if (type === 'pelanggan') return { path: 'pelanggan.php', list: 'pelangganList', findId: (key) => (s.pelangganList.find((x) => x.kode === key) || {}).id, refresh: () => api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })) };
+    if (type === 'kategori') return { path: 'kategori.php', list: 'kategoriList', findId: (key) => this._kategoriIds && this._kategoriIds[key], refresh: () => api('GET', 'kategori.php').then((rows) => { this._kategoriIds = {}; rows.forEach((r) => { this._kategoriIds[r.nama] = r.id; }); this.setState({ kategoriList: rows.map((r) => r.nama) }); }) };
+    return { path: 'users.php', list: 'userList', findId: (key) => (s.userList.find((x) => x.username === key) || {}).id, refresh: () => api('GET', 'users.php').then((rows) => this.setState({ userList: rows.map(normalizeUser) })) };
+  };
 
   saveMasterForm = () => {
     const s = this.state;
@@ -1743,52 +1858,19 @@ class Component extends DCLogic {
     const type = s.masterModalType;
     const nama = f.nama.trim();
     if (!nama) { this.setState({ masterFormError: 'Nama wajib diisi.' }); return; }
+    if (type === 'user' && !s.masterEditKey && f.password.length < 6) { this.setState({ masterFormError: 'Password minimal 6 karakter.' }); return; }
 
-    if (type === 'suplier') {
-      if (s.masterEditKey) {
-        this.setState((st) => ({
-          suplierList: st.suplierList.map((x) => (x.kode === st.masterEditKey ? { ...x, nama, alamat: f.alamat.trim(), noHp: f.noHp.trim() } : x)),
-          masterModalOpen: false, masterModalType: null, masterEditKey: null,
-        }));
-      } else {
-        this.setState((st) => ({
-          suplierList: [...st.suplierList, { kode: 'SUP-' + String(st.suplierSeq).padStart(4, '0'), nama, alamat: f.alamat.trim() || '-', noHp: f.noHp.trim() || '-' }],
-          suplierSeq: st.suplierSeq + 1, masterModalOpen: false, masterModalType: null,
-        }));
-      }
-    } else if (type === 'pelanggan') {
-      if (s.masterEditKey) {
-        this.setState((st) => ({
-          pelangganList: st.pelangganList.map((x) => (x.kode === st.masterEditKey ? { ...x, nama, alamat: f.alamat.trim(), noHp: f.noHp.trim() } : x)),
-          masterModalOpen: false, masterModalType: null, masterEditKey: null,
-        }));
-      } else {
-        this.setState((st) => ({
-          pelangganList: [...st.pelangganList, { kode: 'CUST-' + String(st.pelangganSeq).padStart(4, '0'), nama, alamat: f.alamat.trim() || '-', noHp: f.noHp.trim() || '-' }],
-          pelangganSeq: st.pelangganSeq + 1, masterModalOpen: false, masterModalType: null,
-        }));
-      }
-    } else if (type === 'kategori') {
-      if (s.masterEditKey) {
-        this.setState((st) => ({
-          kategoriList: st.kategoriList.map((k) => (k === st.masterEditKey ? nama.toUpperCase() : k)),
-          masterModalOpen: false, masterModalType: null, masterEditKey: null,
-        }));
-      } else {
-        if (s.kategoriList.includes(nama.toUpperCase())) { this.setState({ masterFormError: 'Kategori sudah ada.' }); return; }
-        this.setState((st) => ({ kategoriList: [...st.kategoriList, nama.toUpperCase()], masterModalOpen: false, masterModalType: null }));
-      }
-    } else if (type === 'user') {
-      if (!s.masterEditKey && s.userList.some((u) => u.username.toLowerCase() === nama.toLowerCase())) { this.setState({ masterFormError: 'Nama pengguna sudah digunakan.' }); return; }
-      if (s.masterEditKey) {
-        this.setState((st) => ({
-          userList: st.userList.map((u) => (u.username === st.masterEditKey ? { username: nama, role: f.role } : u)),
-          masterModalOpen: false, masterModalType: null, masterEditKey: null,
-        }));
-      } else {
-        this.setState((st) => ({ userList: [...st.userList, { username: nama, role: f.role }], masterModalOpen: false, masterModalType: null }));
-      }
-    }
+    const cfg = this.masterEntityConfig(type);
+    const body = type === 'user'
+      ? { username: nama, role: f.role, ...(f.password ? { password: f.password } : {}) }
+      : { nama, alamat: f.alamat.trim(), noHp: f.noHp.trim() };
+
+    this.setState({ busy: true });
+    const req = s.masterEditKey ? api('PUT', cfg.path + '?id=' + cfg.findId(s.masterEditKey), body) : api('POST', cfg.path, body);
+    req.then(() => {
+      this.setState({ busy: false, masterModalOpen: false, masterModalType: null, masterEditKey: null });
+      cfg.refresh();
+    }).catch((e) => this.setState({ busy: false, masterFormError: e.message }));
   };
 
   requestDeleteMaster = (type, key) => this.setState({ masterDeleteTarget: { type, key } });
@@ -1796,20 +1878,21 @@ class Component extends DCLogic {
   confirmDeleteMaster = () => {
     const t = this.state.masterDeleteTarget;
     if (!t) return;
-    if (t.type === 'suplier') this.setState((st) => ({ suplierList: st.suplierList.filter((x) => x.kode !== t.key), masterDeleteTarget: null }));
-    else if (t.type === 'pelanggan') this.setState((st) => ({ pelangganList: st.pelangganList.filter((x) => x.kode !== t.key), masterDeleteTarget: null }));
-    else if (t.type === 'kategori') this.setState((st) => ({ kategoriList: st.kategoriList.filter((k) => k !== t.key), masterDeleteTarget: null }));
-    else if (t.type === 'user') this.setState((st) => ({ userList: st.userList.filter((u) => u.username !== t.key), masterDeleteTarget: null }));
+    const cfg = this.masterEntityConfig(t.type);
+    this.setState({ busy: true });
+    api('DELETE', cfg.path + '?id=' + cfg.findId(t.key)).then(() => {
+      this.setState({ busy: false, masterDeleteTarget: null });
+      cfg.refresh();
+    }).catch((e) => this.setState({ busy: false, masterDeleteTarget: null, globalError: e.message }));
   };
 
-  setLaporanDari = (e) => this.setState({ laporanDari: e.target.value });
-  setLaporanSampai = (e) => this.setState({ laporanSampai: e.target.value });
+  setLaporanDari = (e) => this.setState({ laporanDari: e.target.value }, () => this.loadLaporanTab(this.state.laporanLengkapTab));
+  setLaporanSampai = (e) => this.setState({ laporanSampai: e.target.value }, () => this.loadLaporanTab(this.state.laporanLengkapTab));
   setLaporanLengkapSearch = (e) => this.setState({ laporanLengkapSearch: e.target.value });
 
   newTransaction = () => this.setState((s) => ({
     penjCart: [], penjCustName: '', penjAmountPaid: '', penjPaymentMethod: 'TUNAI',
-    penjSelectedKode: s.stokProducts[0].kode, penjQty: 1, penjCompleted: false, penjLastInvoice: null,
-    penjInvoiceSeq: s.penjInvoiceSeq + 1,
+    penjSelectedKode: (s.stokProducts[0] || {}).kode || '', penjQty: 1, penjCompleted: false, penjLastInvoice: null, penjSubmitError: '',
   }));
 
   setStokSearch = (e) => this.setState({ stokSearch: e.target.value });
@@ -1879,24 +1962,24 @@ class Component extends DCLogic {
     this.stopQrScan();
   }
 
-  openStokAdd = () => this.setState({
+  openStokAdd = () => this.setState((s) => ({
     stokModalOpen: true, stokEditKode: null, stokFormError: '',
-    stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: this.state.suplierList[0].nama, hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '10' },
-  });
+    stokForm: { kode: '', nama: '', kategori: s.kategoriList[0] || 'BAN', supplier: (s.suplierList[0] || {}).nama || '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '10' },
+  }));
 
   openStokEdit = (kode) => {
     const p = this.state.stokProducts.find((x) => x.kode === kode);
     if (!p) return;
-    this.setState({
+    this.setState((s) => ({
       stokModalOpen: true, stokEditKode: kode, stokFormError: '',
       stokForm: {
-        kode: p.kode, nama: p.nama, kategori: p.kategori, supplier: p.supplier || this.state.suplierList[0].nama,
+        kode: p.kode, nama: p.nama, kategori: p.kategori, supplier: p.supplier || (s.suplierList[0] || {}).nama || '',
         hargaFaktur: p.hargaFaktur ? String(p.hargaFaktur) : '', hargaNetto: p.hargaNetto ? String(p.hargaNetto) : '',
         priceListBasis: p.priceListBasis || 'NETTO',
         ecer: p.ecer ? String(p.ecer) : '', bengkel: p.bengkel ? String(p.bengkel) : '', grosir: p.grosir ? String(p.grosir) : '',
         stok: String(p.stok), minStok: String(p.minStok),
       },
-    });
+    }));
   };
 
   closeStokModal = () => this.setState({ stokModalOpen: false, stokEditKode: null, stokFormError: '' });
@@ -1917,20 +2000,32 @@ class Component extends DCLogic {
     if (!s.stokEditKode && s.stokProducts.some((p) => p.kode === kode)) { this.setState({ stokFormError: 'Kode barang sudah digunakan.' }); return; }
     if (!(ecer > 0) || !(bengkel > 0) || !(grosir > 0)) { this.setState({ stokFormError: 'Isi semua harga jual dengan angka lebih dari 0.' }); return; }
     if (!(stok >= 0) || !(minStok >= 0)) { this.setState({ stokFormError: 'Isi stok dan stok minimum dengan angka valid.' }); return; }
-    const record = { kode, nama, kategori: f.kategori, supplier: f.supplier, hargaFaktur, hargaNetto, priceListBasis: f.priceListBasis, ecer, bengkel, grosir, stok, minStok, pendingSetup: false };
-    this.setState((st) => ({
-      stokProducts: st.stokEditKode
-        ? st.stokProducts.map((p) => (p.kode === st.stokEditKode ? record : p))
-        : [...st.stokProducts, record],
-      stokModalOpen: false, stokEditKode: null, stokFormError: '',
-    }));
+
+    const body = {
+      kode, nama, kategori: f.kategori, suplier: f.supplier,
+      harga_faktur: hargaFaktur, harga_netto: hargaNetto, price_list_basis: f.priceListBasis,
+      harga_ecer: ecer, harga_bengkel: bengkel, harga_grosir: grosir, stok, min_stok: minStok,
+    };
+    this.setState({ busy: true });
+    const editingId = s.stokEditKode ? (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id : null;
+    const req = editingId ? api('PUT', 'barang.php?id=' + editingId, body) : api('POST', 'barang.php', body);
+    req.then(() => {
+      this.setState({ busy: false, stokModalOpen: false, stokEditKode: null });
+      this.refreshBarang();
+    }).catch((e) => this.setState({ busy: false, stokFormError: e.message }));
   };
 
   requestDeleteStok = (kode) => this.setState({ stokDeleteTarget: kode });
   cancelDeleteStok = () => this.setState({ stokDeleteTarget: null });
-  confirmDeleteStok = () => this.setState((s) => ({
-    stokProducts: s.stokProducts.filter((p) => p.kode !== s.stokDeleteTarget), stokDeleteTarget: null,
-  }));
+  confirmDeleteStok = () => {
+    const p = this.state.stokProducts.find((x) => x.kode === this.state.stokDeleteTarget);
+    if (!p) return;
+    this.setState({ busy: true });
+    api('DELETE', 'barang.php?id=' + p.id).then(() => {
+      this.setState({ busy: false, stokDeleteTarget: null });
+      this.refreshBarang();
+    }).catch((e) => this.setState({ busy: false, stokDeleteTarget: null, globalError: e.message }));
+  };
 
   setPembelianSupplierChoice = (e) => this.setState({ pembelianSupplierChoice: e.target.value });
   setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
@@ -1958,7 +2053,7 @@ class Component extends DCLogic {
   exportLaporanCsv = () => {
     const rows = this.laporanFilteredRows(this.state);
     const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
-    const lines = [header.join(',')].concat(rows.map((p) => [p.kode, '"' + p.nama.replace(/"/g, '""') + '"', p.kategori, '"' + (p.supplier || '') + '"', p.stok, p.ecer, p.bengkel, p.grosir, this.stokStatusOf(p)].join(',')));
+    const lines = [header.join(',')].concat(rows.map((p) => [p.kode, '"' + p.nama.replace(/"/g, '""') + '"', p.kategori, '"' + (p.supplier || '') + '"', p.stok, p.ecer, p.bengkel, p.grosir, p.status].join(',')));
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1969,15 +2064,13 @@ class Component extends DCLogic {
   printLaporan = () => window.print();
   printPage = () => window.print();
 
-  stokStatusOf = (p) => (p.stok <= p.minStok / 2 ? 'Kritis' : p.stok <= p.minStok ? 'Menipis' : 'Aman');
-
   laporanFilteredRows = (s) => {
     const search = s.laporanSearch.trim().toLowerCase();
     return s.stokProducts.filter((p) => {
       const matchesSearch = !search || p.nama.toLowerCase().includes(search) || p.kode.toLowerCase().includes(search);
       const matchesKategori = s.laporanKategoriFilter === 'ALL' || p.kategori === s.laporanKategoriFilter;
       const matchesSupplier = s.laporanSupplierFilter === 'ALL' || p.supplier === s.laporanSupplierFilter;
-      const matchesStatus = s.laporanStatusFilter === 'ALL' || this.stokStatusOf(p) === s.laporanStatusFilter;
+      const matchesStatus = s.laporanStatusFilter === 'ALL' || p.status === s.laporanStatusFilter;
       return matchesSearch && matchesKategori && matchesSupplier && matchesStatus;
     });
   };
@@ -2017,13 +2110,12 @@ class Component extends DCLogic {
     const s = this.state;
     const supplierName = this.resolvePembelianSupplier(s);
     if (!supplierName || s.pembelianCart.length === 0) return;
-    const noFaktur = 'PB-260806-' + String(s.pembelianInvoiceSeq).padStart(4, '0');
     const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
     const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
     this.setState({
       pembelianCompleted: true,
       pembelianPreview: {
-        noFaktur, supplier: supplierName, tanggal: 'Kamis, 6 Agustus 2026', tanggalISO: '2026-08-06',
+        supplier: supplierName, tanggal: formatTanggal(new Date().toISOString().slice(0, 10)),
         jatuhTempo: s.pembelianJatuhTempo, payment: s.pembelianPayment,
         kategori: s.pembelianKategoriFilter === 'ALL' ? [...new Set(s.pembelianCart.map((i) => i.kategori))].join(', ') : s.pembelianKategoriFilter,
         pricelist: s.pembelianCart.map((i) => formatRp(i.pricelist || 0)).join(', '),
@@ -2039,41 +2131,42 @@ class Component extends DCLogic {
     const s = this.state;
     const preview = s.pembelianPreview;
     if (!preview) return;
-    const record = { noFaktur: preview.noFaktur, tanggal: preview.tanggal, tanggalISO: preview.tanggalISO, supplier: preview.supplier, totalItems: preview.totalItems, totalQty: preview.totalQty, totalBiaya: preview.totalBiaya, payment: preview.payment, jatuhTempo: preview.jatuhTempo };
-    this.setState((st) => {
-      const updated = st.stokProducts.map((p) => {
-        const line = preview.items.find((c) => c.kode === p.kode);
-        return line ? { ...p, stok: p.stok + line.qty, hargaFaktur: line.hargaFaktur, hargaNetto: line.hargaNetto } : p;
-      });
-      const newLines = preview.items.filter((c) => !st.stokProducts.some((p) => p.kode === c.kode));
-      const newProducts = newLines.map((line) => ({
-        kode: line.kode, nama: line.nama, kategori: line.kategori, supplier: preview.supplier,
-        hargaFaktur: line.hargaFaktur, hargaNetto: line.hargaNetto, priceListBasis: line.priceListBasis || 'NETTO',
-        ecer: 0, bengkel: 0, grosir: 0, stok: line.qty, minStok: 10, pendingSetup: true,
+    const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, qty: i.qty }));
+    this.setState({ busy: true, pembelianSubmitError: '' });
+    api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then(() => {
+      this.setState((st) => ({
+        busy: false,
+        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH',
+        pembelianCompleted: false, pembelianPreview: null,
       }));
-      return { stokProducts: [...updated, ...newProducts] };
-    });
-    this.setState((st) => ({
-      pembelianHistory: [record, ...st.pembelianHistory],
-      pembelianCart: [], pembelianSupplierChoice: st.suplierList[0].nama, pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH',
-      pembelianInvoiceSeq: st.pembelianInvoiceSeq + 1,
-      pembelianCompleted: false, pembelianPreview: null,
-    }));
+      this.refreshBarang();
+      this.refreshPembelianHistory();
+    }).catch((e) => this.setState({ busy: false, pembelianCompleted: false, pembelianSubmitError: e.message }));
   };
 
   doLogin = () => {
-    const name = this.state.username.trim();
-    if (!name) { this.setState({ loginError: 'Isi nama pengguna terlebih dahulu.' }); return; }
-    this.setState({ screen: 'app', userName: name, activeModule: 'dashboard' });
+    const { username, password } = this.state;
+    if (!username.trim()) { this.setState({ loginError: 'Isi nama pengguna terlebih dahulu.' }); return; }
+    if (!password) { this.setState({ loginError: 'Isi kata sandi.' }); return; }
+    this.setState({ busy: true, loginError: '' });
+    api('POST', 'auth/login.php', { username: username.trim(), password }).then((user) => {
+      this.setState({ busy: false, activeModule: 'dashboard' });
+      this.afterLogin(user);
+    }).catch((e) => this.setState({ busy: false, loginError: e.message }));
   };
 
   doLogout = () => {
-    this.setState({ screen: 'login', username: '', password: '', userName: '', loginError: '', activeModule: 'dashboard' });
+    api('POST', 'auth/logout.php').catch(() => {});
+    this.setState({
+      screen: 'login', username: '', password: '', userName: '', loginError: '', activeModule: 'dashboard',
+      stokProducts: [], suplierList: [], pelangganList: [], kategoriList: [], userList: [],
+    });
   };
 
   goTo = (key) => {
     if (!NAV_ACCESS[key].includes(this.state.role)) return;
     this.setState({ activeModule: key });
+    this.loadModuleData(key);
   };
 
   navStyle(key) {
@@ -2109,11 +2202,13 @@ class Component extends DCLogic {
     const penjGrandTotal = s.penjCart.reduce((a, i) => a + i.subtotal, 0);
     const penjAmountPaidNum = parseFloat(s.penjAmountPaid) || 0;
     const penjKembalian = penjAmountPaidNum - penjGrandTotal;
-    const penjCanComplete = s.penjCart.length > 0 && s.penjCustName.trim() !== '' && penjAmountPaidNum >= penjGrandTotal;
-    let penjNote = '';
-    if (s.penjCart.length === 0) penjNote = 'Tambahkan barang ke keranjang terlebih dahulu.';
-    else if (s.penjCustName.trim() === '') penjNote = 'Isi nama pelanggan.';
-    else if (penjAmountPaidNum < penjGrandTotal) penjNote = 'Jumlah bayar kurang dari total.';
+    const penjCanComplete = !s.busy && s.penjCart.length > 0 && s.penjCustName.trim() !== '' && penjAmountPaidNum >= penjGrandTotal;
+    let penjNote = s.penjSubmitError;
+    if (!penjNote) {
+      if (s.penjCart.length === 0) penjNote = 'Tambahkan barang ke keranjang terlebih dahulu.';
+      else if (s.penjCustName.trim() === '') penjNote = 'Isi nama pelanggan.';
+      else if (penjAmountPaidNum < penjGrandTotal) penjNote = 'Jumlah bayar kurang dari total.';
+    }
 
     let penjLastInvoiceView = null;
     if (s.penjLastInvoice) {
@@ -2134,7 +2229,7 @@ class Component extends DCLogic {
       qtyExceedsStock, cannotAdd: !canAdd, addToCart: this.addToCart,
       cartEmpty: s.penjCart.length === 0, cartNotEmpty: s.penjCart.length > 0, penjCartView,
       penjCustName: s.penjCustName, setPenjCustName: this.setPenjCustName,
-      previewInvoiceNo: 'INV-260806-' + String(s.penjInvoiceSeq).padStart(4, '0'),
+      previewInvoiceNo: 'Dibuat otomatis saat disimpan',
       penjTotalItems, penjTotalQty, penjGrandTotalLabel: formatRp(penjGrandTotal),
       payIsTunai: s.penjPaymentMethod === 'TUNAI', payIsTransfer: s.penjPaymentMethod === 'TRANSFER',
       setPenjTunai: this.setPenjTunai, setPenjTransfer: this.setPenjTransfer,
@@ -2153,20 +2248,18 @@ class Component extends DCLogic {
       const matchesKategori = s.stokKategoriFilter === 'ALL' || p.kategori === s.stokKategoriFilter;
       return matchesSearch && matchesKategori;
     });
-    const statusOf = (p) => (p.stok <= p.minStok / 2 ? 'Kritis' : p.stok <= p.minStok ? 'Menipis' : 'Aman');
     const stokRows = filtered.map((p) => {
-      const status = statusOf(p);
       const priceListValue = p.priceListBasis === 'FAKTUR' ? p.hargaFaktur : p.hargaNetto;
       return {
         ...p, ecerLabel: p.pendingSetup ? '—' : formatRp(p.ecer), bengkelLabel: p.pendingSetup ? '—' : formatRp(p.bengkel), grosirLabel: p.pendingSetup ? '—' : formatRp(p.grosir),
         priceListBasisLabel: p.priceListBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
         priceListValueLabel: priceListValue ? formatRp(priceListValue) : '—',
-        statusIsKritis: !p.pendingSetup && status === 'Kritis', statusIsMenipis: !p.pendingSetup && status === 'Menipis', statusIsAman: !p.pendingSetup && status === 'Aman',
+        statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
       };
     });
-    const stokKritisCount = s.stokProducts.filter((p) => !p.pendingSetup && statusOf(p) === 'Kritis').length;
-    const stokMenipisCount = s.stokProducts.filter((p) => !p.pendingSetup && statusOf(p) === 'Menipis').length;
+    const stokKritisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Kritis').length;
+    const stokMenipisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Menipis').length;
     const stokPendingCount = s.stokProducts.filter((p) => p.pendingSetup).length;
     const deleteTargetProduct = s.stokProducts.find((p) => p.kode === s.stokDeleteTarget);
 
@@ -2210,10 +2303,12 @@ class Component extends DCLogic {
     const totalItems = s.pembelianCart.length;
     const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
     const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
-    const canComplete = this.resolvePembelianSupplier(s) !== '' && s.pembelianCart.length > 0;
-    let pembelianNote = '';
-    if (s.pembelianCart.length === 0) pembelianNote = 'Tambahkan barang ke daftar pembelian terlebih dahulu.';
-    else if (this.resolvePembelianSupplier(s) === '') pembelianNote = 'Pilih atau isi nama suplier.';
+    const canComplete = !s.busy && this.resolvePembelianSupplier(s) !== '' && s.pembelianCart.length > 0;
+    let pembelianNote = s.pembelianSubmitError;
+    if (!pembelianNote) {
+      if (s.pembelianCart.length === 0) pembelianNote = 'Tambahkan barang ke daftar pembelian terlebih dahulu.';
+      else if (this.resolvePembelianSupplier(s) === '') pembelianNote = 'Pilih atau isi nama suplier.';
+    }
 
     return {
       isModPembelian: s.activeModule === 'pembelian',
@@ -2239,13 +2334,14 @@ class Component extends DCLogic {
       pembelianCartEmpty: s.pembelianCart.length === 0, pembelianCartNotEmpty: s.pembelianCart.length > 0,
       pembelianCartView,
       pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
-      previewPembelianNo: 'PB-260806-' + String(s.pembelianInvoiceSeq).padStart(4, '0'),
+      previewPembelianNo: 'Dibuat otomatis saat disimpan',
       pembelianCannotComplete: !canComplete, completeSPembelian: this.completeSPembelian, pembelianNote,
       pembelianHistoryView: s.pembelianHistory.map((h) => ({ ...h, totalBiayaLabel: formatRp(h.totalBiaya) })),
       pembelianNotCompleted: !s.pembelianCompleted, pembelianCompletedFlag: s.pembelianCompleted,
       editPembelianPreview: this.editPembelianPreview, finalizePembelian: this.finalizePembelian,
       pembelianPreviewView: s.pembelianPreview ? {
         ...s.pembelianPreview,
+        noFaktur: 'Dibuat otomatis saat disimpan',
         paymentLabel: s.pembelianPreview.payment === 'CASH' ? 'Cash' : 'TOP',
         jatuhTempoLabel: s.pembelianPreview.jatuhTempo || '-',
         totalBiayaLabel: formatRp(s.pembelianPreview.totalBiaya),
@@ -2256,13 +2352,10 @@ class Component extends DCLogic {
 
   laporanVals(s) {
     const filtered = this.laporanFilteredRows(s);
-    const rows = filtered.map((p) => {
-      const status = this.stokStatusOf(p);
-      return {
-        ...p, ecerLabel: formatRp(p.ecer), bengkelLabel: formatRp(p.bengkel), grosirLabel: formatRp(p.grosir),
-        statusIsKritis: status === 'Kritis', statusIsMenipis: status === 'Menipis', statusIsAman: status === 'Aman',
-      };
-    });
+    const rows = filtered.map((p) => ({
+      ...p, ecerLabel: formatRp(p.ecer), bengkelLabel: formatRp(p.bengkel), grosirLabel: formatRp(p.grosir),
+      statusIsKritis: p.status === 'Kritis', statusIsMenipis: p.status === 'Menipis', statusIsAman: p.status === 'Aman',
+    }));
     return {
       isModLaporan: s.activeModule === 'laporan',
       laporanSearch: s.laporanSearch, setLaporanSearch: this.setLaporanSearch,
@@ -2277,10 +2370,11 @@ class Component extends DCLogic {
     };
   }
 
-  laporanLengkapVals(rawS) {
-    const inRange = (iso) => (!rawS.laporanDari || iso >= rawS.laporanDari) && (!rawS.laporanSampai || iso <= rawS.laporanSampai);
-    const s = { ...rawS, pembelianHistory: rawS.pembelianHistory.filter((h) => inRange(h.tanggalISO)), penjualanHistory: rawS.penjualanHistory.filter((h) => inRange(h.tanggalISO)) };
-    const q = rawS.laporanLengkapSearch.trim().toLowerCase();
+  // Semua angka di sini datang dari backend/api/laporan/*.php (dihitung di
+  // server) — fungsi ini cuma memformat & memfilter hasil fetch yang sudah
+  // tersimpan di state.remoteLaporan*, dipicu oleh loadLaporanTab().
+  laporanLengkapVals(s) {
+    const q = s.laporanLengkapSearch.trim().toLowerCase();
     const matches = (...vals) => !q || vals.some((v) => String(v || '').toLowerCase().includes(q));
     const TABS = [
       { key: 'global', label: 'Global' },
@@ -2304,74 +2398,55 @@ class Component extends DCLogic {
       };
     });
 
-    const totalPembelian = s.pembelianHistory.reduce((a, h) => a + h.totalBiaya, 0);
-    const totalItemsPembelian = s.pembelianHistory.reduce((a, h) => a + h.totalQty, 0);
-    const avgInvoicePembelian = s.pembelianHistory.length ? totalPembelian / s.pembelianHistory.length : 0;
-    const suppliersUsed = new Set(s.pembelianHistory.map((h) => h.supplier)).size;
+    const g = s.remoteLaporanGlobal || {};
+    const pb = s.remoteLaporanPembelian || { rows: [] };
+    const pj = s.remoteLaporanPenjualan || { rows: [], per_customer: [] };
+    const laba = s.remoteLaporanLaba || { rows: [] };
+    const top = s.remoteLaporanTop || { by_qty: [], by_revenue: [] };
+    const retur = s.remoteLaporanRetur || { retur_penjualan: [], retur_pembelian: [] };
 
-    const totalPenjualan = s.penjualanHistory.reduce((a, h) => a + h.grandTotal, 0);
-    const totalItemsTerjual = s.penjualanHistory.reduce((a, h) => a + h.totalQty, 0);
-    const avgSale = s.penjualanHistory.length ? totalPenjualan / s.penjualanHistory.length : 0;
-    const customersServed = new Set(s.penjualanHistory.map((h) => h.custName)).size;
-    const custMap = {};
-    s.penjualanHistory.forEach((h) => {
-      const c = custMap[h.custName] || { custName: h.custName, invoiceCount: 0, totalQty: 0, totalAmount: 0, invoiceNos: [] };
-      c.invoiceCount += 1; c.totalQty += h.totalQty; c.totalAmount += h.grandTotal; c.invoiceNos.push(h.invoiceNo);
-      custMap[h.custName] = c;
-    });
-    const custRows = Object.values(custMap).sort((a, b) => b.totalAmount - a.totalAmount).map((c) => ({ ...c, invoiceLabel: c.invoiceNos.join(', '), totalAmountLabel: formatRp(c.totalAmount) }));
-
-    const costOfLine = (item) => {
-      const p = s.stokProducts.find((x) => x.kode === item.kode);
-      const unitCost = p ? (p.hargaNetto || p.hargaFaktur || 0) : 0;
-      return unitCost * item.qty;
-    };
-    const labaRows = s.penjualanHistory.map((h) => {
-      const cost = h.items.reduce((a, i) => a + costOfLine(i), 0);
-      const profit = h.grandTotal - cost;
-      const margin = h.grandTotal ? (profit / h.grandTotal) * 100 : 0;
-      return { invoiceNo: h.invoiceNo, custName: h.custName, profitLabel: formatRp(profit), marginLabel: margin.toFixed(1) + '%' };
-    });
-    const totalCost = s.penjualanHistory.reduce((a, h) => a + h.items.reduce((b, i) => b + costOfLine(i), 0), 0);
-    const grossProfit = totalPenjualan - totalCost;
-    const marginPct = totalPenjualan ? (grossProfit / totalPenjualan) * 100 : 0;
-    const roiPct = totalCost ? (grossProfit / totalCost) * 100 : 0;
-
-    const itemAgg = {};
-    s.penjualanHistory.forEach((h) => h.items.forEach((i) => {
-      const a = itemAgg[i.kode] || { kode: i.kode, nama: i.nama, qty: 0, revenue: 0 };
-      a.qty += i.qty; a.revenue += i.subtotal;
-      itemAgg[i.kode] = a;
+    // per_customer dari server tidak bawa daftar no. invoice gabungan —
+    // disusun dari rows mentah yang sudah ikut di respons yang sama.
+    const invoicesByCustomer = {};
+    pj.rows.forEach((r) => { (invoicesByCustomer[r.cust_name] = invoicesByCustomer[r.cust_name] || []).push(r.invoice_no); });
+    const custRows = pj.per_customer.map((c) => ({
+      custName: c.cust_name, invoiceCount: c.invoice_count, totalQty: c.total_qty,
+      totalAmountLabel: formatRp(c.total_amount), invoiceLabel: (invoicesByCustomer[c.cust_name] || []).join(', '),
     }));
-    const byQty = Object.values(itemAgg).sort((a, b) => b.qty - a.qty).slice(0, 5).map((a) => ({ ...a, revenueLabel: formatRp(a.revenue) }));
-    const byRevenue = Object.values(itemAgg).sort((a, b) => b.revenue - a.revenue).slice(0, 5).map((a) => ({ ...a, revenueLabel: formatRp(a.revenue) }));
 
     return {
       isModLaporanLengkap: s.activeModule === 'laporanLengkap',
       laporanDari: s.laporanDari, setLaporanDari: this.setLaporanDari,
       laporanSampai: s.laporanSampai, setLaporanSampai: this.setLaporanSampai,
-      laporanLengkapSearch: rawS.laporanLengkapSearch, setLaporanLengkapSearch: this.setLaporanLengkapSearch,
+      laporanLengkapSearch: s.laporanLengkapSearch, setLaporanLengkapSearch: this.setLaporanLengkapSearch,
       laporanLengkapTabs: tabsView,
       lapTabIsGlobal: s.laporanLengkapTab === 'global', lapTabIsPembelian: s.laporanLengkapTab === 'pembelian',
       lapTabIsPenjualan: s.laporanLengkapTab === 'penjualan', lapTabIsLaba: s.laporanLengkapTab === 'laba',
       lapTabIsLaris: s.laporanLengkapTab === 'laris', lapTabIsRetur: s.laporanLengkapTab === 'retur',
 
-      pembelianRowsView: s.pembelianHistory.map((h) => ({ ...h, totalBiayaLabel: formatRp(h.totalBiaya) })).filter((h) => matches(h.supplier, h.noFaktur)),
-      totalPembelianLabel: formatRp(totalPembelian), totalItemsPembelian, avgInvoicePembelianLabel: formatRp(avgInvoicePembelian),
+      pembelianRowsView: pb.rows.map((r) => ({ supplier: r.suplier, noFaktur: r.no_faktur, totalQty: r.total_qty, totalBiayaLabel: formatRp(r.total_biaya) })).filter((h) => matches(h.supplier, h.noFaktur)),
+      totalPembelianLabel: formatRp(pb.total_biaya || 0), totalItemsPembelian: pb.total_items || 0, avgInvoicePembelianLabel: formatRp(pb.avg_invoice || 0),
 
-      custRows: custRows.filter((c) => matches(c.custName, c.invoiceLabel)), totalPenjualanLabel: formatRp(totalPenjualan), totalItemsTerjual,
-      avgSaleLabel: formatRp(avgSale), penjualanTxCount: s.penjualanHistory.length,
+      custRows: custRows.filter((c) => matches(c.custName, c.invoiceLabel)),
+      totalPenjualanLabel: formatRp(pj.total_revenue || 0), totalItemsTerjual: pj.total_items || 0,
+      avgSaleLabel: formatRp(pj.avg_sale || 0), penjualanTxCount: pj.tx_count || 0,
 
-      labaRows: labaRows.filter((r) => matches(r.invoiceNo, r.custName)), totalRevenueLabel: formatRp(totalPenjualan), totalCostLabel: formatRp(totalCost),
-      grossProfitLabel: formatRp(grossProfit), marginPctLabel: marginPct.toFixed(1) + '%',
+      labaRows: laba.rows.map((r) => ({ invoiceNo: r.invoice_no, custName: r.cust_name, profitLabel: formatRp(r.profit), marginLabel: r.margin_pct.toFixed(1) + '%' })).filter((r) => matches(r.invoiceNo, r.custName)),
+      totalRevenueLabel: formatRp(laba.total_revenue || 0), totalCostLabel: formatRp(laba.total_cost || 0),
+      grossProfitLabel: formatRp(laba.gross_profit || 0), marginPctLabel: (laba.margin_pct || 0).toFixed(1) + '%',
 
-      byQty: byQty.filter((it) => matches(it.nama, it.kode)), byRevenue: byRevenue.filter((it) => matches(it.nama, it.kode)),
+      byQty: top.by_qty.map((it) => ({ nama: it.nama, kode: it.kode, qty: it.qty })).filter((it) => matches(it.nama, it.kode)),
+      byRevenue: top.by_revenue.map((it) => ({ nama: it.nama, kode: it.kode, revenueLabel: formatRp(it.revenue) })).filter((it) => matches(it.nama, it.kode)),
 
-      kpiTotalRevenueLabel: formatRp(totalPenjualan), kpiTotalCostLabel: formatRp(totalCost),
-      kpiNetProfitLabel: formatRp(grossProfit), kpiMarginLabel: marginPct.toFixed(1) + '%', kpiRoiLabel: roiPct.toFixed(1) + '%',
-      kpiTxCount: s.penjualanHistory.length, kpiAvgSaleLabel: formatRp(avgSale), kpiCustomersServed: customersServed,
-      kpiItemsSold: totalItemsTerjual, kpiPurchaseTx: s.pembelianHistory.length, kpiSuppliersUsed: suppliersUsed,
-      kpiAvgPurchaseLabel: formatRp(avgInvoicePembelian),
+      returPjLaporanRows: retur.retur_penjualan.map((r) => ({ noRetur: r.no_retur, customer: r.customer_name, invoice: r.original_invoice_no, tanggalLabel: formatTanggal(r.tanggal), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.customer, r.nama)),
+      returPbLaporanRows: retur.retur_pembelian.map((r) => ({ noRetur: r.no_retur, supplier: r.suplier, invoice: r.original_invoice_no, tanggalLabel: formatTanggal(r.tanggal), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.supplier, r.nama)),
+      returLaporanEmpty: retur.retur_penjualan.length === 0 && retur.retur_pembelian.length === 0,
+
+      kpiTotalRevenueLabel: formatRp(g.total_revenue || 0), kpiTotalCostLabel: formatRp(g.total_cost || 0),
+      kpiNetProfitLabel: formatRp(g.net_profit || 0), kpiMarginLabel: (g.margin_pct || 0).toFixed(1) + '%', kpiRoiLabel: (g.roi_pct || 0).toFixed(1) + '%',
+      kpiTxCount: g.tx_count || 0, kpiAvgSaleLabel: formatRp(g.avg_sale || 0), kpiCustomersServed: g.customers_served || 0,
+      kpiItemsSold: g.items_sold || 0, kpiPurchaseTx: g.purchase_tx || 0, kpiSuppliersUsed: g.suppliers_used || 0,
+      kpiAvgPurchaseLabel: formatRp(g.avg_purchase || 0),
     };
   }
 
@@ -2380,10 +2455,11 @@ class Component extends DCLogic {
     const effectiveTab = (!isOwner && s.returTab === 'pembelian') ? 'penjualan' : s.returTab;
     const returPjCartView = s.returPjCart.map((item, idx) => ({ ...item, removeHandler: () => this.removeReturPjItem(idx) }));
     const returPbCartView = s.returPbCart.map((item, idx) => ({ ...item, removeHandler: () => this.removeReturPbItem(idx) }));
-    const canCompletePj = s.returPjCustomer.trim() !== '' && s.returPjInvoice.trim() !== '' && s.returPjCart.length > 0;
-    const canCompletePb = s.returPbSupplier.trim() !== '' && s.returPbInvoice.trim() !== '' && s.returPbCart.length > 0;
+    const canCompletePj = !s.busy && s.returPjCustomer.trim() !== '' && s.returPjInvoice.trim() !== '' && s.returPjCart.length > 0;
+    const canCompletePb = !s.busy && s.returPbSupplier.trim() !== '' && s.returPbInvoice.trim() !== '' && s.returPbCart.length > 0;
     return {
       isModRetur: s.activeModule === 'retur',
+      returSubmitError: s.returSubmitError,
       returTabIsPenjualan: effectiveTab === 'penjualan', returTabIsPembelian: effectiveTab === 'pembelian',
       returTabIsPenjualan_class: effectiveTab === 'penjualan' ? 'btn-primary' : 'btn-secondary',
       returTabIsPembelian_class: effectiveTab === 'pembelian' ? 'btn-primary' : 'btn-secondary',
@@ -2448,8 +2524,10 @@ class Component extends DCLogic {
       masterTypeIsSuplier: t === 'suplier', masterTypeIsPelanggan: t === 'pelanggan', masterTypeIsKategori: t === 'kategori', masterTypeIsUser: t === 'user',
       masterModalTitle: (s.masterEditKey ? 'Ubah ' : 'Tambah ') + (t === 'suplier' ? 'Suplier' : t === 'pelanggan' ? 'Pelanggan' : t === 'kategori' ? 'Kategori' : 'Pengguna'),
       masterNamaLabel: t === 'suplier' ? 'Nama Suplier' : t === 'pelanggan' ? 'Nama Pelanggan' : t === 'kategori' ? 'Nama Kategori' : 'Nama Pengguna',
+      masterPasswordLabel: s.masterEditKey ? 'Password Baru (kosongkan kalau tidak diubah)' : 'Password',
       masterForm: s.masterForm,
       setMasterNama: this.setMasterFormField('nama'), setMasterAlamat: this.setMasterFormField('alamat'), setMasterNoHp: this.setMasterFormField('noHp'),
+      setMasterPassword: this.setMasterPassword,
       masterRoleIsOwner: s.masterForm.role === 'owner', masterRoleIsKaryawan: s.masterForm.role !== 'owner',
       setMasterRoleOwner: this.setMasterRoleOwner, setMasterRoleKaryawan: this.setMasterRoleKaryawan,
       masterFormError: s.masterFormError, saveMasterForm: this.saveMasterForm,
@@ -2464,28 +2542,38 @@ class Component extends DCLogic {
     const storeName = this.props.storeName || 'App-mini';
     const finalUserName = s.userName || (isOwner ? 'Owner Toko' : 'Karyawan Toko');
 
+    const trend = s.dashboardTrend || [];
     const w = 560, h = 160, pad = 12;
-    const min = Math.min(...TREND), max = Math.max(...TREND);
-    const stepX = (w - pad * 2) / (TREND.length - 1);
-    const pts = TREND.map((v, i) => {
+    const trendVals = trend.map((r) => r.total);
+    const min = trendVals.length ? Math.min(...trendVals) : 0, max = trendVals.length ? Math.max(...trendVals) : 1;
+    const stepX = trend.length > 1 ? (w - pad * 2) / (trend.length - 1) : 0;
+    const pts = trend.map((r, i) => {
       const x = pad + i * stepX;
-      const y = pad + (1 - (v - min) / (max - min || 1)) * (h - pad * 2);
+      const y = pad + (1 - (r.total - min) / (max - min || 1)) * (h - pad * 2);
       return [x, y];
     });
-    const linePath = 'M' + pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L');
-    const areaPath = linePath + ` L${pts[pts.length - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z`;
+    const linePath = pts.length ? 'M' + pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L') : '';
+    const areaPath = pts.length ? linePath + ` L${pts[pts.length - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z` : '';
 
-    const maxQty = Math.max(...TOP_PRODUCTS.map((p) => p.qty));
+    const topProductsRaw = s.dashboardTopProducts || [];
+    const maxQty = Math.max(1, ...topProductsRaw.map((p) => p.qty));
+    const lowStockRaw = s.stokProducts.filter((p) => !p.pendingSetup && (p.status === 'Kritis' || p.status === 'Menipis'));
+    const dToday = s.dashboardToday || { total_revenue: 0, tx_count: 0 };
+    const dPembelian = s.dashboardPembelianBulanIni || { total_biaya: 0, rows: [] };
+    const dLaba = s.dashboardLabaBulanIni || { gross_profit: 0, margin_pct: 0 };
     const moduleLabels = { dashboard: 'Dashboard', penjualan: 'Transaksi Penjualan', stok: 'Data Barang', pembelian: 'Input Pembelian', laporan: 'Laporan Stok', laporanLengkap: 'Laporan', retur: 'Retur', master: 'Master Data' };
 
     return {
-      isLogin: s.screen === 'login',
-      isApp: s.screen === 'app',
+      isBooting: s.booting,
+      isLogin: !s.booting && s.screen === 'login',
+      isApp: !s.booting && s.screen === 'app',
+      globalError: s.globalError,
+      dismissGlobalError: () => this.setState({ globalError: '' }),
+      busy: s.busy,
       isOwner, isKaryawan: !isOwner,
       storeName,
       username: s.username, password: s.password, loginError: s.loginError,
       setUsername: this.setUsername, setPassword: this.setPassword,
-      setRoleOwner: this.setRoleOwner, setRoleKaryawan: this.setRoleKaryawan,
       doLogin: this.doLogin, doLogout: this.doLogout,
       showForgot: s.showForgot, forgotSent: s.forgotSent, forgotNotSent: !s.forgotSent,
       forgotContact: s.forgotContact, forgotError: s.forgotError,
@@ -2534,14 +2622,22 @@ class Component extends DCLogic {
       ...this.returVals(s),
       ...this.masterVals(s),
 
-      lowStock: LOW_STOCK.map((item) => ({ ...item, statusIsKritis: item.status === 'Kritis', statusIsMenipis: item.status === 'Menipis' })),
-      topProducts: TOP_PRODUCTS.map((p) => ({ ...p, barPct: Math.round((p.qty / maxQty) * 100) })),
+      lowStock: lowStockRaw.map((item) => ({ ...item, statusIsKritis: item.status === 'Kritis', statusIsMenipis: item.status === 'Menipis' })),
+      topProducts: topProductsRaw.map((p) => ({ ...p, barPct: Math.round((p.qty / maxQty) * 100) })),
 
       trendLinePath: linePath,
       trendAreaPath: areaPath,
-      trendLastLabel: 'Rp ' + TREND[TREND.length - 1].toFixed(1).replace('.', ',') + ' jt',
+      trendLastLabel: trend.length ? formatRp(trend[trend.length - 1].total) : '-',
 
-      todayLabel: 'Kamis, 6 Agustus 2026',
+      dashPenjualanHariIniLabel: formatRp(dToday.total_revenue),
+      dashPenjualanHariIniTx: dToday.tx_count,
+      dashPembelianBulanIniLabel: formatRp(dPembelian.total_biaya),
+      dashPembelianBulanIniFaktur: dPembelian.rows.length,
+      dashLabaBulanIniLabel: formatRp(dLaba.gross_profit),
+      dashLabaBulanIniMarginLabel: (dLaba.margin_pct || 0).toFixed(0) + '%',
+      dashStokMenipisCount: lowStockRaw.length,
+
+      todayLabel: formatTanggal(new Date().toISOString().slice(0, 10)),
     };
   }
 }

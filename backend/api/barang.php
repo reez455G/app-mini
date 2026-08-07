@@ -43,19 +43,21 @@ if ($method === 'GET') {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    // Karyawan tidak boleh lihat harga beli/suplier (data finansial) — hanya
-    // yang perlu untuk jualan & alert stok. Lihat docs/BACKEND.md § Access control.
+    // Karyawan tidak boleh lihat harga beli (data finansial) — tapi nama
+    // suplier bukan data finansial (dipakai filter di Laporan Stok, yang
+    // memang bisa diakses Karyawan) jadi tetap dikirim ke semua role. Lihat
+    // docs/BACKEND.md § Access control.
     $isOwner = $me['role'] === 'owner';
     $out = array_map(function ($r) use ($isOwner) {
         $base = [
             'id' => (int)$r['id'], 'kode' => $r['kode'], 'nama' => $r['nama'],
-            'kategori' => $r['kategori_nama'], 'stok' => (int)$r['stok'],
+            'kategori' => $r['kategori_nama'], 'suplier' => $r['suplier_nama'], 'stok' => (int)$r['stok'],
             'harga_ecer' => (float)$r['harga_ecer'], 'harga_bengkel' => (float)$r['harga_bengkel'], 'harga_grosir' => (float)$r['harga_grosir'],
             'status' => stok_status((int)$r['stok'], (int)$r['min_stok']),
         ];
         if (!$isOwner) return $base;
         return $base + [
-            'suplier' => $r['suplier_nama'], 'harga_faktur' => (float)$r['harga_faktur'], 'harga_netto' => (float)$r['harga_netto'],
+            'harga_faktur' => (float)$r['harga_faktur'], 'harga_netto' => (float)$r['harga_netto'],
             'price_list_basis' => $r['price_list_basis'], 'min_stok' => (int)$r['min_stok'], 'pending_setup' => (bool)$r['pending_setup'],
         ];
     }, $stmt->fetchAll());

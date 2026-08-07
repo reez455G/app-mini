@@ -6,10 +6,13 @@ Process Flow (Excalidraw Guide).md`. Sudah ditest end-to-end (login, pembelian,
 penjualan, retur, semua laporan) sebelum dokumen ini ditulis — lihat § Cara test
 di bawah kalau mau mengulang.
 
-**Status saat ini: backend + database saja, belum tersambung ke frontend.**
-`Dashboard.dc.html` masih 100% jalan dengan data in-memory-nya sendiri (lihat
-`README.md`). Menyambungkan frontend ke API ini — mengganti setiap `setState`
-jadi `fetch()` — adalah pekerjaan terpisah yang belum dikerjakan.
+**Status: sudah tersambung ke `Dashboard.dc.html`.** Setiap aksi yang mengubah
+data (login, CRUD master data/barang, transaksi penjualan/pembelian, retur)
+dan semua laporan memanggil endpoint di dokumen ini lewat `fetch()` — lihat
+helper `api()` di bagian atas `<script data-dc-script>` di `Dashboard.dc.html`.
+Cart/keranjang (Penjualan, Pembelian, Retur) tetap murni di sisi client
+selagi barang ditambah satu-satu; API dipanggil sekali saat transaksi
+benar-benar disimpan.
 
 ---
 
@@ -120,14 +123,15 @@ ACCESS CONTROL MATRIX):
 | `auth/*` | ✅ | ✅ |
 | `kategori.php`, `suplier.php`, `pelanggan.php` — **GET** | ✅ | ✅ |
 | `kategori.php`, `suplier.php`, `pelanggan.php`, `users.php` — tulis | ✅ | ❌ |
-| `barang.php` — **GET** | ✅ (semua field) | ✅ (tanpa harga beli/suplier) |
+| `barang.php` — **GET** | ✅ (semua field) | ✅ (tanpa harga beli) |
 | `barang.php` — tulis, `?history=1` | ✅ | ❌ |
 | `pembelian.php` (semua method) | ✅ | ❌ |
 | `penjualan.php` (semua method) | ✅ | ✅ |
 | `retur_penjualan.php` | ✅ | ✅ |
 | `retur_pembelian.php` | ✅ | ❌ |
 | `laporan/stok.php`, `laporan/penjualan.php` | ✅ | ✅ |
-| `laporan/pembelian.php`, `laporan/laba.php`, `laporan/retur.php`, `laporan/top_produk.php`, `laporan/global.php` | ✅ | ❌ |
+| `laporan/top_produk.php` | ✅ (+ `profit`) | ✅ (tanpa `profit`) |
+| `laporan/pembelian.php`, `laporan/laba.php`, `laporan/retur.php`, `laporan/global.php`, `laporan/tren_penjualan.php` | ✅ | ❌ |
 
 Yang ditolak dapat `401` (belum login) atau `403` (login tapi role tidak
 cukup), body `{"ok":false,"error":"..."}`.
@@ -188,9 +192,10 @@ DELETE /api/users.php?id=1   — tidak bisa hapus akun sendiri
 ```
 GET /api/barang.php?kategori=BAN&search=ban
 ```
-Karyawan dapat: `id, kode, nama, kategori, stok, harga_ecer, harga_bengkel,
-harga_grosir, status`. Owner dapat tambahan: `suplier, harga_faktur,
-harga_netto, price_list_basis, min_stok, pending_setup`.
+Karyawan dapat: `id, kode, nama, kategori, suplier, stok, harga_ecer,
+harga_bengkel, harga_grosir, status` — suplier bukan data finansial (dipakai
+filter di Laporan Stok, yang bisa diakses Karyawan). Owner dapat tambahan:
+`harga_faktur, harga_netto, price_list_basis, min_stok, pending_setup`.
 `status` dihitung otomatis: `stok <= min_stok/2` → `Kritis`, `<= min_stok` →
 `Menipis`, selain itu `Aman`.
 
@@ -271,11 +276,12 @@ default dari awal waktu s/d hari ini).
 ```
 GET /api/laporan/stok.php?kategori=&suplier=&status=&search=      (Owner & Karyawan)
 GET /api/laporan/penjualan.php?from=&to=                          (Owner & Karyawan)
+GET /api/laporan/top_produk.php?from=&to=&limit=5                  (Owner & Karyawan — profit disembunyikan utk Karyawan)
 GET /api/laporan/pembelian.php?from=&to=                          (Owner only)
 GET /api/laporan/laba.php?from=&to=                                (Owner only)
-GET /api/laporan/top_produk.php?from=&to=&limit=5                  (Owner only)
 GET /api/laporan/retur.php?from=&to=                                (Owner only)
 GET /api/laporan/global.php?from=&to=                               (Owner only)
+GET /api/laporan/tren_penjualan.php?days=14                        (Owner only) → [{tanggal, total}, ...] per hari, zero-filled
 ```
 Bentuk respons masing-masing ada di kode sumbernya (`api/laporan/*.php`) —
 tiap file pendek (30-60 baris), lebih cepat dibaca langsung daripada
@@ -303,18 +309,45 @@ curl -s -b $COOKIE -X POST $BASE/api/penjualan.php -d '{
 Semua endpoint di atas sudah dites dengan alur ini (login gagal/berhasil,
 pembelian barang lama & baru, penjualan dengan tier otomatis, penjualan
 ditolak karena stok kurang, retur penjualan & pembelian, akses karyawan
-ditolak di endpoint Owner-only, semua 7 laporan) sebelum dokumen ini ditulis.
+ditolak di endpoint Owner-only, semua 8 laporan) — baik langsung lewat curl
+maupun ditelusuri satu-satu terhadap setiap pemanggilan `api()` di
+`Dashboard.dc.html` sebelum frontend dan backend dianggap tersambung.
 
 ---
 
-## 8. Yang belum dikerjakan
+## 8. Pola integrasi di sisi frontend
 
-- **Frontend belum tersambung.** `Dashboard.dc.html` perlu diubah supaya tiap
-  aksi (`setState`) memanggil endpoint di atas lewat `fetch()`, termasuk
-  mengganti layar login supaya benar-benar mengirim password.
+Untuk siapa pun yang nanti mengubah `Dashboard.dc.html`, polanya konsisten di
+seluruh file — cari bagian ini di dalam `<script data-dc-script>`:
+
+- **`api(method, path, body)`** — satu helper `fetch()` terpusat (di dekat
+  atas file). Semua panggilan ke `backend/api/` lewat sini; melempar `Error`
+  kalau `{ok:false}`, jadi cukup `.catch((e) => ...e.message)`.
+- **`normalizeBarang()`/`normalizeSuplier()`/dst** — API balas field
+  snake_case (`harga_ecer`, `min_stok`), tapi seluruh state/template file ini
+  sudah lama pakai camelCase (`p.ecer`, `p.minStok`). Fungsi-fungsi ini
+  menjembatani sekali di titik masuk data, supaya kode konsumsinya (semua
+  `*Vals()`) tidak perlu diubah.
+- **`refreshBarang()`/`refreshPembelianHistory()`/dst** — dipanggil ulang
+  setelah setiap POST/PUT/DELETE yang mengubah data itu (bukan optimistic
+  update client-side) — sumber kebenaran selalu balik ke server.
+- **`loadLaporanTab()`/`loadDashboardWidgets()`** — laporan tidak dihitung di
+  client sama sekali lagi; ini cuma fetch + simpan hasil server ke
+  `state.remoteLaporan*` / `state.dashboard*`, dipicu saat tab/modul dibuka
+  atau filter tanggal berubah.
+
+---
+
+## 9. Yang belum dikerjakan
+
+- **"Lupa kata sandi" di frontend masih fake** — layar login itu tidak
+  memanggil endpoint apa pun, cuma tampilan. Reset password sungguhan lewat
+  Master Data → Pengguna (Owner), yang memang sudah tersambung ke
+  `PUT /api/users.php?id=`.
 - **Tidak ada rate limiting / lockout** pada percobaan login yang gagal.
   Cukup untuk satu toko dengan beberapa user; tambahkan kalau nanti diakses
   dari internet terbuka.
 - **CORS belum diatur** — asumsinya frontend dan backend satu origin (server
-  Apache yang sama). Kalau nanti frontend dihosting terpisah dari backend,
-  tambahkan header CORS di `response.php`.
+  Apache yang sama, yang memang begitu sesuai `docs/BACKEND.md` § Setup).
+  Kalau nanti frontend dihosting terpisah dari backend, tambahkan header
+  CORS di `response.php`.
