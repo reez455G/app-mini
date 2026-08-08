@@ -39,7 +39,7 @@ if ($method === 'PUT') {
 }
 
 if ($method === 'DELETE') {
-    $pdo->prepare('DELETE FROM pelanggan WHERE id = ?')->execute([$id]);
+    delete_row($pdo, 'pelanggan', $id, 'Pelanggan');
     json_ok(['deleted' => $id]);
 }
 

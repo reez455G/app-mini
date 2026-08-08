@@ -22,6 +22,14 @@ if ($customer === '' || $invoice === '' || !$items) json_error('Pelanggan, no. i
 
 $pdo->beginTransaction();
 try {
+    // Retur menambah stok, jadi harus diikat ke penjualan yang benar-benar ada:
+    // tanpa ini nomor invoice karangan + qty berapa pun akan diterima dan stok
+    // bisa digelembungkan sesuka hati.
+    $pj = $pdo->prepare('SELECT id FROM penjualan WHERE invoice_no = ?');
+    $pj->execute([$invoice]);
+    $penjualanId = $pj->fetchColumn();
+    if (!$penjualanId) throw new RuntimeException("Invoice \"$invoice\" tidak ditemukan.");
+
     $totalQty = 0; $rows = [];
     foreach ($items as $line) {
         $kode = trim($line['kode'] ?? '');
@@ -32,6 +40,23 @@ try {
         $b->execute([$kode]);
         $barang = $b->fetch();
         if (!$barang) throw new RuntimeException("Barang \"$kode\" tidak ditemukan.");
+
+        $sold = $pdo->prepare('SELECT COALESCE(SUM(qty), 0) FROM penjualan_item WHERE penjualan_id = ? AND barang_id = ?');
+        $sold->execute([$penjualanId, $barang['id']]);
+        $soldQty = (int)$sold->fetchColumn();
+        if ($soldQty === 0) throw new RuntimeException("{$barang['nama']} tidak ada di invoice $invoice.");
+
+        // Kurangi yang sudah pernah diretur atas invoice yang sama, supaya satu
+        // barang tidak bisa diretur berkali-kali sampai melebihi yang terjual.
+        $ret = $pdo->prepare(
+            'SELECT COALESCE(SUM(ri.qty), 0) FROM retur_penjualan_item ri
+             JOIN retur_penjualan r ON r.id = ri.retur_id
+             WHERE r.original_invoice_no = ? AND ri.barang_id = ?'
+        );
+        $ret->execute([$invoice, $barang['id']]);
+        $sisa = $soldQty - (int)$ret->fetchColumn();
+        if ($qty > $sisa) throw new RuntimeException("Retur {$barang['nama']} melebihi yang bisa diretur dari invoice $invoice (sisa $sisa pcs).");
+
         $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$qty, $barang['id']]);
         $totalQty += $qty;
         $rows[] = [$barang['id'], $barang['nama'], $qty, $reason];

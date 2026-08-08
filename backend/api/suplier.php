@@ -39,7 +39,7 @@ if ($method === 'PUT') {
 }
 
 if ($method === 'DELETE') {
-    $pdo->prepare('DELETE FROM suplier WHERE id = ?')->execute([$id]);
+    delete_row($pdo, 'suplier', $id, 'Suplier');
     json_ok(['deleted' => $id]);
 }
 

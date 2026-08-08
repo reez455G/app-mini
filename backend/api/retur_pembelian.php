@@ -30,6 +30,13 @@ if (!$suplierId) json_error('Suplier tidak ditemukan.');
 
 $pdo->beginTransaction();
 try {
+    // Sama seperti retur penjualan: retur harus mengacu ke faktur pembelian yang
+    // benar-benar ada, supaya qty retur tidak bisa melebihi yang pernah dibeli.
+    $pb = $pdo->prepare('SELECT id FROM pembelian WHERE no_faktur = ?');
+    $pb->execute([$invoice]);
+    $pembelianId = $pb->fetchColumn();
+    if (!$pembelianId) throw new RuntimeException("No. faktur \"$invoice\" tidak ditemukan.");
+
     $totalQty = 0; $rows = [];
     foreach ($items as $line) {
         $kode = trim($line['kode'] ?? '');
@@ -40,8 +47,26 @@ try {
         $b->execute([$kode]);
         $barang = $b->fetch();
         if (!$barang) throw new RuntimeException("Barang \"$kode\" tidak ditemukan.");
-        $newStok = max(0, (int)$barang['stok'] - $qty); // barang fisik keluar ke suplier, tidak boleh negatif
-        $pdo->prepare('UPDATE barang SET stok = ? WHERE id = ?')->execute([$newStok, $barang['id']]);
+
+        $bought = $pdo->prepare('SELECT COALESCE(SUM(qty), 0) FROM pembelian_item WHERE pembelian_id = ? AND barang_id = ?');
+        $bought->execute([$pembelianId, $barang['id']]);
+        $boughtQty = (int)$bought->fetchColumn();
+        if ($boughtQty === 0) throw new RuntimeException("{$barang['nama']} tidak ada di faktur $invoice.");
+
+        $ret = $pdo->prepare(
+            'SELECT COALESCE(SUM(ri.qty), 0) FROM retur_pembelian_item ri
+             JOIN retur_pembelian r ON r.id = ri.retur_id
+             WHERE r.original_invoice_no = ? AND ri.barang_id = ?'
+        );
+        $ret->execute([$invoice, $barang['id']]);
+        $sisa = $boughtQty - (int)$ret->fetchColumn();
+        if ($qty > $sisa) throw new RuntimeException("Retur {$barang['nama']} melebihi yang bisa diretur dari faktur $invoice (sisa $sisa pcs).");
+
+        // Barang fisik keluar ke suplier. Stok harus benar-benar cukup — dulu
+        // dipotong dengan max(0, ...) yang diam-diam mencatat retur lebih besar
+        // daripada stok yang sebenarnya berkurang.
+        if ($qty > (int)$barang['stok']) throw new RuntimeException("Stok {$barang['nama']} tidak mencukupi untuk diretur (tersisa {$barang['stok']} pcs).");
+        $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$qty, $barang['id']]);
         $totalQty += $qty;
         $rows[] = [$barang['id'], $barang['nama'], $qty, $reason];
     }

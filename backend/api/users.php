@@ -50,7 +50,7 @@ if ($method === 'PUT') {
 
 if ($method === 'DELETE') {
     if ($id === $me['id']) json_error('Tidak bisa menghapus akun sendiri.');
-    $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
+    delete_row($pdo, 'users', $id, 'Pengguna');
     json_ok(['deleted' => $id]);
 }
 

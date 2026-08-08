@@ -1654,10 +1654,17 @@ function api(method, path, body) {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
-  }).then((r) => r.json()).then((json) => {
+  }).then((r) => r.text().then((text) => {
+    // Server yang error fatal bisa balas body kosong / HTML, bukan JSON. Tanpa
+    // penjagaan ini r.json() melempar "Unexpected end of JSON input" dan pesan
+    // itulah yang sampai ke kasir — tidak ada gunanya.
+    let json;
+    try { json = JSON.parse(text); } catch (e) {
+      throw new Error('Server bermasalah (HTTP ' + r.status + '). Coba lagi, kalau tetap gagal hubungi admin.');
+    }
     if (!json.ok) throw new Error(json.error || 'Terjadi kesalahan.');
     return json.data;
-  });
+  }));
 }
 
 // Normalisasi field snake_case dari API ke bentuk camelCase yang sudah
