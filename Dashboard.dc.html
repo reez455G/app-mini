@@ -513,7 +513,7 @@
             <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
               <div class="field" style="width:260px;">
                 <label for="stok-search">Cari Barang</label>
-                <input class="input" id="stok-search" style="min-height:44px;font-size:15px;" placeholder="Nama atau kode barang" value="{{ stokSearch }}" onChange="{{ setStokSearch }}" />
+                <input class="input" id="stok-search" style="min-height:44px;font-size:15px;" placeholder="Nama/kode barang, atau scan" value="{{ stokSearch }}" onChange="{{ setStokSearch }}" onKeyDown="{{ handleStokSearchKeyDown }}" />
               </div>
               <div class="field" style="width:200px;">
                 <label for="stok-kategori">Kategori</label>
@@ -753,6 +753,10 @@
                     <svg width="14" height="14" viewBox="0 0 256 256"><rect x="32" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="56" width="24" height="24" fill="currentColor"></rect><rect x="152" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="176" y="56" width="24" height="24" fill="currentColor"></rect><rect x="32" y="152" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="176" width="24" height="24" fill="currentColor"></rect><rect x="152" y="152" width="24" height="24" fill="currentColor"></rect><rect x="200" y="152" width="24" height="24" fill="currentColor"></rect><rect x="152" y="200" width="24" height="24" fill="currentColor"></rect><rect x="200" y="200" width="24" height="24" fill="currentColor"></rect></svg>
                     Scan
                   </button>
+                </div>
+                <div class="field" style="margin-top:10px;">
+                  <label for="pb-scan-input">Scan / Kode Barang (alat scanner USB/Bluetooth)</label>
+                  <input class="input" id="pb-scan-input" style="min-height:44px;font-size:15px;" placeholder="Sorot ke sini lalu scan, atau ketik kode + Enter" value="{{ pembelianScanInput }}" onChange="{{ setPembelianScanInput }}" onKeyDown="{{ handlePembelianScanKeyDown }}" />
                 </div>
                 <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
                   <div class="field" style="position:relative;">
@@ -1673,6 +1677,7 @@ class Component extends DCLogic {
     pembelianSupplierNew: '',
     pembelianKategoriFilter: 'ALL',
     pembelianSelectedKode: '',
+    pembelianScanInput: '',
     pembelianNewKode: '',
     pembelianNewNama: '',
     pembelianQty: 1,
@@ -2052,20 +2057,29 @@ class Component extends DCLogic {
 
   handleQrResult = (text) => {
     this.stopQrScan();
+    this.setState({ qrScanOpen: false }, () => this.resolveStokScan(text));
+  };
+
+  // Dipakai dari scan kamera DAN dari field "Cari Barang" pas alat scanner
+  // barcode USB/Bluetooth "mengetik" kode ke situ lalu Enter — dua-duanya
+  // berakhir di sini. Cocok: langsung buka form Ubah. Tidak cocok: barang
+  // baru cuma boleh masuk lewat Input Pembelian, jadi cuma dikasih tahu.
+  resolveStokScan = (text) => {
     const code = String(text || '').trim();
     if (!code) return;
     const match = this.state.stokProducts.find((p) => p.kode.toLowerCase() === code.toLowerCase());
     if (match) {
-      this.setState({ qrScanOpen: false, stokSearch: '', stokKategoriFilter: 'ALL' }, () => this.openStokEdit(match.kode));
+      this.setState({ stokSearch: '', stokKategoriFilter: 'ALL' }, () => this.openStokEdit(match.kode));
     } else {
-      // Barang baru cuma didaftarkan lewat Input Pembelian (bukan dari Data
-      // Barang) — jadi kode yang belum terdaftar cuma dikasih tahu, tidak
-      // membuka form tambah apa pun.
       this.setState({
-        qrScanOpen: false, stokSearch: code, stokKategoriFilter: 'ALL',
+        stokSearch: code, stokKategoriFilter: 'ALL',
         globalError: `Kode "${code}" belum terdaftar. Tambahkan barang baru lewat Input Pembelian.`,
       });
     }
+  };
+
+  handleStokSearchKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); this.resolveStokScan(e.target.value); }
   };
 
   openStokPrint = (kode, nama) => {
@@ -2191,18 +2205,30 @@ class Component extends DCLogic {
   // Scan barang saat menerima kiriman dari suplier — cocok: langsung pilih
   // barang itu di dropdown. Tidak cocok: pindah ke mode "Barang Baru" dengan
   // kode sudah terisi, tinggal isi nama & harga (barang baru cuma boleh
-  // masuk lewat sini, bukan dari Data Barang).
-  scanIntoPembelian = () => this.openQrScan((text) => {
-    this.stopQrScan();
+  // masuk lewat sini, bukan dari Data Barang). Dipakai dari scan kamera DAN
+  // dari field "Scan/Kode Barang" pas alat scanner USB/Bluetooth mengetik
+  // kode ke situ lalu Enter.
+  resolvePembelianScan = (text) => {
     const code = String(text || '').trim();
     if (!code) return;
     this.setState((s) => {
       const match = s.stokProducts.find((p) => p.kode.toLowerCase() === code.toLowerCase());
       return match
-        ? { qrScanOpen: false, pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode }
-        : { qrScanOpen: false, pembelianSelectedKode: '__NEW__', pembelianNewKode: code };
+        ? { pembelianScanInput: '', pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode }
+        : { pembelianScanInput: '', pembelianSelectedKode: '__NEW__', pembelianNewKode: code };
     });
+  };
+
+  scanIntoPembelian = () => this.openQrScan((text) => {
+    this.stopQrScan();
+    this.setState({ qrScanOpen: false }, () => this.resolvePembelianScan(text));
   });
+
+  setPembelianScanInput = (e) => this.setState({ pembelianScanInput: e.target.value });
+  handlePembelianScanKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); this.resolvePembelianScan(e.target.value); }
+  };
+
   setPembelianNewKode = (e) => this.setState({ pembelianNewKode: e.target.value });
   setPembelianNewNama = (e) => this.setState({ pembelianNewNama: e.target.value });
   setPembelianQty = (e) => this.setState({ pembelianQty: e.target.value });
@@ -2301,7 +2327,7 @@ class Component extends DCLogic {
     api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then(() => {
       this.setState((st) => ({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH',
+        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '',
         pembelianCompleted: false, pembelianPreview: null,
       }));
       this.refreshBarang();
@@ -2434,7 +2460,7 @@ class Component extends DCLogic {
 
     return {
       isModStok: s.activeModule === 'stok',
-      stokSearch: s.stokSearch, setStokSearch: this.setStokSearch,
+      stokSearch: s.stokSearch, setStokSearch: this.setStokSearch, handleStokSearchKeyDown: this.handleStokSearchKeyDown,
       stokKategoriFilter: s.stokKategoriFilter, setStokKategoriFilter: this.setStokKategoriFilter,
       kategoriOptions: s.kategoriList,
       stokRows, stokRowsEmpty: stokRows.length === 0,
@@ -2495,6 +2521,8 @@ class Component extends DCLogic {
       pembelianProductOptions: filteredProducts,
       pembelianSelectedKode: s.pembelianSelectedKode, setPembelianProduct: this.setPembelianProduct,
       scanIntoPembelian: this.scanIntoPembelian,
+      pembelianScanInput: s.pembelianScanInput, setPembelianScanInput: this.setPembelianScanInput,
+      handlePembelianScanKeyDown: this.handlePembelianScanKeyDown,
       pembelianIsNewItem: s.pembelianSelectedKode === '__NEW__',
       pembelianNewKode: s.pembelianNewKode, setPembelianNewKode: this.setPembelianNewKode,
       pembelianNewNama: s.pembelianNewNama, setPembelianNewNama: this.setPembelianNewNama,
