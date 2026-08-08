@@ -835,20 +835,25 @@
                     </tbody>
                   </table>
                 </sc-if>
+
+                <!-- Ringkasan + tombol simpan menempel di bawah daftar barang, supaya
+                     tidak perlu scroll balik ke atas untuk menyimpan pembelian. -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--color-divider);">
+                  <div style="min-width:0;">
+                    <div style="font-size:13px;opacity:0.65;">{{ pembelianTotalItems }} jenis barang · {{ pembelianTotalQty }} pcs</div>
+                    <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;margin-top:2px;">{{ pembelianTotalBiayaLabel }}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;flex:1;min-width:220px;max-width:320px;">
+                    <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" disabled="{{ pembelianCannotComplete }}" onClick="{{ completeSPembelian }}">Simpan Pembelian</button>
+                    <sc-if value="{{ pembelianNote }}">
+                      <p style="margin:0;font-size:12px;opacity:0.6;text-align:center;">{{ pembelianNote }}</p>
+                    </sc-if>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
-              <div class="card elev-sm">
-                <div class="card-kicker">Ringkasan Pembelian</div>
-                <div style="font-size:13px;opacity:0.65;margin-top:10px;">{{ pembelianTotalItems }} jenis barang · {{ pembelianTotalQty }} pcs</div>
-                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;margin-top:4px;">{{ pembelianTotalBiayaLabel }}</div>
-                <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;margin-top:16px;" disabled="{{ pembelianCannotComplete }}" onClick="{{ completeSPembelian }}">Simpan Pembelian</button>
-                <sc-if value="{{ pembelianNote }}">
-                  <p style="margin:8px 0 0;font-size:12px;opacity:0.6;text-align:center;">{{ pembelianNote }}</p>
-                </sc-if>
-              </div>
-
               <div class="card elev-sm">
                 <div class="card-kicker">Riwayat Pembelian</div>
                 <table class="table" style="margin-top:8px;">
