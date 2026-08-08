@@ -23,13 +23,23 @@
 <helmet>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>App-mini — Sistem Stok Toko</title>
-  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css" />
+  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css?v=2" />
   <script src="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/_ds_bundle.js"></script>
   <style>
     body { margin: 0; }
     a { color: var(--color-accent); }
     a:hover { color: var(--color-accent-700); }
     .input-invalid { border-color: var(--color-accent-2-500) !important; }
+
+    /* Batas tinggi dialog + form yang bisa di-scroll sendiri. Aturan yang sama
+       ada di styles.css, TAPI sengaja diulang di sini: styles.css itu file
+       terpisah yang di-cache browser, jadi setelah deploy pengguna masih bisa
+       kebagian versi lamanya dan tombol Simpan kembali kepental keluar layar.
+       Ditulis inline begini ikut terbawa file HTML-nya sendiri, jadi pasti kepakai.
+       min-height:0 wajib supaya flex item-nya mau menyusut dan scroll-nya aktif. */
+    .dialog { max-height: 90vh; }
+    .dialog-title, .dialog-actions { flex: none; }
+    .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }
     @media print {
       /* Kertas label thermal 40x30mm (roll continuous) — margin 0 karena
