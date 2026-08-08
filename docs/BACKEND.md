@@ -345,6 +345,13 @@ seluruh file — cari bagian ini di dalam `<script data-dc-script>`:
   Barang & Input Pembelian sama-sama panggil ini dengan callback beda-beda.
   Dialog kameranya cuma satu, dirender sekali di luar semua modul (sibling
   dari `<main>`) supaya bisa dipanggil dari mana saja.
+- **`resolveStokScan()`/`resolvePembelianScan()`** — logic "cocokkan kode →
+  aksi" per modul, dipisah dari `openQrScan()` supaya bisa dipanggil dari DUA
+  sumber input yang setara: hasil kamera, ATAU `onKeyDown` (Enter) di field
+  teks biasa yang menampung ketikan alat scanner barcode USB/Bluetooth (alat
+  itu cuma keyboard emulator — tidak butuh API khusus, cukup field yang lagi
+  fokus). Kalau nanti nambah scan di modul lain, ikuti pola ini: satu
+  `resolveXScan()` dipanggil dari kedua jalur, bukan logic terpisah per jalur.
 
 ---
 
