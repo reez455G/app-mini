@@ -34,6 +34,11 @@
     @media print {
       #app-shell { display: none !important; }
       #stok-print-sheet { display: flex !important; }
+      /* Dialog "Cetak Barcode" dirender sebagai sibling #app-shell (supaya bisa
+         dibuka dari modul mana pun), jadi menyembunyikan #app-shell saja tidak
+         ikut menyembunyikan dialog ini — tanpa baris ini, seluruh overlay
+         dialog (toggle QR/Code128, tombol, dst) ikut tercetak di atas label. */
+      .dialog-backdrop { display: none !important; }
     }
 
     /* ── Responsif: tablet & Android ─────────────────────────────────
