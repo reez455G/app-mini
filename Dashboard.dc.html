@@ -32,6 +32,10 @@
     .input-invalid { border-color: var(--color-accent-2-500) !important; }
     #stok-print-sheet { display: none; }
     @media print {
+      /* Kertas label thermal 40x30mm (roll continuous) — margin 0 karena
+         printer label sudah otomatis pas per-label, bukan kertas A4 yang
+         perlu sisa putih di tepi. */
+      @page { size: 40mm 30mm; margin: 0; }
       #app-shell { display: none !important; }
       #stok-print-sheet { display: flex !important; }
       /* Dialog "Cetak Barcode" dirender sebagai sibling #app-shell (supaya bisa
@@ -1614,11 +1618,11 @@
   </sc-if>
 
   <sc-if value="{{ stokPrintOpen }}">
-    <div id="stok-print-sheet" style="flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;">
-      <canvas id="stok-print-canvas"></canvas>
+    <div id="stok-print-sheet" style="flex-direction:column;align-items:center;justify-content:center;gap:1mm;width:40mm;height:30mm;box-sizing:border-box;padding:1mm;overflow:hidden;">
+      <canvas id="stok-print-canvas" style="max-width:36mm;max-height:22mm;width:auto;height:auto;"></canvas>
       <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
-        <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;">{{ stokPrintTarget.nama }}</div>
-        <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:7pt;line-height:1.15;max-width:38mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ stokPrintTarget.nama }}</div>
+        <div style="font-size:6pt;opacity:0.8;">{{ stokPrintTarget.kode }}</div>
       </sc-if>
     </div>
   </sc-if>
