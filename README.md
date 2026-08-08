@@ -86,50 +86,33 @@ folder `vendor/`:
   disimpan (huruf Latin standar) — cukup untuk UI berbahasa Indonesia, bukan
   full 6-subset Google Fonts (cyrillic/greek/vietnamese/dst tidak terpakai).
 - Library pembuat QR code (`qrcode-generator`) & barcode (`JsBarcode`, buat
-  fitur Cetak Barcode) → `vendor/barcode/`. Membaca QR/barcode pakai
-  `BarcodeDetector` bawaan browser (bukan library — lihat § Scan di bawah).
+  fitur Cetak Barcode) → `vendor/barcode/`.
 
 Halaman ini sekarang jalan 100% tanpa koneksi internet, dari awal buka
 sampai dipakai — cocok untuk toko yang sinyalnya tidak stabil.
 
-## Scan QR/Barcode & Cetak Barcode
+## Scan Barcode & Cetak Barcode
 
 Kode barang (`kode`, mis. `BAN-001`) dobel fungsi sebagai isi QR/barcode-nya
-— tidak ada field kode-batang terpisah. Ada dua cara scan, dua-duanya
-didukung sekaligus:
+— tidak ada field kode-batang terpisah. Scan pakai **alat scanner
+USB/Bluetooth khusus** (bukan kamera HP): alat ini kerja sebagai "keyboard
+palsu" — begitu di-scan, dia mengetik kode ke field yang lagi fokus lalu
+tekan Enter sendiri. Tidak butuh kamera/izin/HTTPS apa pun — cukup sorot ke
+field yang disediakan, scan, otomatis lanjut. Jalan di browser mana pun,
+HTTP biasa, karena cuma dianggap keyboard oleh browser.
 
-**1. Kamera** (HP/tablet/webcam) — tombol "Scan QR"/"Scan" yang buka dialog
-kamera, baca pakai `BarcodeDetector` bawaan browser.
-**2. Alat scanner USB/Bluetooth** — alat ini kerja sebagai "keyboard palsu":
-begitu di-scan, dia mengetik kode ke field yang lagi fokus lalu tekan Enter
-sendiri. Tidak butuh kamera/izin apa pun — cukup sorot ke field yang
-disediakan, scan, otomatis lanjut.
-
-Di kedua modul, hasil dari cara mana pun diproses sama:
-
-- **Data Barang** — tombol kamera "Scan QR" di toolbar, atau sorot ke field
-  "Cari Barang" lalu scan dengan alat + Enter. Barang yang sudah terdaftar →
-  langsung buka form Ubah. Belum terdaftar → muncul pesan "tambahkan lewat
-  Input Pembelian" (Data Barang tidak bisa bikin barang baru — lihat batasan
-  di bawah). Ada juga tombol **Cetak Barcode** per baris dan di dalam form
-  Ubah, bisa pilih QR atau Barcode 1D (Code128).
-- **Input Pembelian** — tombol kamera "Scan" di card Tambah Barang, atau
-  sorot ke field **"Scan / Kode Barang"** lalu scan dengan alat + Enter
-  (dropdown pemilih barang di situ tidak bisa "ditembak" langsung sama alat
-  scanner, makanya ada field teks terpisah). Barang yang sudah ada → langsung
-  terpilih. Belum ada → pindah ke mode "Barang Baru" dengan kode sudah
-  terisi.
+- **Data Barang** — sorot ke field "Cari Barang" lalu scan + Enter. Barang
+  yang sudah terdaftar → langsung buka form Ubah. Belum terdaftar → muncul
+  pesan "tambahkan lewat Input Pembelian" (Data Barang tidak bisa bikin
+  barang baru — lihat batasan di bawah). Ada juga tombol **Cetak Barcode**
+  per baris dan di dalam form Ubah, bisa pilih QR atau Barcode 1D (Code128).
+- **Input Pembelian** — sorot ke field **"Scan / Kode Barang"** lalu scan +
+  Enter (dropdown pemilih barang di situ tidak bisa "ditembak" langsung sama
+  alat scanner, makanya ada field teks terpisah). Barang yang sudah ada →
+  langsung terpilih. Belum ada → pindah ke mode "Barang Baru" dengan kode
+  sudah terisi.
 - **Belum ada** — scan di Transaksi Penjualan (buat masukin ke keranjang) dan
   pelacakan history "siapa scan apa kapan".
-
-⚠️ Kamera pakai `BarcodeDetector` bawaan browser — cuma jalan di
-**Chrome/Edge Android** (Safari/Firefox belum dukung), dan butuh **HTTPS**
-buat diakses dari HP/tablet terpisah (`http://` biasa ditolak browser kecuali
-dari `localhost` sendiri). Cara cepat test dari HP tanpa setup SSL permanen
-di XAMPP: jalankan `ngrok http 80` (port Apache), buka URL
-`https://...ngrok-free.app` yang muncul dari HP. **Alat scanner USB/Bluetooth
-tidak punya batasan ini** — jalan di browser mana pun, HTTP biasa, karena
-cuma dianggap keyboard oleh browser.
 
 ## Layout — tablet & Android
 

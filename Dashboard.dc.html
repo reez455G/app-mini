@@ -27,6 +27,7 @@
     body { margin: 0; }
     a { color: var(--color-accent); }
     a:hover { color: var(--color-accent-700); }
+    .input-invalid { border-color: var(--color-accent-2-500) !important; }
     #stok-print-sheet { display: none; }
     @media print {
       #app-shell { display: none !important; }
@@ -512,8 +513,8 @@
           <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
             <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
               <div class="field" style="width:260px;">
-                <label for="stok-search">Cari Barang</label>
-                <input class="input" id="stok-search" style="min-height:44px;font-size:15px;" placeholder="Nama/kode barang, atau scan" value="{{ stokSearch }}" onChange="{{ setStokSearch }}" onKeyDown="{{ handleStokSearchKeyDown }}" />
+                <label for="stok-search">Cari / Scan Barang (alat scanner USB/Bluetooth)</label>
+                <input class="input" id="stok-search" style="min-height:44px;font-size:15px;" placeholder="Sorot ke sini lalu scan, atau ketik nama/kode" value="{{ stokSearch }}" onChange="{{ setStokSearch }}" onKeyDown="{{ handleStokSearchKeyDown }}" />
               </div>
               <div class="field" style="width:200px;">
                 <label for="stok-kategori">Kategori</label>
@@ -524,12 +525,6 @@
                   </sc-for>
                 </select>
               </div>
-            </div>
-            <div style="display:flex;gap:10px;flex:none;">
-              <button type="button" class="btn btn-secondary" style="min-height:46px;white-space:nowrap;" onClick="{{ openQrScan }}">
-                <svg width="16" height="16" viewBox="0 0 256 256"><rect x="32" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="56" width="24" height="24" fill="currentColor"></rect><rect x="152" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="176" y="56" width="24" height="24" fill="currentColor"></rect><rect x="32" y="152" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="176" width="24" height="24" fill="currentColor"></rect><rect x="152" y="152" width="24" height="24" fill="currentColor"></rect><rect x="200" y="152" width="24" height="24" fill="currentColor"></rect><rect x="152" y="200" width="24" height="24" fill="currentColor"></rect><rect x="200" y="200" width="24" height="24" fill="currentColor"></rect></svg>
-                Scan QR
-              </button>
             </div>
           </div>
 
@@ -672,35 +667,29 @@
             </div>
           </sc-if>
 
-          <sc-if value="{{ stokPrintOpen }}" hint-placeholder-val="{{ false }}">
-            <div class="dialog-backdrop">
-              <div class="dialog">
-                <div class="dialog-title">Cetak Barcode</div>
-                <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
-                  <div class="seg" role="radiogroup" aria-label="Tipe kode" style="width:100%;">
-                    <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
-                      <input type="radio" name="stok-print-type" checked="{{ stokPrintIsQr }}" onChange="{{ setStokPrintQr }}" />QR Code
-                    </label>
-                    <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
-                      <input type="radio" name="stok-print-type" checked="{{ stokPrintIsCode128 }}" onChange="{{ setStokPrintCode128 }}" />Barcode (Code128)
-                    </label>
-                  </div>
-                  <canvas id="stok-print-canvas-preview" style="max-width:100%;"></canvas>
-                  <div style="text-align:center;">
-                    <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;">{{ stokPrintTarget.nama }}</div>
-                    <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
-                  </div>
-                </div>
-                <div class="dialog-actions">
-                  <button type="button" class="btn btn-ghost" onClick="{{ closeStokPrint }}">Tutup</button>
-                  <button type="button" class="btn btn-primary" onClick="{{ printStokLabel }}">Cetak</button>
-                </div>
-              </div>
-            </div>
-          </sc-if>
         </sc-if>
 
         <sc-if value="{{ isModPembelian }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ pembelianHasJustAddedNew }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm" style="margin-bottom:20px;border-color:var(--color-accent-500);">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div class="card-kicker">Barang Baru Belum Ada Barcode</div>
+                <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ dismissPembelianJustAddedNew }}">Tutup</button>
+              </div>
+              <p style="margin:6px 0 12px;font-size:13px;opacity:0.7;">Barang di bawah ini baru saja dibuat dari pembelian ini. Cetak barcode-nya supaya bisa ditempel di rak/produk.</p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ pembelianJustAddedNewView }}" as="item" hint-placeholder-count="2">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--color-neutral-200);">
+                    <div>
+                      <div style="font-weight:600;font-size:14px;">{{ item.nama }}</div>
+                      <div style="font-size:12px;opacity:0.6;">{{ item.kode }}</div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="min-height:38px;font-size:12px;white-space:nowrap;" onClick="{{ item.printHandler }}">Cetak Barcode</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
           <sc-if value="{{ pembelianNotCompleted }}" hint-placeholder-val="{{ true }}">
           <div class="rg" style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
             <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
@@ -747,17 +736,22 @@
               </div>
 
               <div class="card elev-sm">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-                  <div class="card-kicker">Tambah Barang</div>
-                  <button type="button" class="btn btn-secondary" style="min-height:36px;font-size:12px;padding:6px 12px;white-space:nowrap;" onClick="{{ scanIntoPembelian }}">
-                    <svg width="14" height="14" viewBox="0 0 256 256"><rect x="32" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="56" width="24" height="24" fill="currentColor"></rect><rect x="152" y="32" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="176" y="56" width="24" height="24" fill="currentColor"></rect><rect x="32" y="152" width="72" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="16"></rect><rect x="56" y="176" width="24" height="24" fill="currentColor"></rect><rect x="152" y="152" width="24" height="24" fill="currentColor"></rect><rect x="200" y="152" width="24" height="24" fill="currentColor"></rect><rect x="152" y="200" width="24" height="24" fill="currentColor"></rect><rect x="200" y="200" width="24" height="24" fill="currentColor"></rect></svg>
-                    Scan
-                  </button>
-                </div>
+                <div class="card-kicker">Tambah Barang</div>
                 <div class="field" style="margin-top:10px;">
-                  <label for="pb-scan-input">Scan / Kode Barang (alat scanner USB/Bluetooth)</label>
-                  <input class="input" id="pb-scan-input" style="min-height:44px;font-size:15px;" placeholder="Sorot ke sini lalu scan, atau ketik kode + Enter" value="{{ pembelianScanInput }}" onChange="{{ setPembelianScanInput }}" onKeyDown="{{ handlePembelianScanKeyDown }}" />
+                  <label for="pb-scan-input">Scan / Kode Barang</label>
+                  <div style="display:flex;gap:8px;">
+                    <input class="input" id="pb-scan-input" style="min-height:44px;font-size:15px;flex:1;min-width:0;" placeholder="Sorot ke sini lalu scan, atau ketik kode + Enter" value="{{ pembelianScanInput }}" onChange="{{ setPembelianScanInput }}" onKeyDown="{{ handlePembelianScanKeyDown }}" />
+                    <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Scan Barcode" title="Scan Barcode (alat scanner USB/Bluetooth)" onClick="{{ focusPembelianScanInput }}">
+                      <svg width="16" height="16" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg>
+                    </button>
+                  </div>
                 </div>
+                <sc-if value="{{ pembelianScanReady }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                    <span class="tag tag-accent">Siap dipindai</span>
+                    <span style="font-size:12px;opacity:0.7;">Arahkan alat scanner ke barcode barang.</span>
+                  </div>
+                </sc-if>
                 <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
                   <div class="field" style="position:relative;">
                     <label for="pb-kategori">Kategori</label>
@@ -783,33 +777,36 @@
                   <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px;">
                     <div class="field">
                       <label for="pb-new-kode">Kode Barang Baru</label>
-                      <input class="input" id="pb-new-kode" style="min-height:46px;font-size:15px;" placeholder="Contoh: BAN-030" value="{{ pembelianNewKode }}" onChange="{{ setPembelianNewKode }}" />
+                      <input class="input {{ pembelianNewKodeInvalidClass }}" id="pb-new-kode" style="min-height:46px;font-size:15px;" placeholder="Contoh: BAN-030" value="{{ pembelianNewKode }}" onChange="{{ setPembelianNewKode }}" />
                     </div>
                     <div class="field">
                       <label for="pb-new-nama">Nama Barang Baru</label>
-                      <input class="input" id="pb-new-nama" style="min-height:46px;font-size:15px;" placeholder="Nama barang" value="{{ pembelianNewNama }}" onChange="{{ setPembelianNewNama }}" />
+                      <input class="input {{ pembelianNewNamaInvalidClass }}" id="pb-new-nama" style="min-height:46px;font-size:15px;" placeholder="Nama barang" value="{{ pembelianNewNama }}" onChange="{{ setPembelianNewNama }}" />
                     </div>
                   </div>
                 </sc-if>
                 <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 0.7fr;gap:16px;margin-top:16px;">
                   <div class="field">
                     <label for="pb-harga-faktur">Harga Faktur</label>
-                    <input class="input" id="pb-harga-faktur" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaFaktur }}" onChange="{{ setPembelianHargaFaktur }}" />
+                    <input class="input {{ pembelianHargaFakturInvalidClass }}" id="pb-harga-faktur" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaFaktur }}" onChange="{{ setPembelianHargaFaktur }}" />
                   </div>
                   <div class="field">
                     <label for="pb-harga-netto">Harga Netto</label>
-                    <input class="input" id="pb-harga-netto" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaNetto }}" onChange="{{ setPembelianHargaNetto }}" />
+                    <input class="input {{ pembelianHargaNettoInvalidClass }}" id="pb-harga-netto" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaNetto }}" onChange="{{ setPembelianHargaNetto }}" />
                   </div>
                   <div class="field">
                     <label for="pb-qty">Jumlah</label>
-                    <input class="input" id="pb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ pembelianQty }}" onChange="{{ setPembelianQty }}" />
+                    <input class="input {{ pembelianQtyInvalidClass }}" id="pb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ pembelianQty }}" onChange="{{ setPembelianQty }}" />
                   </div>
                 </div>
                 <div class="field" style="margin-top:16px;">
                   <label for="pb-pricelist">Pricelist</label>
-                  <input class="input" id="pb-pricelist" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianPricelist }}" onChange="{{ setPembelianPricelist }}" />
+                  <input class="input {{ pembelianPricelistInvalidClass }}" id="pb-pricelist" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianPricelist }}" onChange="{{ setPembelianPricelist }}" />
                 </div>
                 <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addToPembelianCart }}">+ Tambah ke Daftar</button>
+                <sc-if value="{{ pembelianItemFormError }}">
+                  <p style="margin:8px 0 0;font-size:12px;color:var(--color-accent-2-700);">{{ pembelianItemFormError }}</p>
+                </sc-if>
               </div>
 
               <div class="card elev-sm">
@@ -1550,32 +1547,53 @@
         </sc-if>
 
       </main>
-
-      <sc-if value="{{ qrScanOpen }}" hint-placeholder-val="{{ false }}">
-        <div class="dialog-backdrop">
-          <div class="dialog">
-            <div class="dialog-title">Pindai QR / Barcode</div>
-            <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
-              <sc-if value="{{ qrScanError }}">
-                <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ qrScanError }}</p>
-              </sc-if>
-              <video id="qr-scan-video" muted playsInline style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius-md);background:var(--color-neutral-900);display:block;"></video>
-              <p style="margin:0;font-size:12px;opacity:0.6;">Arahkan kamera ke QR/barcode. Kalau kamera tidak tersedia, ketik kode secara manual.</p>
-            </div>
-            <div class="dialog-actions">
-              <button type="button" class="btn btn-ghost" onClick="{{ closeQrScan }}">Tutup</button>
-            </div>
-          </div>
-        </div>
-      </sc-if>
     </div>
   </div>
+
+  <sc-if value="{{ stokPrintOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog">
+        <div class="dialog-title">Cetak Barcode</div>
+        <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+          <div class="seg" role="radiogroup" aria-label="Tipe kode" style="width:100%;">
+            <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+              <input type="radio" name="stok-print-type" checked="{{ stokPrintIsQr }}" onChange="{{ setStokPrintQr }}" />QR Code
+            </label>
+            <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+              <input type="radio" name="stok-print-type" checked="{{ stokPrintIsCode128 }}" onChange="{{ setStokPrintCode128 }}" />Barcode (Code128)
+            </label>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="Layout label" style="width:100%;">
+            <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+              <input type="radio" name="stok-print-layout" checked="{{ stokPrintIsLayoutSaja }}" onChange="{{ setStokPrintLayoutSaja }}" />Barcode Saja
+            </label>
+            <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+              <input type="radio" name="stok-print-layout" checked="{{ stokPrintIsLayoutNama }}" onChange="{{ setStokPrintLayoutNama }}" />Barcode + Nama
+            </label>
+          </div>
+          <canvas id="stok-print-canvas-preview" style="max-width:100%;"></canvas>
+          <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center;">
+              <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;">{{ stokPrintTarget.nama }}</div>
+              <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+            </div>
+          </sc-if>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-ghost" onClick="{{ closeStokPrint }}">Tutup</button>
+          <button type="button" class="btn btn-primary" onClick="{{ printStokLabel }}">Cetak</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
 
   <sc-if value="{{ stokPrintOpen }}">
     <div id="stok-print-sheet" style="flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;">
       <canvas id="stok-print-canvas"></canvas>
-      <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;">{{ stokPrintTarget.nama }}</div>
-      <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+      <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;">{{ stokPrintTarget.nama }}</div>
+        <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+      </sc-if>
     </div>
   </sc-if>
 </sc-if>
@@ -1600,6 +1618,33 @@ function formatRp(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
 function formatTanggal(iso) {
   if (!iso) return '-';
   return new Date(iso + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// ponytail: draft disimpan di localStorage, bukan server — cukup buat jaga-jaga
+// refresh/tutup tab tidak sengaja saat lagi input pembelian, bukan sync antar device.
+const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
+const PEMBELIAN_DRAFT_FIELDS = [
+  'pembelianSupplierChoice', 'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
+  'pembelianKategoriFilter', 'pembelianSelectedKode', 'pembelianNewKode', 'pembelianNewNama',
+  'pembelianHargaFaktur', 'pembelianHargaNetto', 'pembelianPricelist', 'pembelianQty',
+  'pembelianCart',
+];
+
+function loadPembelianDraft() {
+  try {
+    const raw = localStorage.getItem(PEMBELIAN_DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function savePembelianDraft(state) {
+  const draft = {};
+  PEMBELIAN_DRAFT_FIELDS.forEach((k) => { draft[k] = state[k]; });
+  try { localStorage.setItem(PEMBELIAN_DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+}
+
+function clearPembelianDraft() {
+  try { localStorage.removeItem(PEMBELIAN_DRAFT_KEY); } catch (e) {}
 }
 
 const API_BASE = 'backend/api/';
@@ -1667,17 +1712,17 @@ class Component extends DCLogic {
     stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
     stokFormError: '',
     stokDeleteTarget: null,
-    qrScanOpen: false,
-    qrScanError: '',
     stokPrintOpen: false,
     stokPrintTarget: null,
     stokPrintType: 'qr',
+    stokPrintLayout: 'nama',
     pembelianCart: [],
     pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
     pembelianKategoriFilter: 'ALL',
     pembelianSelectedKode: '',
     pembelianScanInput: '',
+    pembelianScanReady: false,
     pembelianNewKode: '',
     pembelianNewNama: '',
     pembelianQty: 1,
@@ -1689,6 +1734,8 @@ class Component extends DCLogic {
     pembelianHistory: [],
     pembelianNote: '',
     pembelianSubmitError: '',
+    pembelianItemFormError: '',
+    pembelianItemFieldErrors: [],
     laporanSearch: '',
     laporanKategoriFilter: 'ALL',
     laporanSupplierFilter: 'ALL',
@@ -1711,6 +1758,7 @@ class Component extends DCLogic {
     returPbCart: [], returPbHistory: [],
     pembelianCompleted: false,
     pembelianPreview: null,
+    pembelianJustAddedNew: [],
     suplierList: [],
     pelangganList: [],
     kategoriList: [],
@@ -1722,10 +1770,16 @@ class Component extends DCLogic {
   };
 
   componentDidMount() {
+    const draft = loadPembelianDraft();
+    if (draft) this.setState(draft);
     api('GET', 'auth/me.php').then((user) => {
       if (user) this.afterLogin(user);
       else this.setState({ booting: false });
     }).catch(() => this.setState({ booting: false }));
+  }
+
+  componentDidUpdate() {
+    savePembelianDraft(this.state);
   }
 
   afterLogin = (user) => {
@@ -2006,61 +2060,7 @@ class Component extends DCLogic {
   setStokSearch = (e) => this.setState({ stokSearch: e.target.value });
   setStokKategoriFilter = (e) => this.setState({ stokKategoriFilter: e.target.value });
 
-  // ponytail: native BarcodeDetector API (Chrome/Edge/Android) instead of a
-  // QR library — no CDN dependency, but Safari/Firefox have no camera scan;
-  // the search box in Data Barang still takes a typed/hardware-scanner kode
-  // as a fallback either way.
-  // onResult: opsional — dipanggil dengan teks hasil scan. Default
-  // handleQrResult (cari/buka form). Dipakai juga dari dalam form Tambah
-  // Barang, di mana hasil scan cuma perlu mengisi field Kode saja.
-  openQrScan = (onResult) => {
-    this._qrOnResult = onResult || this.handleQrResult;
-    this.setState({ qrScanOpen: true, qrScanError: '' }, () => this.startQrScan());
-  };
-
-  closeQrScan = () => {
-    this.stopQrScan();
-    this.setState({ qrScanOpen: false });
-  };
-
-  startQrScan = () => {
-    const video = document.getElementById('qr-scan-video');
-    if (!video) return;
-    if (!('BarcodeDetector' in window)) {
-      this.setState({ qrScanError: 'Kamera pemindai tidak didukung browser ini. Ketik kode barang langsung di kolom Cari Barang.' });
-      return;
-    }
-    const detector = new BarcodeDetector({ formats: ['qr_code', 'ean_13', 'code_128'] });
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((stream) => {
-      if (!this.state.qrScanOpen) { stream.getTracks().forEach((t) => t.stop()); return; }
-      this._qrStream = stream;
-      video.srcObject = stream;
-      video.play();
-      const tick = () => {
-        if (!this._qrStream) return;
-        detector.detect(video).then((codes) => {
-          if (codes.length) this._qrOnResult(codes[0].rawValue);
-          else if (this._qrStream) this._qrRaf = requestAnimationFrame(tick);
-        }).catch(() => { if (this._qrStream) this._qrRaf = requestAnimationFrame(tick); });
-      };
-      tick();
-    }).catch((e) => {
-      this.setState({ qrScanError: 'Tidak bisa mengakses kamera: ' + (e && e.message ? e.message : 'izin ditolak.') });
-    });
-  };
-
-  stopQrScan = () => {
-    if (this._qrRaf) cancelAnimationFrame(this._qrRaf);
-    this._qrRaf = null;
-    if (this._qrStream) { this._qrStream.getTracks().forEach((t) => t.stop()); this._qrStream = null; }
-  };
-
-  handleQrResult = (text) => {
-    this.stopQrScan();
-    this.setState({ qrScanOpen: false }, () => this.resolveStokScan(text));
-  };
-
-  // Dipakai dari scan kamera DAN dari field "Cari Barang" pas alat scanner
+  // Dipakai dari field "Cari Barang" pas alat scanner
   // barcode USB/Bluetooth "mengetik" kode ke situ lalu Enter — dua-duanya
   // berakhir di sini. Cocok: langsung buka form Ubah. Tidak cocok: barang
   // baru cuma boleh masuk lewat Input Pembelian, jadi cuma dikasih tahu.
@@ -2089,6 +2089,8 @@ class Component extends DCLogic {
   closeStokPrint = () => this.setState({ stokPrintOpen: false, stokPrintTarget: null });
 
   setStokPrintType = (type) => this.setState({ stokPrintType: type }, () => this.drawStokPrintCanvas());
+
+  setStokPrintLayout = (layout) => this.setState({ stokPrintLayout: layout });
 
   // ponytail: dua library kecil di-vendor lokal (vendor/barcode/) khusus buat
   // menggambar — QR (qrcode-generator) tidak punya native browser API buat
@@ -2125,10 +2127,6 @@ class Component extends DCLogic {
   };
 
   printStokLabel = () => window.print();
-
-  componentWillUnmount() {
-    this.stopQrScan();
-  }
 
   openStokEdit = (kode) => {
     const p = this.state.stokProducts.find((x) => x.kode === kode);
@@ -2205,36 +2203,37 @@ class Component extends DCLogic {
   // Scan barang saat menerima kiriman dari suplier — cocok: langsung pilih
   // barang itu di dropdown. Tidak cocok: pindah ke mode "Barang Baru" dengan
   // kode sudah terisi, tinggal isi nama & harga (barang baru cuma boleh
-  // masuk lewat sini, bukan dari Data Barang). Dipakai dari scan kamera DAN
-  // dari field "Scan/Kode Barang" pas alat scanner USB/Bluetooth mengetik
-  // kode ke situ lalu Enter.
+  // masuk lewat sini, bukan dari Data Barang). Dipakai dari field
+  // "Scan/Kode Barang" pas alat scanner USB/Bluetooth mengetik kode ke situ
+  // lalu Enter.
   resolvePembelianScan = (text) => {
     const code = String(text || '').trim();
     if (!code) return;
     this.setState((s) => {
       const match = s.stokProducts.find((p) => p.kode.toLowerCase() === code.toLowerCase());
       return match
-        ? { pembelianScanInput: '', pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode }
-        : { pembelianScanInput: '', pembelianSelectedKode: '__NEW__', pembelianNewKode: code };
+        ? { pembelianScanInput: '', pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode, pembelianScanReady: false }
+        : { pembelianScanInput: '', pembelianSelectedKode: '__NEW__', pembelianNewKode: code, pembelianScanReady: false };
     });
   };
 
-  scanIntoPembelian = () => this.openQrScan((text) => {
-    this.stopQrScan();
-    this.setState({ qrScanOpen: false }, () => this.resolvePembelianScan(text));
-  });
-
   setPembelianScanInput = (e) => this.setState({ pembelianScanInput: e.target.value });
+  focusPembelianScanInput = () => {
+    const el = document.getElementById('pb-scan-input');
+    if (el) el.focus();
+    this.setState({ pembelianScanReady: true });
+  };
   handlePembelianScanKeyDown = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); this.resolvePembelianScan(e.target.value); }
   };
 
-  setPembelianNewKode = (e) => this.setState({ pembelianNewKode: e.target.value });
-  setPembelianNewNama = (e) => this.setState({ pembelianNewNama: e.target.value });
-  setPembelianQty = (e) => this.setState({ pembelianQty: e.target.value });
-  setPembelianHargaFaktur = (e) => this.setState({ pembelianHargaFaktur: e.target.value });
-  setPembelianHargaNetto = (e) => this.setState({ pembelianHargaNetto: e.target.value });
-  setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value });
+  clearPembelianItemError = () => ({ pembelianItemFormError: '', pembelianItemFieldErrors: [] });
+  setPembelianNewKode = (e) => this.setState({ pembelianNewKode: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianNewNama = (e) => this.setState({ pembelianNewNama: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianQty = (e) => this.setState({ pembelianQty: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianHargaFaktur = (e) => this.setState({ pembelianHargaFaktur: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianHargaNetto = (e) => this.setState({ pembelianHargaNetto: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value, ...this.clearPembelianItemError() });
   setPembelianJatuhTempo = (e) => this.setState({ pembelianJatuhTempo: e.target.value });
   setLaporanSearch = (e) => this.setState({ laporanSearch: e.target.value });
   setLaporanKategoriFilter = (e) => this.setState({ laporanKategoriFilter: e.target.value });
@@ -2270,28 +2269,39 @@ class Component extends DCLogic {
 
   addToPembelianCart = () => {
     const s = this.state;
+    const isNewItem = s.pembelianSelectedKode === '__NEW__';
+    const product = isNewItem ? null : s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
     const qty = parseInt(s.pembelianQty) || 0;
     const hargaFaktur = parseFloat(s.pembelianHargaFaktur) || 0;
     const hargaNetto = parseFloat(s.pembelianHargaNetto) || 0;
     const pricelist = parseFloat(s.pembelianPricelist) || 0;
-    if (qty < 1 || hargaFaktur <= 0 || hargaNetto <= 0) return;
-    if (s.pembelianSelectedKode === '__NEW__') {
-      const kode = s.pembelianNewKode.trim();
-      const nama = s.pembelianNewNama.trim();
-      if (!kode || !nama) return;
-      if (s.stokProducts.some((p) => p.kode === kode) || s.pembelianCart.some((c) => c.kode === kode)) return;
-      const kategori = s.pembelianKategoriFilter === 'ALL' ? 'BAN' : s.pembelianKategoriFilter;
-      this.setState((st) => ({
-        pembelianCart: [...st.pembelianCart, { kode, nama, kategori, isNew: true, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
-        pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
-      }));
+
+    const missing = [];
+    const missingKeys = [];
+    if (isNewItem && !s.pembelianNewKode.trim()) { missing.push('Kode Barang Baru'); missingKeys.push('newKode'); }
+    if (isNewItem && !s.pembelianNewNama.trim()) { missing.push('Nama Barang Baru'); missingKeys.push('newNama'); }
+    if (!qty) { missing.push('Jumlah'); missingKeys.push('qty'); }
+    if (!hargaFaktur) { missing.push('Harga Faktur'); missingKeys.push('hargaFaktur'); }
+    if (!hargaNetto) { missing.push('Harga Netto'); missingKeys.push('hargaNetto'); }
+    if (!pricelist) { missing.push('Pricelist'); missingKeys.push('pricelist'); }
+    if (missing.length) {
+      this.setState({ pembelianItemFormError: 'Lengkapi dulu: ' + missing.join(', ') + '.', pembelianItemFieldErrors: missingKeys });
       return;
     }
-    const product = s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
-    if (!product) return;
+    if (!isNewItem && !product) return;
+
+    const kode = isNewItem ? s.pembelianNewKode.trim() : product.kode;
+    const nama = isNewItem ? s.pembelianNewNama.trim() : product.nama;
+    if (isNewItem && (s.stokProducts.some((p) => p.kode === kode) || s.pembelianCart.some((c) => c.kode === kode))) {
+      this.setState({ pembelianItemFormError: `Kode "${kode}" sudah dipakai, pilih kode lain.`, pembelianItemFieldErrors: ['newKode'] });
+      return;
+    }
+    const kategori = isNewItem ? (s.pembelianKategoriFilter === 'ALL' ? 'BAN' : s.pembelianKategoriFilter) : product.kategori;
+
     this.setState((st) => ({
-      pembelianCart: [...st.pembelianCart, { kode: product.kode, nama: product.nama, kategori: product.kategori, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
-      pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '',
+      pembelianCart: [...st.pembelianCart, { kode, nama, kategori, isNew: isNewItem, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
+      pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
+      pembelianItemFormError: '', pembelianItemFieldErrors: [],
     }));
   };
 
@@ -2318,17 +2328,21 @@ class Component extends DCLogic {
 
   editPembelianPreview = () => this.setState({ pembelianCompleted: false });
 
+  dismissPembelianJustAddedNew = () => this.setState({ pembelianJustAddedNew: [] });
+
   finalizePembelian = () => {
     const s = this.state;
     const preview = s.pembelianPreview;
     if (!preview) return;
     const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, qty: i.qty }));
+    const justAddedNew = preview.items.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
     api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then(() => {
+      clearPembelianDraft();
       this.setState((st) => ({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '',
-        pembelianCompleted: false, pembelianPreview: null,
+        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false,
+        pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
       }));
       this.refreshBarang();
       this.refreshPembelianHistory();
@@ -2465,13 +2479,14 @@ class Component extends DCLogic {
       kategoriOptions: s.kategoriList,
       stokRows, stokRowsEmpty: stokRows.length === 0,
       stokKritisCount, stokMenipisCount, stokPendingCount, stokHasAlert: stokKritisCount + stokMenipisCount + stokPendingCount > 0,
-      qrScanOpen: s.qrScanOpen, qrScanError: s.qrScanError,
-      openQrScan: this.openQrScan, closeQrScan: this.closeQrScan,
       stokPrintOpen: s.stokPrintOpen, stokPrintTarget: s.stokPrintTarget || { kode: '', nama: '' },
       openStokPrint: () => this.openStokPrint(s.stokForm.kode, s.stokForm.nama),
       closeStokPrint: this.closeStokPrint, printStokLabel: this.printStokLabel,
       stokPrintIsQr: s.stokPrintType === 'qr', stokPrintIsCode128: s.stokPrintType !== 'qr',
       setStokPrintQr: () => this.setStokPrintType('qr'), setStokPrintCode128: () => this.setStokPrintType('code128'),
+      stokPrintIsLayoutNama: s.stokPrintLayout === 'nama', stokPrintIsLayoutSaja: s.stokPrintLayout !== 'nama',
+      setStokPrintLayoutNama: () => this.setStokPrintLayout('nama'), setStokPrintLayoutSaja: () => this.setStokPrintLayout('saja'),
+      stokPrintShowNama: s.stokPrintLayout === 'nama',
       stokModalOpen: s.stokModalOpen, closeStokModal: this.closeStokModal,
       stokModalTitle: 'Ubah Barang',
       stokIsEdit: !!s.stokEditKode,
@@ -2520,8 +2535,9 @@ class Component extends DCLogic {
       pembelianKategoriFilter: s.pembelianKategoriFilter, setPembelianKategoriFilter: this.setPembelianKategoriFilter,
       pembelianProductOptions: filteredProducts,
       pembelianSelectedKode: s.pembelianSelectedKode, setPembelianProduct: this.setPembelianProduct,
-      scanIntoPembelian: this.scanIntoPembelian,
       pembelianScanInput: s.pembelianScanInput, setPembelianScanInput: this.setPembelianScanInput,
+      focusPembelianScanInput: this.focusPembelianScanInput,
+      pembelianScanReady: s.pembelianScanReady,
       handlePembelianScanKeyDown: this.handlePembelianScanKeyDown,
       pembelianIsNewItem: s.pembelianSelectedKode === '__NEW__',
       pembelianNewKode: s.pembelianNewKode, setPembelianNewKode: this.setPembelianNewKode,
@@ -2534,6 +2550,13 @@ class Component extends DCLogic {
       payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
       setPembelianCash: this.setPembelianCash, setPembelianTop: this.setPembelianTop,
       addToPembelianCart: this.addToPembelianCart,
+      pembelianItemFormError: s.pembelianItemFormError,
+      pembelianNewKodeInvalidClass: s.pembelianItemFieldErrors.includes('newKode') ? 'input-invalid' : '',
+      pembelianNewNamaInvalidClass: s.pembelianItemFieldErrors.includes('newNama') ? 'input-invalid' : '',
+      pembelianQtyInvalidClass: s.pembelianItemFieldErrors.includes('qty') ? 'input-invalid' : '',
+      pembelianHargaFakturInvalidClass: s.pembelianItemFieldErrors.includes('hargaFaktur') ? 'input-invalid' : '',
+      pembelianHargaNettoInvalidClass: s.pembelianItemFieldErrors.includes('hargaNetto') ? 'input-invalid' : '',
+      pembelianPricelistInvalidClass: s.pembelianItemFieldErrors.includes('pricelist') ? 'input-invalid' : '',
       pembelianCartEmpty: s.pembelianCart.length === 0, pembelianCartNotEmpty: s.pembelianCart.length > 0,
       pembelianCartView,
       pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
@@ -2542,6 +2565,11 @@ class Component extends DCLogic {
       pembelianHistoryView: s.pembelianHistory.map((h) => ({ ...h, totalBiayaLabel: formatRp(h.totalBiaya) })),
       pembelianNotCompleted: !s.pembelianCompleted, pembelianCompletedFlag: s.pembelianCompleted,
       editPembelianPreview: this.editPembelianPreview, finalizePembelian: this.finalizePembelian,
+      pembelianHasJustAddedNew: s.pembelianJustAddedNew.length > 0,
+      dismissPembelianJustAddedNew: this.dismissPembelianJustAddedNew,
+      pembelianJustAddedNewView: s.pembelianJustAddedNew.map((item) => ({
+        ...item, printHandler: () => this.openStokPrint(item.kode, item.nama),
+      })),
       pembelianPreviewView: s.pembelianPreview ? {
         ...s.pembelianPreview,
         noFaktur: 'Dibuat otomatis saat disimpan',
