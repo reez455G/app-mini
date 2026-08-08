@@ -13,9 +13,10 @@ app-mini/
 ├── index.html              # redirect ke Dashboard.dc.html (biar bisa akses via folder root)
 ├── Dashboard.dc.html        # halaman utama: markup + logika (React, di dalam <script>)
 ├── support.js               # runtime yang membaca Dashboard.dc.html dan merender React-nya
-├── vendor/                   # React/ReactDOM + font, di-download lokal — lihat § Offline
+├── vendor/                   # React/ReactDOM, font, & library barcode — di-download lokal, lihat § Offline
 │   ├── react/
-│   └── fonts/
+│   ├── fonts/
+│   └── barcode/
 ├── _ds/broadsheet-.../
 │   ├── styles.css            # design tokens & style komponen (warna, font, spacing)
 │   ├── _ds_bundle.js          # efek visual tambahan (filter cetak/plate)
@@ -84,9 +85,45 @@ folder `vendor/`:
   di-load lewat `@font-face` di `styles.css`. Cuma subset "latin" yang
   disimpan (huruf Latin standar) — cukup untuk UI berbahasa Indonesia, bukan
   full 6-subset Google Fonts (cyrillic/greek/vietnamese/dst tidak terpakai).
+- Library pembuat QR code (`qrcode-generator`) & barcode (`JsBarcode`, buat
+  fitur Cetak Barcode) → `vendor/barcode/`. Membaca QR/barcode pakai
+  `BarcodeDetector` bawaan browser (bukan library — lihat § Scan di bawah).
 
 Halaman ini sekarang jalan 100% tanpa koneksi internet, dari awal buka
 sampai dipakai — cocok untuk toko yang sinyalnya tidak stabil.
+
+## Scan QR/Barcode & Cetak Barcode
+
+Kode barang (`kode`, mis. `BAN-001`) dobel fungsi sebagai isi QR/barcode-nya
+— tidak ada field kode-batang terpisah.
+
+- **Data Barang** — tombol "Scan QR" di toolbar: scan barang yang sudah
+  terdaftar → langsung buka form Ubah. Belum terdaftar → muncul pesan
+  "tambahkan lewat Input Pembelian" (Data Barang tidak bisa bikin barang
+  baru — lihat batasan di bawah). Ada juga tombol **Cetak Barcode** per baris
+  dan di dalam form Ubah, bisa pilih QR atau Barcode 1D (Code128).
+- **Input Pembelian** — tombol "Scan" di card Tambah Barang: scan barang yang
+  sudah ada → langsung terpilih di dropdown. Belum ada → pindah ke mode
+  "Barang Baru" dengan kode sudah terisi.
+- **Belum ada** — scan di Transaksi Penjualan (buat masukin ke keranjang) dan
+  pelacakan history "siapa scan apa kapan".
+
+⚠️ Membaca QR/barcode pakai `BarcodeDetector` bawaan browser — cuma jalan di
+**Chrome/Edge Android** (Safari/Firefox belum dukung). Kamera juga butuh
+**HTTPS** buat diakses dari HP/tablet terpisah (`http://` biasa ditolak
+browser kecuali dari `localhost` sendiri). Cara cepat test dari HP tanpa
+setup SSL permanen di XAMPP: jalankan `ngrok http 80` (port Apache), buka
+URL `https://...ngrok-free.app` yang muncul dari HP.
+
+## Layout — tablet & Android
+
+Sidebar berubah jadi drawer geser (tombol hamburger) di bawah ~900px lebar
+layar, tabel lebar bisa di-scroll ke samping di dalam card-nya sendiri, dan
+form/dialog menyesuaikan lebar layar.
+
+⚠️ Perubahan ini dites secara struktural (kode & binding template cocok),
+bukan dicek visual langsung di browser sungguhan — kalau ada yang masih
+janggal di HP/tablet Anda, kabari.
 
 ## ⚠️ Yang perlu diketahui sebelum dipakai sungguhan di toko
 
@@ -94,6 +131,9 @@ sampai dipakai — cocok untuk toko yang sinyalnya tidak stabil.
   menunjukkan pesan konfirmasi di layar, tidak benar-benar mengirim apa pun
   atau mereset password di database. Reset password sungguhan: Owner login,
   buka Master Data → Pengguna, edit user itu, isi password baru.
+- **Barang baru cuma bisa didaftarkan lewat Input Pembelian**, bukan dari
+  Data Barang (yang sekarang edit-only) — sengaja, supaya setiap barang baru
+  selalu punya jejak pembelian (suplier, harga beli).
 - **Single server, satu database.** Semua kasir/perangkat yang mengakses
   `http://<ip-komputer-server>/app-mini/` dari jaringan yang sama akan
   berbagi data yang sama (ini yang diinginkan) — tapi kalau server (komputer

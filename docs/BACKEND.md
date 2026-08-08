@@ -205,6 +205,11 @@ POST   /api/barang.php   {kode, nama, kategori, suplier?, harga_faktur?, harga_n
 PUT    /api/barang.php?id=3   (field sama, kode tidak bisa diubah)
 DELETE /api/barang.php?id=3
 ```
+`POST` masih ada & jalan (endpoint-nya tidak dihapus), tapi **frontend sudah
+tidak memanggilnya** — Data Barang di `Dashboard.dc.html` sekarang edit-only
+(`saveStokForm` selalu `PUT`). Barang baru cuma masuk lewat `POST
+/api/pembelian.php` (§ Pembelian di bawah), yang membuat baris `barang` baru
+sendiri kalau `kode`-nya belum ada.
 
 ### Pembelian (Owner only)
 
@@ -335,6 +340,11 @@ seluruh file — cari bagian ini di dalam `<script data-dc-script>`:
   client sama sekali lagi; ini cuma fetch + simpan hasil server ke
   `state.remoteLaporan*` / `state.dashboard*`, dipicu saat tab/modul dibuka
   atau filter tanggal berubah.
+- **`openQrScan(onResult)`** — helper kamera generik (bukan backend, murni
+  frontend, `BarcodeDetector` bawaan browser) dipakai lintas modul: Data
+  Barang & Input Pembelian sama-sama panggil ini dengan callback beda-beda.
+  Dialog kameranya cuma satu, dirender sekali di luar semua modul (sibling
+  dari `<main>`) supaya bisa dipanggil dari mana saja.
 
 ---
 
