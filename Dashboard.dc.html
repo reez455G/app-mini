@@ -43,6 +43,11 @@
          ikut menyembunyikan dialog ini — tanpa baris ini, seluruh overlay
          dialog (toggle QR/Code128, tombol, dst) ikut tercetak di atas label. */
       .dialog-backdrop { display: none !important; }
+      /* Cetak banyak barang sekaligus: tiap label jadi halaman 40x30mm-nya
+         sendiri berurutan (label roll continuous), bukan ditumpuk di satu
+         halaman — kecuali yang terakhir, supaya tidak ada halaman kosong nyusul. */
+      .stok-print-block { page-break-after: always; break-after: page; }
+      .stok-print-block:last-child { page-break-after: auto; break-after: auto; }
     }
 
     /* ── Responsif: tablet & Android ─────────────────────────────────
@@ -540,15 +545,27 @@
           </div>
 
           <div class="card elev-sm">
-            <div class="card-kicker">Daftar Barang</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+              <div class="card-kicker">Daftar Barang</div>
+              <sc-if value="{{ stokHasSelection }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <span style="font-size:13px;opacity:0.7;">{{ stokSelectedCount }} dipilih</span>
+                  <sc-if value="{{ stokCanPrintBatch }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn btn-secondary" style="min-height:36px;font-size:12px;padding:6px 12px;" onClick="{{ openStokPrintBatch }}">Cetak Barcode ({{ stokSelectedCount }})</button>
+                  </sc-if>
+                  <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ clearStokSelection }}">Batal Pilih</button>
+                </div>
+              </sc-if>
+            </div>
             <sc-if value="{{ stokRowsEmpty }}">
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok.</p>
             </sc-if>
             <table class="table" style="margin-top:8px;">
-              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th style="width:1%;"><input type="checkbox" checked="{{ stokAllVisibleSelected }}" onChange="{{ toggleStokSelectAll }}" aria-label="Pilih semua" /></th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <sc-for list="{{ stokRows }}" as="item" hint-placeholder-count="8">
                   <tr>
+                    <td><input type="checkbox" checked="{{ item.isSelected }}" onChange="{{ item.toggleSelect }}" aria-label="Pilih {{ item.nama }}" /></td>
                     <td>{{ item.kode }}</td>
                     <td>{{ item.nama }}</td>
                     <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
@@ -1601,11 +1618,24 @@
               <input type="radio" name="stok-print-layout" checked="{{ stokPrintIsLayoutNama }}" onChange="{{ setStokPrintLayoutNama }}" />Barcode + Nama
             </label>
           </div>
-          <canvas id="stok-print-canvas-preview" style="max-width:100%;"></canvas>
-          <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
-            <div style="text-align:center;">
-              <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;">{{ stokPrintTarget.nama }}</div>
-              <div style="font-size:13px;opacity:0.7;">{{ stokPrintTarget.kode }}</div>
+          <sc-if value="{{ stokPrintIsSingle }}" hint-placeholder-val="{{ true }}">
+            <canvas id="stok-print-canvas-preview" style="max-width:100%;"></canvas>
+            <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align:center;">
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;">{{ stokPrintSingleTarget.nama }}</div>
+                <div style="font-size:13px;opacity:0.7;">{{ stokPrintSingleTarget.kode }}</div>
+              </div>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{ stokPrintIsBatch }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:14px;text-align:center;">Akan mencetak <strong>{{ stokPrintBatchCount }}</strong> label, satu per satu berurutan.</p>
+            <div style="width:100%;max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;">
+              <sc-for list="{{ stokPrintTargets }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 10px;background:var(--color-neutral-100);border-radius:6px;">
+                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.nama }}</span>
+                  <span style="opacity:0.6;white-space:nowrap;flex:none;">{{ t.kode }}</span>
+                </div>
+              </sc-for>
             </div>
           </sc-if>
         </div>
@@ -1618,12 +1648,16 @@
   </sc-if>
 
   <sc-if value="{{ stokPrintOpen }}">
-    <div id="stok-print-sheet" style="flex-direction:column;align-items:center;justify-content:center;gap:1mm;width:40mm;height:30mm;box-sizing:border-box;padding:1mm;overflow:hidden;">
-      <canvas id="stok-print-canvas" style="max-width:36mm;max-height:22mm;width:auto;height:auto;"></canvas>
-      <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
-        <div style="font-family:var(--font-heading);font-weight:600;font-size:7pt;line-height:1.15;max-width:38mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ stokPrintTarget.nama }}</div>
-        <div style="font-size:6pt;opacity:0.8;">{{ stokPrintTarget.kode }}</div>
-      </sc-if>
+    <div id="stok-print-sheet" style="flex-direction:column;">
+      <sc-for list="{{ stokPrintTargets }}" as="t" hint-placeholder-count="1">
+        <div class="stok-print-block" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;width:40mm;height:30mm;box-sizing:border-box;padding:1mm;overflow:hidden;">
+          <canvas id="stok-print-canvas-{{ $index }}" style="max-width:36mm;max-height:22mm;width:auto;height:auto;"></canvas>
+          <sc-if value="{{ stokPrintShowNama }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family:var(--font-heading);font-weight:600;font-size:7pt;line-height:1.15;max-width:38mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.nama }}</div>
+            <div style="font-size:6pt;opacity:0.8;">{{ t.kode }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
     </div>
   </sc-if>
 </sc-if>
@@ -1759,8 +1793,9 @@ class Component extends DCLogic {
     stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
     stokFormError: '',
     stokDeleteTarget: null,
+    stokSelectedKodes: [],
     stokPrintOpen: false,
-    stokPrintTarget: null,
+    stokPrintTargets: [],
     stokPrintType: 'qr',
     stokPrintLayout: 'nama',
     pembelianCart: [],
@@ -2130,10 +2165,37 @@ class Component extends DCLogic {
   };
 
   openStokPrint = (kode, nama) => {
-    this.setState({ stokPrintOpen: true, stokPrintTarget: { kode, nama } }, () => this.drawStokPrintCanvas());
+    this.setState({ stokPrintOpen: true, stokPrintTargets: [{ kode, nama }] }, () => this.drawStokPrintCanvas());
   };
 
-  closeStokPrint = () => this.setState({ stokPrintOpen: false, stokPrintTarget: null });
+  // Cetak semua barang yang dicentang sekaligus — satu label per barang,
+  // dicetak berurutan sebagai halaman terpisah (lihat page-break-after di
+  // .stok-print-block) supaya pas dengan printer label roll continuous.
+  openStokPrintBatch = () => {
+    const s = this.state;
+    const targets = s.stokSelectedKodes
+      .map((kode) => s.stokProducts.find((p) => p.kode === kode))
+      .filter(Boolean)
+      .map((p) => ({ kode: p.kode, nama: p.nama }));
+    if (!targets.length) return;
+    this.setState({ stokPrintOpen: true, stokPrintTargets: targets }, () => this.drawStokPrintCanvas());
+  };
+
+  closeStokPrint = () => this.setState({ stokPrintOpen: false, stokPrintTargets: [] });
+
+  toggleStokSelect = (kode) => this.setState((s) => ({
+    stokSelectedKodes: s.stokSelectedKodes.includes(kode)
+      ? s.stokSelectedKodes.filter((k) => k !== kode)
+      : [...s.stokSelectedKodes, kode],
+  }));
+
+  toggleStokSelectAll = () => this.setState((s) => {
+    const visible = this.stokFilteredProducts(s).map((p) => p.kode);
+    const allSelected = visible.length > 0 && visible.every((k) => s.stokSelectedKodes.includes(k));
+    return { stokSelectedKodes: allSelected ? s.stokSelectedKodes.filter((k) => !visible.includes(k)) : [...new Set([...s.stokSelectedKodes, ...visible])] };
+  });
+
+  clearStokSelection = () => this.setState({ stokSelectedKodes: [] });
 
   setStokPrintType = (type) => this.setState({ stokPrintType: type }, () => this.drawStokPrintCanvas());
 
@@ -2142,17 +2204,17 @@ class Component extends DCLogic {
   // ponytail: dua library kecil di-vendor lokal (vendor/barcode/) khusus buat
   // menggambar — QR (qrcode-generator) tidak punya native browser API buat
   // MEMBUAT kode (cuma BarcodeDetector buat BACA), begitu juga Code128.
-  // Digambar ke DUA canvas — satu buat preview di dialog, satu lagi di
-  // #stok-print-sheet yang tersembunyi (cuma tampil saat window.print()).
+  // Satu barang = satu canvas di #stok-print-sheet (id per-index, lihat
+  // stok-print-canvas-{{ $index }}); kalau cuma 1 barang, digambar juga ke
+  // canvas preview di dialog.
   drawStokPrintCanvas = () => {
-    const t = this.state.stokPrintTarget;
-    if (!t) return;
-    ['stok-print-canvas-preview', 'stok-print-canvas'].forEach((id) => {
-      const canvas = document.getElementById(id);
+    const targets = this.state.stokPrintTargets;
+    if (!targets.length) return;
+    const drawOne = (canvas, kode) => {
       if (!canvas) return;
       if (this.state.stokPrintType === 'qr') {
         const qr = qrcode(0, 'M');
-        qr.addData(t.kode);
+        qr.addData(kode);
         qr.make();
         const count = qr.getModuleCount();
         const cell = Math.max(2, Math.floor(220 / count));
@@ -2168,9 +2230,11 @@ class Component extends DCLogic {
           }
         }
       } else {
-        JsBarcode(canvas, t.kode, { format: 'CODE128', displayValue: false, margin: 8, height: 70 });
+        JsBarcode(canvas, kode, { format: 'CODE128', displayValue: false, margin: 8, height: 70 });
       }
-    });
+    };
+    targets.forEach((t, i) => drawOne(document.getElementById('stok-print-canvas-' + i), t.kode));
+    if (targets.length === 1) drawOne(document.getElementById('stok-print-canvas-preview'), targets[0].kode);
   };
 
   printStokLabel = () => window.print();
@@ -2496,13 +2560,19 @@ class Component extends DCLogic {
     };
   }
 
-  stokVals(s) {
+  // Dipakai stokVals() (render tabel) DAN toggleStokSelectAll() (supaya
+  // "pilih semua" persis mengikuti baris yang lagi kelihatan di layar).
+  stokFilteredProducts = (s) => {
     const search = s.stokSearch.trim().toLowerCase();
-    const filtered = s.stokProducts.filter((p) => {
+    return s.stokProducts.filter((p) => {
       const matchesSearch = !search || p.nama.toLowerCase().includes(search) || p.kode.toLowerCase().includes(search);
       const matchesKategori = s.stokKategoriFilter === 'ALL' || p.kategori === s.stokKategoriFilter;
       return matchesSearch && matchesKategori;
     });
+  };
+
+  stokVals(s) {
+    const filtered = this.stokFilteredProducts(s);
     const stokRows = filtered.map((p) => {
       const priceListValue = p.priceListBasis === 'FAKTUR' ? p.hargaFaktur : p.hargaNetto;
       return {
@@ -2512,12 +2582,15 @@ class Component extends DCLogic {
         statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
         printHandler: () => this.openStokPrint(p.kode, p.nama),
+        isSelected: s.stokSelectedKodes.includes(p.kode), toggleSelect: () => this.toggleStokSelect(p.kode),
       };
     });
     const stokKritisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Kritis').length;
     const stokMenipisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Menipis').length;
     const stokPendingCount = s.stokProducts.filter((p) => p.pendingSetup).length;
     const deleteTargetProduct = s.stokProducts.find((p) => p.kode === s.stokDeleteTarget);
+    const stokSelectedCount = s.stokSelectedKodes.length;
+    const stokAllVisibleSelected = filtered.length > 0 && filtered.every((p) => s.stokSelectedKodes.includes(p.kode));
 
     return {
       isModStok: s.activeModule === 'stok',
@@ -2526,7 +2599,10 @@ class Component extends DCLogic {
       kategoriOptions: s.kategoriList,
       stokRows, stokRowsEmpty: stokRows.length === 0,
       stokKritisCount, stokMenipisCount, stokPendingCount, stokHasAlert: stokKritisCount + stokMenipisCount + stokPendingCount > 0,
-      stokPrintOpen: s.stokPrintOpen, stokPrintTarget: s.stokPrintTarget || { kode: '', nama: '' },
+      stokSelectedCount, stokHasSelection: stokSelectedCount > 0, stokCanPrintBatch: stokSelectedCount >= 2,
+      stokAllVisibleSelected, toggleStokSelectAll: this.toggleStokSelectAll, clearStokSelection: this.clearStokSelection,
+      openStokPrintBatch: this.openStokPrintBatch,
+      stokPrintOpen: s.stokPrintOpen,
       openStokPrint: () => this.openStokPrint(s.stokForm.kode, s.stokForm.nama),
       closeStokPrint: this.closeStokPrint, printStokLabel: this.printStokLabel,
       stokPrintIsQr: s.stokPrintType === 'qr', stokPrintIsCode128: s.stokPrintType !== 'qr',
@@ -2534,6 +2610,10 @@ class Component extends DCLogic {
       stokPrintIsLayoutNama: s.stokPrintLayout === 'nama', stokPrintIsLayoutSaja: s.stokPrintLayout !== 'nama',
       setStokPrintLayoutNama: () => this.setStokPrintLayout('nama'), setStokPrintLayoutSaja: () => this.setStokPrintLayout('saja'),
       stokPrintShowNama: s.stokPrintLayout === 'nama',
+      stokPrintTargets: s.stokPrintTargets,
+      stokPrintIsSingle: s.stokPrintTargets.length === 1, stokPrintIsBatch: s.stokPrintTargets.length > 1,
+      stokPrintSingleTarget: s.stokPrintTargets[0] || { kode: '', nama: '' },
+      stokPrintBatchCount: s.stokPrintTargets.length,
       stokModalOpen: s.stokModalOpen, closeStokModal: this.closeStokModal,
       stokModalTitle: 'Ubah Barang',
       stokIsEdit: !!s.stokEditKode,
