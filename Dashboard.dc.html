@@ -856,18 +856,32 @@
             <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
               <div class="card elev-sm">
                 <div class="card-kicker">Riwayat Pembelian</div>
-                <table class="table" style="margin-top:8px;">
-                  <thead><tr><th>No. Faktur</th><th>Suplier</th><th>Total</th></tr></thead>
-                  <tbody>
-                    <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="2">
-                      <tr>
-                        <td>{{ h.noFaktur }}<div style="font-size:11px;opacity:0.55;">{{ h.tanggal }}</div></td>
-                        <td>{{ h.supplier }}</td>
-                        <td>{{ h.totalBiayaLabel }}</td>
-                      </tr>
-                    </sc-for>
-                  </tbody>
-                </table>
+                <sc-if value="{{ pembelianHistoryEmpty }}" hint-placeholder-val="{{ false }}">
+                  <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada pembelian tersimpan.</p>
+                </sc-if>
+                <!-- Kolomnya sempit: satu baris = 2 sel dua-lantai (faktur/tanggal+suplier
+                     di kiri, total/isi+payment di kanan) supaya muat lebih banyak info
+                     tanpa melebar. Dibatasi tinggi + scroll sendiri agar card tidak
+                     memanjang terus seiring bertambahnya riwayat. -->
+                <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
+                  <table class="table" style="min-width:0;">
+                    <tbody>
+                      <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="2">
+                        <tr>
+                          <td style="vertical-align:top;">
+                            <div style="font-weight:600;">{{ h.noFaktur }}</div>
+                            <div style="font-size:11px;opacity:0.6;margin-top:2px;">{{ h.tanggalPendek }} · {{ h.supplier }}</div>
+                          </td>
+                          <td style="vertical-align:top;text-align:right;white-space:nowrap;">
+                            <div style="font-weight:600;">{{ h.totalBiayaLabel }}</div>
+                            <div style="font-size:11px;opacity:0.6;margin-top:2px;">{{ h.isiLabel }}</div>
+                            <span class="tag {{ h.paymentTagClass }}" style="font-size:10px;padding:1px 7px;margin-top:3px;">{{ h.paymentLabel }}</span>
+                          </td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -1627,6 +1641,16 @@ function formatTanggal(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Versi pendek untuk daftar/riwayat yang kolomnya sempit ("8 Agu", tahun cuma
+// ditulis kalau bukan tahun ini) — formatTanggal() penuh terlalu panjang di situ.
+function formatTanggalPendek(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso + 'T00:00:00');
+  const opts = { day: 'numeric', month: 'short' };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+  return d.toLocaleDateString('id-ID', opts);
+}
+
 // ponytail: draft disimpan di localStorage, bukan server — cukup buat jaga-jaga
 // refresh/tutup tab tidak sengaja saat lagi input pembelian, bukan sync antar device.
 const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
@@ -1688,7 +1712,7 @@ function normalizeBarang(r) {
 function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
 function normalizePelanggan(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
 function normalizeUser(r) { return { id: r.id, username: r.username, role: r.role }; }
-function normalizePembelian(r) { return { noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya) }; }
+function normalizePembelian(r) { return { noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya), paymentType: r.payment_type, jatuhTempo: r.jatuh_tempo }; }
 function normalizeReturPj(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, customer: r.customer_name, tanggal: r.tanggal, totalQty: r.total_qty }; }
 function normalizeReturPb(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, supplier: r.suplier, tanggal: r.tanggal, totalQty: r.total_qty }; }
 
@@ -2576,7 +2600,19 @@ class Component extends DCLogic {
       pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
       previewPembelianNo: 'Dibuat otomatis saat disimpan',
       pembelianCannotComplete: !canComplete, completeSPembelian: this.completeSPembelian, pembelianNote,
-      pembelianHistoryView: s.pembelianHistory.map((h) => ({ ...h, totalBiayaLabel: formatRp(h.totalBiaya) })),
+      // Label riwayat dirakit di sini (bukan di template) supaya barisnya tetap
+      // dua baris ringkas tanpa sc-if bercabang di dalam tabel.
+      pembelianHistoryEmpty: s.pembelianHistory.length === 0,
+      pembelianHistoryView: s.pembelianHistory.map((h) => ({
+        ...h,
+        totalBiayaLabel: formatRp(h.totalBiaya),
+        tanggalPendek: formatTanggalPendek(h.tanggalISO),
+        isiLabel: `${h.totalItems} jenis · ${h.totalQty} pcs`,
+        paymentLabel: h.paymentType === 'TOP'
+          ? (h.jatuhTempo ? 'TOP j.tempo ' + formatTanggalPendek(h.jatuhTempo) : 'TOP')
+          : 'Cash',
+        paymentTagClass: h.paymentType === 'TOP' ? 'tag-accent' : 'tag-neutral',
+      })),
       pembelianNotCompleted: !s.pembelianCompleted, pembelianCompletedFlag: s.pembelianCompleted,
       editPembelianPreview: this.editPembelianPreview, finalizePembelian: this.finalizePembelian,
       pembelianHasJustAddedNew: s.pembelianJustAddedNew.length > 0,
