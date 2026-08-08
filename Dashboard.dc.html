@@ -3,15 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>
-  // support.js loads React/ReactDOM from unpkg by default; this override (its own
-  // documented hook — see cdnScriptFor() in support.js) points it at the vendored
-  // copies in vendor/react/ instead, so the app boots with no internet connection.
-  window.__resources = {
-    "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "vendor/react/react.production.min.js",
-    "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "vendor/react/react-dom.production.min.js"
-  };
-</script>
+<!-- React dimuat lokal (offline) dengan script tag biasa, BUKAN lewat
+     window.__resources. loadReactUmd() di support.js langsung melewati CDN
+     kalau window.React sudah ada, jadi hasil offline-nya sama.
+     JANGAN kembali memakai window.__resources: support.js memakai global itu
+     sebagai penanda "jangan ambil ulang sumber halaman" (lihat `if
+     (!window.__resources)` di init()). Tanpa pengambilan ulang itu, runtime
+     terpaku pada template hasil parse DOM browser — dan parser HTML sudah
+     membuang setiap <sc-for> dari dalam <table>/<select> (aturan foster
+     parenting), sehingga SEMUA tabel dan dropdown tampil kosong. -->
+<script src="vendor/react/react.production.min.js"></script>
+<script src="vendor/react/react-dom.production.min.js"></script>
 <script src="vendor/barcode/qrcode-generator.js"></script>
 <script src="vendor/barcode/jsbarcode.min.js"></script>
 <script src="./support.js"></script>
