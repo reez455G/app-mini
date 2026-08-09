@@ -107,11 +107,24 @@ try {
         $rows[] = [$barang['id'], $barang['nama'], $tier, $qty, $unitPrice, $subtotal];
     }
 
+    // Pelanggan baru: dibuat otomatis (kode urut, alamat/no_hp default '-'),
+    // sama seperti suplier baru di pembelian.php — kasir tidak perlu mampir
+    // ke Master Data dulu; kelengkapan alamat/no HP bisa dilengkapi belakangan.
+    // Sebelumnya cuma dicari, tidak pernah dibuat — invoice-nya tetap
+    // menyimpan cust_name jadi tampil benar di riwayat/laporan, TAPI
+    // pelanggan_id selalu NULL dan Master Data > Pelanggan tidak pernah
+    // kebagian baris baru.
     $pelangganId = null;
     if ($custName !== '') {
         $p = $pdo->prepare('SELECT id FROM pelanggan WHERE nama = ?');
         $p->execute([$custName]);
-        $pelangganId = $p->fetchColumn() ?: null;
+        $pelangganId = $p->fetchColumn();
+        if (!$pelangganId) {
+            $custKode = next_kode($pdo, 'pelanggan', 'CUST');
+            $pdo->prepare('INSERT INTO pelanggan (kode, nama, alamat, no_hp) VALUES (?, ?, ?, ?)')
+                ->execute([$custKode, $custName, '-', '-']);
+            $pelangganId = (int)$pdo->lastInsertId();
+        }
     }
 
     $invoiceNo = next_doc_no($pdo, 'penjualan', 'invoice_no', 'INV');

@@ -2285,6 +2285,7 @@ class Component extends DCLogic {
   refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.setState({ globalError: e.message }));
   refreshPenjHistory = () => api('GET', 'penjualan.php').then((rows) => this.setState({ penjHistory: rows.map(normalizePenjualan) })).catch((e) => this.setState({ globalError: e.message }));
   refreshSuplier = () => api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
+  refreshPelanggan = () => api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.setState({ globalError: e.message }));
   refreshReturPj = () => api('GET', 'retur_penjualan.php').then((rows) => this.setState({ returPjHistory: rows.map(normalizeReturPj) })).catch((e) => this.setState({ globalError: e.message }));
   refreshReturPb = () => api('GET', 'retur_pembelian.php').then((rows) => this.setState({ returPbHistory: rows.map(normalizeReturPb) })).catch((e) => this.setState({ globalError: e.message }));
 
@@ -2445,6 +2446,7 @@ class Component extends DCLogic {
       this.setState({ busy: false, penjCompleted: true, penjLastInvoice: newInvoice });
       this.refreshBarang();
       this.refreshPenjHistory();
+      this.refreshPelanggan();
     }).catch((e) => this.setState({ busy: false, penjSubmitError: e.message }));
   };
 
