@@ -68,6 +68,21 @@
     .nav-burger { display: none; }
     .nav-backdrop { display: none; }
 
+    /* Sidebar ikut tinggi layar dan menempel saat halaman digulung. Tanpa ini
+       <aside> ikut meregang setinggi konten (flex stretch di dalam #app-shell),
+       jadi blok akun + tombol Keluar di dasarnya ikut terdorong jauh ke bawah
+       dan harus scroll panjang cuma untuk keluar. Di bawah 900px sidebar sudah
+       position:fixed (drawer), aturan ini tidak mengganggu. */
+    #app-sidebar {
+      position: sticky; top: 0; align-self: flex-start;
+      height: 100vh; overflow: hidden;
+    }
+    /* Yang menggulung cuma daftar menunya; blok akun + tombol Keluar tetap
+       menempel di dasar sidebar, jadi tetap kelihatan walau layarnya pendek
+       (min-height:0 wajib supaya flex item ini mau menyusut & scroll aktif). */
+    #app-sidebar nav { overflow-y: auto; min-height: 0; }
+    #app-sidebar-user { flex: none; }
+
     @media (max-width: 900px) {
       .rg { grid-template-columns: 1fr !important; }
       .nav-burger { display: inline-flex !important; }
@@ -240,7 +255,7 @@
         </button>
       </nav>
 
-      <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px;">
+      <div id="app-sidebar-user" style="display:flex;flex-direction:column;gap:8px;padding-top:8px;">
         <div style="display:flex;align-items:center;gap:10px;padding:8px;">
           <div style="width:36px;height:36px;border-radius:50%;background:color-mix(in srgb, var(--color-bg) 15%, transparent);display:flex;align-items:center;justify-content:center;color:var(--color-bg);font-family:var(--font-heading);font-weight:600;font-size:14px;flex:none;">{{ userInitial }}</div>
           <div style="min-width:0;">
