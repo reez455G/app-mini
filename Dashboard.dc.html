@@ -1236,10 +1236,10 @@
             <div class="card elev-sm">
               <div class="card-kicker">Rincian Transaksi</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Waktu</th><th>Payment</th><th>Qty</th><th>Total</th></tr></thead>
+                <thead><tr><th>Waktu</th><th>No. Invoice</th><th>Pelanggan</th><th>Payment</th><th>Qty</th><th>Total</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ penjualanRowsView }}" as="r" hint-placeholder-count="3">
-                    <tr><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.waktuLabel }}</td><td>{{ r.paymentLabel }}</td><td>{{ r.totalQty }} pcs</td><td>{{ r.grandTotalLabel }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.paymentLabel }}</td><td>{{ r.totalQty }} pcs</td><td>{{ r.grandTotalLabel }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
