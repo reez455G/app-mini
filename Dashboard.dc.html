@@ -881,11 +881,12 @@
                 </sc-if>
                 <sc-if value="{{ pembelianCartNotEmpty }}" hint-placeholder-val="{{ true }}">
                   <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Harga Faktur</th><th>Harga Netto</th><th>Price List</th><th>Subtotal</th><th></th></tr></thead>
+                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Faktur</th><th>Harga Netto</th><th>Price List</th><th>Subtotal</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ pembelianCartView }}" as="item" hint-placeholder-count="3">
                         <tr>
                           <td>{{ item.kode }}</td>
+                          <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Cetak Barcode" title="Cetak Barcode" onClick="{{ item.printHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg></button></td>
                           <td>{{ item.nama }}</td>
                           <td>{{ item.qty }} pcs</td>
                           <td>{{ item.hargaFakturLabel }}</td>
@@ -2700,6 +2701,10 @@ class Component extends DCLogic {
       ...item, hargaFakturLabel: formatRp(item.hargaFaktur), hargaNettoLabel: formatRp(item.hargaNetto), subtotalLabel: formatRp(item.subtotal),
       pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
       removeHandler: () => this.removeFromPembelianCart(idx),
+      // Cetak Barcode langsung dari daftar keranjang — belum perlu tunggu
+      // pembelian disimpan, berguna terutama buat barang baru yang kode/nama-nya
+      // baru saja diketik manual dan belum punya barcode fisik sama sekali.
+      printHandler: () => this.openStokPrint(item.kode, item.nama),
     }));
     const totalItems = s.pembelianCart.length;
     const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
