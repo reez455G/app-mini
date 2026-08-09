@@ -66,10 +66,12 @@ try {
         $barang = $b->fetch();
 
         if ($barang) {
-            // Barang sudah ada: tambah stok, timpa harga beli terakhir (sama seperti
-            // finalizePembelian() di Dashboard.dc.html).
-            $pdo->prepare('UPDATE barang SET stok = stok + ?, harga_faktur = ?, harga_netto = ? WHERE id = ?')
-                ->execute([$qty, $hargaFaktur, $hargaNetto, $barang['id']]);
+            // Barang sudah ada: tambah stok, timpa harga beli terakhir & suplier
+            // (sama seperti finalizePembelian() di Dashboard.dc.html — suplier_id
+            // dipertahankan sebagai "suplier terakhir dibeli dari", bukan cuma
+            // diisi sekali waktu barang dibuat).
+            $pdo->prepare('UPDATE barang SET stok = stok + ?, harga_faktur = ?, harga_netto = ?, suplier_id = ? WHERE id = ?')
+                ->execute([$qty, $hargaFaktur, $hargaNetto, $suplierId, $barang['id']]);
             $barangId = $barang['id'];
             $nama = $barang['nama'];
             $kn = $pdo->prepare('SELECT nama FROM kategori WHERE id = ?');

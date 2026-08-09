@@ -2142,6 +2142,7 @@ class Component extends DCLogic {
   }).catch((e) => this.setState({ globalError: e.message }));
 
   refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.setState({ globalError: e.message }));
+  refreshSuplier = () => api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
   refreshReturPj = () => api('GET', 'retur_penjualan.php').then((rows) => this.setState({ returPjHistory: rows.map(normalizeReturPj) })).catch((e) => this.setState({ globalError: e.message }));
   refreshReturPb = () => api('GET', 'retur_pembelian.php').then((rows) => this.setState({ returPbHistory: rows.map(normalizeReturPb) })).catch((e) => this.setState({ globalError: e.message }));
 
@@ -2916,6 +2917,7 @@ class Component extends DCLogic {
       });
       this.refreshBarang();
       this.refreshPembelianHistory();
+      this.refreshSuplier();
     }).catch((e) => this.setState({ busy: false, pembelianCompleted: false, pembelianSubmitError: e.message }));
   };
 
