@@ -1144,7 +1144,7 @@
             <sc-if value="{{ laporanRowsEmpty }}">
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok dengan filter.</p>
             </sc-if>
-            <table class="table" style="margin-top:8px;">
+            <table class="table" style="margin-top:8px;min-width:1000px;white-space:nowrap;">
               <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Stok</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Status</th></tr></thead>
               <tbody>
                 <sc-for list="{{ laporanRows }}" as="item" hint-placeholder-count="8">
