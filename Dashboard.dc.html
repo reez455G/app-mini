@@ -702,15 +702,9 @@
                       <input class="input" id="stok-f-grosir" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.grosir }}" onChange="{{ setStokGrosir }}" />
                     </div>
                   </div>
-                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="field">
-                      <label for="stok-f-stok">Stok</label>
-                      <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
-                    </div>
-                    <div class="field">
-                      <label for="stok-f-minstok">Stok Minimum</label>
-                      <input class="input" id="stok-f-minstok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.minStok }}" onChange="{{ setStokMinStok }}" />
-                    </div>
+                  <div class="field">
+                    <label for="stok-f-stok">Stok</label>
+                    <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
                   </div>
                   <sc-if value="{{ stokFormError }}">
                     <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ stokFormError }}</p>
@@ -2965,7 +2959,7 @@ class Component extends DCLogic {
         : 'Belum ada data pembelian',
       stokPriceIsFaktur: s.stokForm.priceListBasis === 'FAKTUR', stokPriceIsNetto: s.stokForm.priceListBasis !== 'FAKTUR',
       setStokPriceFaktur: this.setStokPriceFaktur, setStokPriceNetto: this.setStokPriceNetto,
-      setStokStok: this.setStokFormField('stok'), setStokMinStok: this.setStokFormField('minStok'),
+      setStokStok: this.setStokFormField('stok'),
       stokFormError: s.stokFormError, saveStokForm: this.saveStokForm,
       stokDeleteTarget: s.stokDeleteTarget, deleteTargetName: deleteTargetProduct ? deleteTargetProduct.nama : '',
       cancelDeleteStok: this.cancelDeleteStok, confirmDeleteStok: this.confirmDeleteStok,
