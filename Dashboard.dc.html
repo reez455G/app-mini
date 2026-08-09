@@ -1634,6 +1634,23 @@
     </div>
   </div>
 
+  <!-- Gagal hapus (mis. barang/suplier masih dipakai transaksi lama). Sibling
+       #app-shell supaya menimpa seluruh layar dari modul mana pun. -->
+  <sc-if value="{{ deleteError }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog">
+        <div class="dialog-title">Tidak Bisa Dihapus</div>
+        <div class="dialog-body" style="display:flex;flex-direction:column;gap:10px;">
+          <p style="margin:0;font-size:14px;">{{ deleteError }}</p>
+          <p style="margin:0;font-size:13px;opacity:0.65;">Data yang sudah pernah dipakai di pembelian, penjualan, atau retur sengaja dipertahankan supaya riwayat dan laporannya tetap utuh.</p>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" onClick="{{ closeDeleteError }}">Mengerti</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ stokPrintOpen }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop">
       <div class="dialog">
@@ -1807,6 +1824,7 @@ class Component extends DCLogic {
     loginError: '',
     busy: false,
     globalError: '',
+    deleteError: '',
     activeModule: 'dashboard',
     navMobileOpen: false,
     showForgot: false,
@@ -2164,7 +2182,7 @@ class Component extends DCLogic {
     api('DELETE', cfg.path + '?id=' + cfg.findId(t.key)).then(() => {
       this.setState({ busy: false, masterDeleteTarget: null });
       cfg.refresh();
-    }).catch((e) => this.setState({ busy: false, masterDeleteTarget: null, globalError: e.message }));
+    }).catch((e) => this.setState({ busy: false, masterDeleteTarget: null, deleteError: e.message }));
   };
 
   setLaporanDari = (e) => this.setState({ laporanDari: e.target.value }, () => this.loadLaporanTab(this.state.laporanLengkapTab));
@@ -2333,8 +2351,12 @@ class Component extends DCLogic {
     api('DELETE', 'barang.php?id=' + p.id).then(() => {
       this.setState({ busy: false, stokDeleteTarget: null });
       this.refreshBarang();
-    }).catch((e) => this.setState({ busy: false, stokDeleteTarget: null, globalError: e.message }));
+    // Gagal hapus ditampilkan sebagai dialog sendiri, bukan lewat globalError
+    // (baris kecil di header) — pesannya penting dan mudah terlewat di sana.
+    }).catch((e) => this.setState({ busy: false, stokDeleteTarget: null, deleteError: e.message }));
   };
+
+  closeDeleteError = () => this.setState({ deleteError: '' });
 
   setPembelianSupplierChoice = (e) => this.setState({ pembelianSupplierChoice: e.target.value });
   setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
@@ -2975,6 +2997,7 @@ class Component extends DCLogic {
       isLogin: !s.booting && s.screen === 'login',
       isApp: !s.booting && s.screen === 'app',
       globalError: s.globalError,
+      deleteError: s.deleteError, closeDeleteError: this.closeDeleteError,
       dismissGlobalError: () => this.setState({ globalError: '' }),
       busy: s.busy,
       isOwner, isKaryawan: !isOwner,
