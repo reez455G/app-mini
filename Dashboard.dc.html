@@ -85,7 +85,19 @@
 
     @media (max-width: 900px) {
       .rg { grid-template-columns: 1fr !important; }
-      .nav-burger { display: inline-flex !important; }
+      /* Tombol menu mengambang & ikut layar (fixed), bukan ikut menggulung
+         bersama header — supaya pindah menu tidak perlu scroll balik ke atas
+         dulu. z-index 30 sengaja di bawah .nav-backdrop (40) supaya tombolnya
+         ketutup sendiri begitu drawer-nya kebuka. */
+      .nav-burger {
+        display: inline-flex !important;
+        position: fixed; left: 16px; bottom: 16px; z-index: 30;
+        width: 52px !important; height: 52px !important; border-radius: 50%;
+        box-shadow: var(--shadow-lg);
+      }
+      /* ruang di dasar halaman supaya tombol mengambang tidak menutupi
+         baris/tombol terakhir konten */
+      #app-shell main { padding-bottom: 88px !important; }
       #app-sidebar {
         position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
         transform: translateX(-100%); transition: transform .2s ease;
