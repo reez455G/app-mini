@@ -647,7 +647,12 @@
                     <td>{{ item.kode }}</td>
                     <td>{{ item.nama }}</td>
                     <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
-                    <td>{{ item.supplier }}</td>
+                    <td>
+                      {{ item.supplier }}
+                      <sc-if value="{{ item.supplierExtraCount }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
+                      </sc-if>
+                    </td>
                     <td>{{ item.priceListValueLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.priceListBasisLabel }})</span></td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
@@ -1152,7 +1157,12 @@
                     <td>{{ item.kode }}</td>
                     <td>{{ item.nama }}</td>
                     <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
-                    <td>{{ item.supplier }}</td>
+                    <td>
+                      {{ item.supplier }}
+                      <sc-if value="{{ item.supplierExtraCount }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
+                      </sc-if>
+                    </td>
                     <td>{{ item.stok }} pcs</td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
@@ -1848,6 +1858,46 @@
     </div>
   </sc-if>
 
+  <!-- Riwayat suplier per barang — dipicu dari badge "+N" di Data Barang
+       maupun Laporan Stok, jadi ditaruh sebagai sibling #app-shell (bukan
+       di dalam sc-if satu modul saja) supaya bisa dibuka dari keduanya. -->
+  <sc-if value="{{ supplierHistoryOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog" style="width:min(560px,100%);">
+        <div class="dialog-title">Riwayat Suplier</div>
+        <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+          <p style="margin:0;font-size:13px;opacity:0.7;">{{ supplierHistoryForLabel }}</p>
+          <sc-if value="{{ supplierHistoryLoading }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
+          </sc-if>
+          <sc-if value="{{ supplierHistoryError }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ supplierHistoryError }}</p>
+          </sc-if>
+          <sc-if value="{{ supplierHistoryEmpty }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:14px;opacity:0.6;">Belum ada riwayat pembelian barang ini.</p>
+          </sc-if>
+          <sc-if value="{{ supplierHistoryRows.length }}" hint-placeholder-val="{{ false }}">
+            <table class="table">
+              <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Harga Beli</th><th>Qty</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ supplierHistoryRows }}" as="r" hint-placeholder-count="3">
+                  <tr>
+                    <td>{{ r.noFaktur }}</td><td>{{ r.tanggal }}</td><td>{{ r.suplier }}</td>
+                    <td>{{ r.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ r.hargaBasisLabel }})</span></td>
+                    <td>{{ r.qty }} pcs</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </sc-if>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" onClick="{{ closeSupplierHistory }}">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ stokPrintOpen }}" hint-placeholder-val="{{ false }}">
     <div class="dialog-backdrop">
       <div class="dialog">
@@ -2022,7 +2072,7 @@ function normalizeBarang(r) {
   return {
     id: r.id, kode: r.kode, nama: r.nama, kategori: r.kategori, stok: r.stok,
     ecer: r.harga_ecer, bengkel: r.harga_bengkel, grosir: r.harga_grosir, status: r.status,
-    supplier: r.suplier || '', hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
+    supplier: r.suplier || '', supplierCount: r.suplier_count || 0, hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
     priceListBasis: r.price_list_basis || 'NETTO', minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
   };
 }
@@ -2045,6 +2095,7 @@ class Component extends DCLogic {
     busy: false,
     globalError: '',
     deleteError: '',
+    supplierHistoryOpen: false, supplierHistory: null, supplierHistoryError: '', supplierHistoryFor: null,
     activeModule: 'dashboard',
     navMobileOpen: false,
     showForgot: false,
@@ -2644,6 +2695,17 @@ class Component extends DCLogic {
 
   closeDeleteError = () => this.setState({ deleteError: '' });
 
+  // Riwayat suplier per barang — GET barang.php?id=&history=1 (Owner only,
+  // sudah ada sejak awal buat perbandingan harga antar-suplier, cuma belum
+  // pernah disambungkan ke tampilan manapun).
+  openSupplierHistory = (barang) => {
+    this.setState({ supplierHistoryOpen: true, supplierHistory: null, supplierHistoryError: '', supplierHistoryFor: barang });
+    api('GET', 'barang.php?id=' + barang.id + '&history=1')
+      .then((rows) => this.setState({ supplierHistory: rows }))
+      .catch((e) => this.setState({ supplierHistoryError: e.message }));
+  };
+  closeSupplierHistory = () => this.setState({ supplierHistoryOpen: false, supplierHistory: null, supplierHistoryError: '', supplierHistoryFor: null });
+
   openStokBulkDeleteConfirm = () => this.setState({ stokBulkDeleteConfirm: true });
   cancelStokBulkDelete = () => this.setState({ stokBulkDeleteConfirm: false });
   confirmStokBulkDelete = () => {
@@ -3099,6 +3161,10 @@ class Component extends DCLogic {
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
         printHandler: () => this.openStokPrint(p.kode, p.nama),
         isSelected: s.stokSelectedKodes.includes(p.kode), toggleSelect: () => this.toggleStokSelect(p.kode),
+        // Riwayat suplier (badge "+N") pakai data harga per pembelian —
+        // Owner only, sama seperti endpoint backend-nya.
+        supplierExtraCount: (s.role === 'owner' && p.supplierCount > 1) ? p.supplierCount - 1 : 0,
+        supplierHistoryHandler: () => this.openSupplierHistory(p),
       };
     });
     const stokKritisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Kritis').length;
@@ -3291,6 +3357,8 @@ class Component extends DCLogic {
     const rows = filtered.map((p) => ({
       ...p, ecerLabel: formatRp(p.ecer), bengkelLabel: formatRp(p.bengkel), grosirLabel: formatRp(p.grosir),
       statusIsKritis: p.status === 'Kritis', statusIsMenipis: p.status === 'Menipis', statusIsAman: p.status === 'Aman',
+      supplierExtraCount: (s.role === 'owner' && p.supplierCount > 1) ? p.supplierCount - 1 : 0,
+      supplierHistoryHandler: () => this.openSupplierHistory(p),
     }));
     return {
       isModLaporan: s.activeModule === 'laporan',
@@ -3537,12 +3605,24 @@ class Component extends DCLogic {
     const dLaba = s.dashboardLabaBulanIni || { gross_profit: 0, margin_pct: 0 };
     const moduleLabels = { dashboard: 'Dashboard', penjualan: 'Transaksi Penjualan', stok: 'Data Barang', pembelian: 'Input Pembelian', laporan: 'Laporan Stok', laporanLengkap: 'Laporan', retur: 'Retur', master: 'Master Data' };
 
+    const supplierHistoryRows = (s.supplierHistory || []).map((r) => ({
+      noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), suplier: r.suplier,
+      hargaBeliLabel: formatRp(r.harga_netto > 0 ? r.harga_netto : r.harga_faktur),
+      hargaBasisLabel: r.harga_netto > 0 ? 'Netto' : 'Faktur',
+      qty: r.qty,
+    }));
+    const supplierHistoryLoading = s.supplierHistoryOpen && !s.supplierHistory && !s.supplierHistoryError;
+
     return {
       isBooting: s.booting,
       isLogin: !s.booting && s.screen === 'login',
       isApp: !s.booting && s.screen === 'app',
       globalError: s.globalError,
       deleteError: s.deleteError, closeDeleteError: this.closeDeleteError,
+      supplierHistoryOpen: s.supplierHistoryOpen, closeSupplierHistory: this.closeSupplierHistory,
+      supplierHistoryForLabel: s.supplierHistoryFor ? (s.supplierHistoryFor.kode + ' — ' + s.supplierHistoryFor.nama) : '',
+      supplierHistoryLoading, supplierHistoryError: s.supplierHistoryError, supplierHistoryRows,
+      supplierHistoryEmpty: s.supplierHistory && s.supplierHistory.length === 0,
       dismissGlobalError: () => this.setState({ globalError: '' }),
       busy: s.busy,
       isOwner, isKaryawan: !isOwner,

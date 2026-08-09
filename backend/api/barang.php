@@ -35,7 +35,15 @@ if ($method === 'GET') {
         $params[] = '%' . $_GET['search'] . '%';
         $params[] = '%' . $_GET['search'] . '%';
     }
-    $sql = 'SELECT b.*, k.nama AS kategori_nama, s.nama AS suplier_nama FROM barang b
+    // suplier_count: berapa suplier BERBEDA yang pernah dipakai buat beli
+    // barang ini (dari riwayat pembelian asli, sama seperti endpoint
+    // ?history=1 di atas) — b.suplier_id sendiri cuma nyimpen suplier
+    // TERAKHIR, jadi tabel Data Barang/Laporan Stok butuh angka ini buat
+    // tahu kapan perlu nampilin badge "+N lainnya".
+    $sql = 'SELECT b.*, k.nama AS kategori_nama, s.nama AS suplier_nama,
+              (SELECT COUNT(DISTINCT p.suplier_id) FROM pembelian_item pi
+               JOIN pembelian p ON p.id = pi.pembelian_id WHERE pi.barang_id = b.id) AS suplier_count
+            FROM barang b
             JOIN kategori k ON k.id = b.kategori_id
             LEFT JOIN suplier s ON s.id = b.suplier_id';
     if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -51,7 +59,7 @@ if ($method === 'GET') {
     $out = array_map(function ($r) use ($isOwner) {
         $base = [
             'id' => (int)$r['id'], 'kode' => $r['kode'], 'nama' => $r['nama'],
-            'kategori' => $r['kategori_nama'], 'suplier' => $r['suplier_nama'], 'stok' => (int)$r['stok'],
+            'kategori' => $r['kategori_nama'], 'suplier' => $r['suplier_nama'], 'suplier_count' => (int)$r['suplier_count'], 'stok' => (int)$r['stok'],
             'harga_ecer' => (float)$r['harga_ecer'], 'harga_bengkel' => (float)$r['harga_bengkel'], 'harga_grosir' => (float)$r['harga_grosir'],
             'status' => stok_status((int)$r['stok'], (int)$r['min_stok']),
         ];
