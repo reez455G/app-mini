@@ -8,7 +8,7 @@ $from = $_GET['from'] ?? '1970-01-01';
 $to = $_GET['to'] ?? date('Y-m-d');
 
 $stmt = $pdo->prepare(
-    'SELECT p.id, p.no_faktur, p.tanggal, s.nama AS suplier, p.total_qty, p.total_biaya
+    'SELECT p.id, p.no_faktur, p.tanggal, p.created_at, s.nama AS suplier, p.total_qty, p.total_biaya
      FROM pembelian p JOIN suplier s ON s.id = p.suplier_id
      WHERE p.tanggal BETWEEN ? AND ? ORDER BY p.tanggal DESC'
 );
