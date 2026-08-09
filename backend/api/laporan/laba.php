@@ -7,14 +7,17 @@ $pdo = db();
 $from = $_GET['from'] ?? '1970-01-01';
 $to = $_GET['to'] ?? date('Y-m-d');
 
-// Biaya per baris pakai harga_netto/harga_faktur TERKINI barang (bukan harga saat
-// transaksi dulu) — sama seperti costOfLine() di Dashboard.dc.html.
+// Biaya per baris pakai harga_beli batch (lot) yang BENAR-BENAR terjual saat
+// itu (penjualan_item_lot, diisi FIFO oleh penjualan.php), bukan harga barang
+// TERKINI yang bisa saja sudah berubah sejak transaksi lama terjadi.
+// LEFT JOIN: transaksi lama sebelum migrasi lot belum punya baris ini —
+// cost-nya jadi 0 sampai skrip backfill dijalankan.
 $stmt = $pdo->prepare(
     "SELECT pj.id, pj.invoice_no, pj.cust_name, pj.grand_total,
-            COALESCE(SUM(pi.qty * IF(b.harga_netto > 0, b.harga_netto, b.harga_faktur)), 0) AS cost
+            COALESCE(SUM(pil.qty * pil.harga_beli), 0) AS cost
      FROM penjualan pj
      JOIN penjualan_item pi ON pi.penjualan_id = pj.id
-     JOIN barang b ON b.id = pi.barang_id
+     LEFT JOIN penjualan_item_lot pil ON pil.penjualan_item_id = pi.id
      WHERE pj.tanggal BETWEEN ? AND ?
      GROUP BY pj.id, pj.invoice_no, pj.cust_name, pj.grand_total
      ORDER BY pj.tanggal DESC"

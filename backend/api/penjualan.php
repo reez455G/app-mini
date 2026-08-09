@@ -54,6 +54,20 @@ if ($method === 'DELETE') {
         $items->execute([$id]);
         $itemRows = $items->fetchAll();
 
+        // Balikkan alokasi FIFO presisi per-lot dulu (qty_sisa dikembalikan
+        // ke batch yang sama persis yang ditarik POST-nya dulu) — BUKAN cuma
+        // barang.stok yang ditambah balik, supaya breakdown per-batch tetap
+        // akurat setelah penjualan ini dihapus.
+        $pilStmt = $pdo->prepare(
+            'SELECT pil.barang_lot_id, pil.qty FROM penjualan_item_lot pil
+             JOIN penjualan_item pi ON pi.id = pil.penjualan_item_id
+             WHERE pi.penjualan_id = ?'
+        );
+        $pilStmt->execute([$id]);
+        foreach ($pilStmt->fetchAll() as $pil) {
+            $pdo->prepare('UPDATE barang_lot SET qty_sisa = qty_sisa + ? WHERE id = ?')->execute([$pil['qty'], $pil['barang_lot_id']]);
+        }
+
         // Balikkan efek stok penjualan (POST mengurangi stok, jadi di sini
         // ditambah kembali) — menambah selalu aman, tidak perlu validasi
         // negatif seperti di pembelian.php.
@@ -61,7 +75,7 @@ if ($method === 'DELETE') {
             $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
         }
 
-        // penjualan_item ikut terhapus lewat ON DELETE CASCADE.
+        // penjualan_item DAN penjualan_item_lot-nya ikut terhapus lewat ON DELETE CASCADE.
         $pdo->prepare('DELETE FROM penjualan WHERE id = ?')->execute([$id]);
 
         $pdo->commit();
@@ -83,7 +97,7 @@ $amountPaid = (float)($in['amount_paid'] ?? 0);
 
 $pdo->beginTransaction();
 try {
-    $totalQty = 0; $grandTotal = 0; $rows = [];
+    $totalQty = 0; $grandTotal = 0; $rows = []; $lotAllocations = [];
     foreach ($items as $line) {
         $kode = trim($line['kode'] ?? '');
         $qty = (int)($line['qty'] ?? 0);
@@ -104,7 +118,32 @@ try {
         $grandTotal += $subtotal;
 
         $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$qty, $barang['id']]);
+
+        // FIFO: tarik dari batch TERLAMA dulu supaya modal yang dicatat di
+        // penjualan_item_lot (dipakai Laporan Laba) benar-benar harga beli
+        // batch yang terjual, bukan harga_netto/harga_faktur TERKINI di barang
+        // (yang bisa saja sudah berubah sejak batch lama itu dibeli).
+        $fifoLots = $pdo->prepare('SELECT id, qty_sisa, harga_beli FROM barang_lot WHERE barang_id = ? AND qty_sisa > 0 ORDER BY tanggal ASC, id ASC FOR UPDATE');
+        $fifoLots->execute([$barang['id']]);
+        $remaining = $qty;
+        $allocation = [];
+        foreach ($fifoLots->fetchAll() as $lotRow) {
+            if ($remaining <= 0) break;
+            $take = min($remaining, (int)$lotRow['qty_sisa']);
+            $pdo->prepare('UPDATE barang_lot SET qty_sisa = qty_sisa - ? WHERE id = ?')->execute([$take, $lotRow['id']]);
+            $allocation[] = [(int)$lotRow['id'], $take, (float)$lotRow['harga_beli']];
+            $remaining -= $take;
+        }
+        // Seharusnya tidak pernah kejadian selama barang.stok tetap sinkron
+        // dengan SUM(qty_sisa) di setiap transaksi — tapi kalau sampai
+        // terjadi (data lama sebelum migrasi, atau bug), lebih baik gagal
+        // jelas di sini daripada diam-diam mencatat modal yang salah.
+        if ($remaining > 0) {
+            throw new RuntimeException("Data batch {$barang['nama']} tidak sinkron dengan stok (kurang $remaining pcs) — hubungi admin.");
+        }
+
         $rows[] = [$barang['id'], $barang['nama'], $tier, $qty, $unitPrice, $subtotal];
+        $lotAllocations[] = $allocation;
     }
 
     // Pelanggan baru: dibuat otomatis (kode urut, alamat/no_hp default '-'),
@@ -139,7 +178,14 @@ try {
     $itemStmt = $pdo->prepare(
         'INSERT INTO penjualan_item (penjualan_id, barang_id, nama_snapshot, tier, qty, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
-    foreach ($rows as $r) $itemStmt->execute([$penjualanId, ...$r]);
+    $lotStmt = $pdo->prepare('INSERT INTO penjualan_item_lot (penjualan_item_id, barang_lot_id, qty, harga_beli) VALUES (?, ?, ?, ?)');
+    foreach ($rows as $i => $r) {
+        $itemStmt->execute([$penjualanId, ...$r]);
+        $penjualanItemId = (int)$pdo->lastInsertId();
+        foreach ($lotAllocations[$i] as [$barangLotId, $qtyTaken, $hargaBeliLot]) {
+            $lotStmt->execute([$penjualanItemId, $barangLotId, $qtyTaken, $hargaBeliLot]);
+        }
+    }
 
     $pdo->commit();
     json_ok(['id' => $penjualanId, 'invoice_no' => $invoiceNo, 'total_qty' => $totalQty, 'grand_total' => $grandTotal, 'kembalian' => $kembalian], 201);

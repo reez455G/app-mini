@@ -46,29 +46,29 @@ if ($method === 'DELETE') {
             throw new RuntimeException("Pembelian $noFaktur sudah punya retur pembelian terkait, hapus retur-nya dulu.");
         }
 
-        $items = $pdo->prepare('SELECT barang_id, qty, nama_snapshot FROM pembelian_item WHERE pembelian_id = ?');
+        $items = $pdo->prepare('SELECT pi.id AS pembelian_item_id, pi.barang_id, pi.qty, pi.nama_snapshot FROM pembelian_item pi WHERE pi.pembelian_id = ?');
         $items->execute([$id]);
         $itemRows = $items->fetchAll();
 
-        // Balikkan efek stok pembelian (POST menambah stok, jadi di sini
-        // dikurangi) — validasi SEMUA item dulu sebelum menyentuh satu pun,
-        // supaya kalau satu barang gagal (mis. sebagian sudah kejual/kepakai
-        // di pembelian lain sejak itu) tidak ada perubahan stok yang setengah
-        // jalan.
+        // Guard per-lot (lebih presisi dari cek stok agregat) — validasi
+        // SEMUA item dulu sebelum menyentuh satu pun. Setiap baris pembelian
+        // ini punya SATU barang_lot; kalau qty_sisa lot itu sudah beda dari
+        // qty_awal-nya, berarti batch ini sudah pernah ditarik (terjual lewat
+        // FIFO, atau diretur ke suplier) — hapus pembelian-nya jadi tidak
+        // konsisten lagi dengan riwayat itu, jadi ditolak.
         foreach ($itemRows as $it) {
-            $b = $pdo->prepare('SELECT stok FROM barang WHERE id = ? FOR UPDATE');
-            $b->execute([$it['barang_id']]);
-            $stok = $b->fetchColumn();
-            if ($stok === false) continue; // barangnya sendiri sudah dihapus terpisah, tidak ada yang perlu dibalik
-            if ((int)$stok < (int)$it['qty']) {
-                throw new RuntimeException("Stok {$it['nama_snapshot']} tidak cukup untuk dibalik saat menghapus pembelian ini (tersisa $stok pcs, butuh {$it['qty']} pcs).");
+            $lot = $pdo->prepare('SELECT qty_awal, qty_sisa FROM barang_lot WHERE pembelian_item_id = ? FOR UPDATE');
+            $lot->execute([$it['pembelian_item_id']]);
+            $lotRow = $lot->fetch();
+            if ($lotRow && (int)$lotRow['qty_sisa'] !== (int)$lotRow['qty_awal']) {
+                throw new RuntimeException("Batch {$it['nama_snapshot']} dari pembelian ini sudah ada yang terjual/diretur, tidak bisa dihapus.");
             }
         }
         foreach ($itemRows as $it) {
             $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
         }
 
-        // pembelian_item ikut terhapus lewat ON DELETE CASCADE.
+        // pembelian_item DAN barang_lot-nya ikut terhapus lewat ON DELETE CASCADE.
         $pdo->prepare('DELETE FROM pembelian WHERE id = ?')->execute([$id]);
 
         $pdo->commit();
@@ -88,6 +88,7 @@ $items = $in['items'] ?? [];
 if ($supplierName === '' || $noFaktur === '' || !$items) json_error('Suplier, No. Faktur, dan minimal 1 barang wajib diisi.');
 $paymentType = ($in['payment_type'] ?? 'CASH') === 'TOP' ? 'TOP' : 'CASH';
 $jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : null;
+$tanggal = date('Y-m-d'); // dipakai juga sebagai urutan FIFO barang_lot, harus sama dengan CURDATE() di INSERT pembelian di bawah
 
 $pdo->beginTransaction();
 try {
@@ -189,7 +190,20 @@ try {
         'INSERT INTO pembelian_item (pembelian_id, barang_id, kode_snapshot, nama_snapshot, kategori_snapshot, harga_faktur, harga_netto, pricelist, qty, subtotal)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    foreach ($rows as $r) $itemStmt->execute([$pembelianId, ...$r]);
+    // Satu barang_lot per baris pembelian_item — batch ini yang nanti ditarik
+    // FIFO oleh penjualan.php dan dipakai Laporan Laba buat hitung modal
+    // aktual (bukan cuma harga_faktur/harga_netto TERKINI di barang).
+    $lotStmt = $pdo->prepare(
+        'INSERT INTO barang_lot (barang_id, pembelian_item_id, suplier_id, harga_beli, qty_awal, qty_sisa, tanggal)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    foreach ($rows as $r) {
+        $itemStmt->execute([$pembelianId, ...$r]);
+        $pembelianItemId = (int)$pdo->lastInsertId();
+        $barangId = $r[0]; $hargaFakturRow = $r[4]; $hargaNettoRow = $r[5]; $qtyRow = $r[7];
+        $hargaBeliLot = $hargaNettoRow > 0 ? $hargaNettoRow : $hargaFakturRow;
+        $lotStmt->execute([$barangId, $pembelianItemId, $suplierId, $hargaBeliLot, $qtyRow, $qtyRow, $tanggal]);
+    }
 
     $pdo->commit();
     json_ok(['id' => $pembelianId, 'no_faktur' => $noFaktur, 'total_qty' => $totalQty, 'total_biaya' => $totalBiaya], 201);

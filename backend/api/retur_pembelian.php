@@ -54,15 +54,19 @@ if ($method === 'DELETE') {
         $h->execute([$id]);
         if (!$h->fetchColumn()) throw new RuntimeException('Retur pembelian tidak ditemukan.');
 
-        $items = $pdo->prepare('SELECT barang_id, qty FROM retur_pembelian_item WHERE retur_id = ?');
+        $items = $pdo->prepare('SELECT barang_id, qty, barang_lot_id FROM retur_pembelian_item WHERE retur_id = ?');
         $items->execute([$id]);
         $itemRows = $items->fetchAll();
 
         // Balikkan efek stok retur pembelian (POST mengurangi stok — barang
         // keluar ke suplier — jadi di sini ditambah kembali). Menambah
-        // selalu aman, tidak perlu validasi negatif.
+        // selalu aman, tidak perlu validasi negatif. qty_sisa batch asal
+        // juga dikembalikan presisi supaya breakdown per-batch tetap akurat.
         foreach ($itemRows as $it) {
             $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
+            if ($it['barang_lot_id']) {
+                $pdo->prepare('UPDATE barang_lot SET qty_sisa = qty_sisa + ? WHERE id = ?')->execute([$it['qty'], $it['barang_lot_id']]);
+            }
         }
 
         // retur_pembelian_item ikut terhapus lewat ON DELETE CASCADE.
@@ -131,9 +135,38 @@ try {
         // dipotong dengan max(0, ...) yang diam-diam mencatat retur lebih besar
         // daripada stok yang sebenarnya berkurang.
         if ($qty > (int)$barang['stok']) throw new RuntimeException("Stok {$barang['nama']} tidak mencukupi untuk diretur (tersisa {$barang['stok']} pcs).");
+
+        // Guard lebih presisi: retur cuma boleh ambil dari batch YANG SAMA
+        // dengan pembelian ini, dan cuma sebatas qty_sisa batch itu (kalau
+        // sebagian sudah terjual FIFO ke pelanggan, itu bagian yang tidak
+        // bisa dikembalikan lagi ke suplier). Barisnya biasanya cuma 1 lot
+        // per barang per faktur; kalau lebih dari 1 (barang sama diinput
+        // 2x di faktur yang sama), ambil dari yang paling lama dulu.
+        $lots = $pdo->prepare(
+            'SELECT bl.id, bl.qty_sisa FROM barang_lot bl
+             JOIN pembelian_item pi ON pi.id = bl.pembelian_item_id
+             WHERE pi.pembelian_id = ? AND bl.barang_id = ? AND bl.qty_sisa > 0
+             ORDER BY bl.id ASC FOR UPDATE'
+        );
+        $lots->execute([$pembelianId, $barang['id']]);
+        $lotRows = $lots->fetchAll();
+        $lotSisaTotal = array_sum(array_column($lotRows, 'qty_sisa'));
+        if ($qty > $lotSisaTotal) {
+            throw new RuntimeException("Batch {$barang['nama']} dari faktur $invoice cuma sisa $lotSisaTotal pcs yang belum terjual, tidak bisa retur $qty pcs.");
+        }
+        $remaining = $qty;
+        $primaryLotId = null;
+        foreach ($lotRows as $lotRow) {
+            if ($remaining <= 0) break;
+            $take = min($remaining, (int)$lotRow['qty_sisa']);
+            $pdo->prepare('UPDATE barang_lot SET qty_sisa = qty_sisa - ? WHERE id = ?')->execute([$take, $lotRow['id']]);
+            if ($primaryLotId === null) $primaryLotId = (int)$lotRow['id'];
+            $remaining -= $take;
+        }
+
         $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$qty, $barang['id']]);
         $totalQty += $qty;
-        $rows[] = [$barang['id'], $barang['nama'], $qty, $reason];
+        $rows[] = [$barang['id'], $barang['nama'], $qty, $reason, $primaryLotId];
     }
 
     $noRetur = next_doc_no($pdo, 'retur_pembelian', 'no_retur', 'RB');
@@ -141,7 +174,7 @@ try {
         ->execute([$noRetur, $invoice, $suplierId, $tanggal, $totalQty, $me['id']]);
     $returId = (int)$pdo->lastInsertId();
 
-    $itemStmt = $pdo->prepare('INSERT INTO retur_pembelian_item (retur_id, barang_id, nama_snapshot, qty, reason) VALUES (?, ?, ?, ?, ?)');
+    $itemStmt = $pdo->prepare('INSERT INTO retur_pembelian_item (retur_id, barang_id, nama_snapshot, qty, reason, barang_lot_id) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($rows as $r) $itemStmt->execute([$returId, ...$r]);
 
     $pdo->commit();

@@ -1923,13 +1923,14 @@
           </sc-if>
           <sc-if value="{{ supplierHistoryRows.length }}" hint-placeholder-val="{{ false }}">
             <table class="table">
-              <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Harga Beli</th><th>Qty</th></tr></thead>
+              <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Harga Beli</th><th>Qty</th><th>Sisa</th></tr></thead>
               <tbody>
                 <sc-for list="{{ supplierHistoryRows }}" as="r" hint-placeholder-count="3">
                   <tr>
                     <td>{{ r.noFaktur }}</td><td>{{ r.tanggal }}</td><td>{{ r.suplier }}</td>
                     <td>{{ r.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ r.hargaBasisLabel }})</span></td>
                     <td>{{ r.qty }} pcs</td>
+                    <td>{{ r.sisaLabel }}</td>
                   </tr>
                 </sc-for>
               </tbody>
@@ -3817,6 +3818,7 @@ class Component extends DCLogic {
       hargaBeliLabel: formatRp(r.harga_netto > 0 ? r.harga_netto : r.harga_faktur),
       hargaBasisLabel: r.harga_netto > 0 ? 'Netto' : 'Faktur',
       qty: r.qty,
+      sisaLabel: r.sisa === null ? '-' : r.sisa + ' pcs',
     }));
     const supplierHistoryLoading = s.supplierHistoryOpen && !s.supplierHistory && !s.supplierHistoryError;
 

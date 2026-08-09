@@ -17,11 +17,15 @@ if ($method === 'GET') {
     // diambil dari riwayat pembelian asli, bukan tabel terpisah yang perlu disinkronkan.
     if (!empty($_GET['id']) && !empty($_GET['history'])) {
         require_owner();
+        // sisa: qty_sisa batch (lot) yang dibuat baris pembelian ini — berapa
+        // dari batch itu yang masih belum terjual/diretur. LEFT JOIN karena
+        // data lama sebelum fitur lot ada belum punya baris barang_lot.
         $rows = $pdo->prepare(
-            'SELECT p.no_faktur, p.tanggal, s.nama AS suplier, pi.harga_faktur, pi.harga_netto, pi.qty
+            'SELECT p.no_faktur, p.tanggal, s.nama AS suplier, pi.harga_faktur, pi.harga_netto, pi.qty, bl.qty_sisa AS sisa
              FROM pembelian_item pi
              JOIN pembelian p ON p.id = pi.pembelian_id
              JOIN suplier s ON s.id = p.suplier_id
+             LEFT JOIN barang_lot bl ON bl.pembelian_item_id = pi.id
              WHERE pi.barang_id = ? ORDER BY p.tanggal DESC'
         );
         $rows->execute([(int)$_GET['id']]);

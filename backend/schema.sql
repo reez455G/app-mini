@@ -3,11 +3,24 @@
 --   mysql -u root -p < schema.sql
 --
 -- Desain schema ini dijelaskan di docs/BACKEND.md. Ringkas:
--- - `barang` menyimpan harga_faktur/harga_netto TERBARU (snapshot), sama seperti
---   perilaku prototipe frontend: setiap pembelian baru menimpa harga ini.
--- - Perbandingan harga antar-suplier (fitur di docs bisnis) diambil dari riwayat
---   `pembelian_item` + `pembelian`, bukan tabel junction terpisah — sumber datanya
---   satu (transaksi pembelian asli), tidak ada data yang perlu disinkronkan manual.
+-- - `barang` menyimpan harga_faktur/harga_netto TERBARU (snapshot) untuk
+--   tampilan cepat (Data Barang, dst) — tapi utang budi ke `barang.stok` SAJA
+--   tidak cukup buat modal per transaksi yang akurat, makanya ada `barang_lot`.
+-- - `barang_lot`: SATU baris per batch pembelian (barang_id + suplier + harga
+--   beli batch itu + sisa qty yang belum terjual/diretur). `barang.stok`
+--   TETAP jadi angka agregat cepat yang dipakai di semua query lama yang
+--   sudah ada — barang_lot cuma lapisan tambahan, disinkronkan bersama
+--   `stok` di transaksi yang sama setiap kali stok berubah (lihat komentar
+--   di pembelian.php/penjualan.php/retur_*.php).
+-- - Penjualan menarik stok dari barang_lot secara FIFO (batch terlama duluan)
+--   lewat `penjualan_item_lot`, jadi Laporan Laba bisa pakai harga beli BATCH
+--   yang benar-benar terjual (bukan cuma harga_netto/harga_faktur TERKINI di
+--   `barang`, yang sudah tidak akurat kalau harga berubah setelah transaksi
+--   lama terjadi).
+-- - Perbandingan harga antar-suplier (riwayat, ditampilkan di Data Barang)
+--   tetap diambil dari `pembelian_item` + `pembelian` seperti sebelumnya —
+--   `barang_lot` menambahkan kolom "sisa" ke riwayat itu, bukan mengganti
+--   sumbernya.
 
 CREATE DATABASE IF NOT EXISTS app_mini CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE app_mini;
@@ -102,6 +115,27 @@ CREATE TABLE pembelian_item (
   FOREIGN KEY (barang_id) REFERENCES barang(id)
 ) ENGINE=InnoDB;
 
+-- Satu batch = satu baris di sini — dibuat otomatis tiap kali pembelian_item
+-- disimpan (pembelian_item_id terisi), ATAU tiap kali retur penjualan dibuat
+-- (pembelian_item_id NULL — retur menciptakan batch baru, lihat komentar di
+-- retur_penjualan_item). qty_sisa berkurang tiap kali FIFO menarik dari
+-- batch ini (penjualan) atau batch ini diretur ke suplier; qty_awal tetap
+-- jadi acuan "berapa banyak batch ini sebenarnya".
+CREATE TABLE barang_lot (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  barang_id INT NOT NULL,
+  pembelian_item_id INT DEFAULT NULL,
+  suplier_id INT NOT NULL,
+  harga_beli DECIMAL(14,2) NOT NULL,
+  qty_awal INT NOT NULL,
+  qty_sisa INT NOT NULL,
+  tanggal DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (barang_id) REFERENCES barang(id),
+  FOREIGN KEY (pembelian_item_id) REFERENCES pembelian_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (suplier_id) REFERENCES suplier(id)
+) ENGINE=InnoDB;
+
 -- ── Penjualan (Owner & Karyawan) ──────────────────────────────────────
 CREATE TABLE penjualan (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -133,6 +167,21 @@ CREATE TABLE penjualan_item (
   FOREIGN KEY (barang_id) REFERENCES barang(id)
 ) ENGINE=InnoDB;
 
+-- Rincian FIFO: satu penjualan_item bisa "pecah" ke lebih dari satu batch
+-- kalau qty-nya melewati sisa satu barang_lot (mis. jual 6, batch terlama
+-- cuma sisa 5, jadi 5 dari batch lama + 1 dari batch berikutnya = 2 baris di
+-- sini). harga_beli di sini SNAPSHOT biaya batch itu saat terjual, dipakai
+-- Laporan Laba supaya modalnya akurat ke transaksi itu sendiri.
+CREATE TABLE penjualan_item_lot (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  penjualan_item_id INT NOT NULL,
+  barang_lot_id INT NOT NULL,
+  qty INT NOT NULL,
+  harga_beli DECIMAL(14,2) NOT NULL,
+  FOREIGN KEY (penjualan_item_id) REFERENCES penjualan_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (barang_lot_id) REFERENCES barang_lot(id)
+) ENGINE=InnoDB;
+
 -- ── Retur ─────────────────────────────────────────────────────────────
 CREATE TABLE retur_penjualan (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -153,8 +202,14 @@ CREATE TABLE retur_penjualan_item (
   nama_snapshot VARCHAR(200) NOT NULL,
   qty INT NOT NULL,
   reason VARCHAR(100) NOT NULL,
+  -- Barang fisik masuk lagi lewat retur dianggap batch BARU (bukan
+  -- ditelusur balik ke batch asal penjualannya — rumit kalau ada retur
+  -- parsial berulang atas invoice yang sama), harga_beli-nya rata-rata
+  -- tertimbang dari batch yang terjual di transaksi itu. Lihat barang_lot.
+  barang_lot_id INT DEFAULT NULL,
   FOREIGN KEY (retur_id) REFERENCES retur_penjualan(id) ON DELETE CASCADE,
-  FOREIGN KEY (barang_id) REFERENCES barang(id)
+  FOREIGN KEY (barang_id) REFERENCES barang(id),
+  FOREIGN KEY (barang_lot_id) REFERENCES barang_lot(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE retur_pembelian (
@@ -177,8 +232,12 @@ CREATE TABLE retur_pembelian_item (
   nama_snapshot VARCHAR(200) NOT NULL,
   qty INT NOT NULL,
   reason VARCHAR(100) NOT NULL,
+  -- Barang fisik keluar lagi ke suplier, jadi mengurangi qty_sisa pada
+  -- batch ASLI yang dibuat pembelian ini (bukan batch baru).
+  barang_lot_id INT DEFAULT NULL,
   FOREIGN KEY (retur_id) REFERENCES retur_pembelian(id) ON DELETE CASCADE,
-  FOREIGN KEY (barang_id) REFERENCES barang(id)
+  FOREIGN KEY (barang_id) REFERENCES barang(id),
+  FOREIGN KEY (barang_lot_id) REFERENCES barang_lot(id)
 ) ENGINE=InnoDB;
 
 -- ════════════════════════════════════════════════════════════════════

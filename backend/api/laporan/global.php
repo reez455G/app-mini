@@ -15,9 +15,13 @@ $pembelian = $pdo->prepare('SELECT COUNT(*) tx_count, COALESCE(SUM(total_biaya),
 $pembelian->execute([$from, $to]);
 $pb = $pembelian->fetch();
 
+// Cost dari harga_beli batch (lot) yang benar-benar terjual, lihat komentar
+// serupa di laporan/laba.php.
 $costStmt = $pdo->prepare(
-    "SELECT COALESCE(SUM(pi.qty * IF(b.harga_netto > 0, b.harga_netto, b.harga_faktur)),0) AS cost
-     FROM penjualan_item pi JOIN penjualan pj ON pj.id = pi.penjualan_id JOIN barang b ON b.id = pi.barang_id
+    "SELECT COALESCE(SUM(pil.qty * pil.harga_beli),0) AS cost
+     FROM penjualan_item pi
+     JOIN penjualan pj ON pj.id = pi.penjualan_id
+     LEFT JOIN penjualan_item_lot pil ON pil.penjualan_item_id = pi.id
      WHERE pj.tanggal BETWEEN ? AND ?"
 );
 $costStmt->execute([$from, $to]);
