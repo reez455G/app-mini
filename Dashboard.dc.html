@@ -37,7 +37,7 @@
        kebagian versi lamanya dan tombol Simpan kembali kepental keluar layar.
        Ditulis inline begini ikut terbawa file HTML-nya sendiri, jadi pasti kepakai.
        min-height:0 wajib supaya flex item-nya mau menyusut dan scroll-nya aktif. */
-    .dialog { max-height: 90vh; }
+    .dialog { max-height: 90vh; display: flex; flex-direction: column; }
     .dialog-title, .dialog-actions { flex: none; }
     .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }
