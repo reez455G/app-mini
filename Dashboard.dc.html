@@ -748,6 +748,20 @@
         </sc-if>
 
         <sc-if value="{{ isModPembelian }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ pembelianLastSuccess }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm" style="margin-bottom:20px;border-color:var(--color-accent-500);background:var(--color-accent-100);">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <svg width="22" height="22" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="var(--color-accent)"></circle><polyline points="88 132 116 160 172 100" fill="none" stroke="var(--color-bg)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+                  <div>
+                    <div style="font-weight:600;font-size:15px;">Pembelian berhasil disimpan</div>
+                    <div style="font-size:13px;opacity:0.75;">{{ pembelianLastSuccess.noFaktur }} · {{ pembelianLastSuccess.totalBiayaLabel }}</div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ dismissPembelianLastSuccess }}">Tutup</button>
+              </div>
+            </div>
+          </sc-if>
           <sc-if value="{{ pembelianHasJustAddedNew }}" hint-placeholder-val="{{ false }}">
             <div class="card elev-sm" style="margin-bottom:20px;border-color:var(--color-accent-500);">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -2072,6 +2086,7 @@ class Component extends DCLogic {
     pembelianCompleted: false,
     pembelianPreview: null,
     pembelianJustAddedNew: [],
+    pembelianLastSuccess: null,
     suplierList: [],
     pelangganList: [],
     kategoriList: [],
@@ -2882,6 +2897,7 @@ class Component extends DCLogic {
   editPembelianPreview = () => this.setState({ pembelianCompleted: false });
 
   dismissPembelianJustAddedNew = () => this.setState({ pembelianJustAddedNew: [] });
+  dismissPembelianLastSuccess = () => this.setState({ pembelianLastSuccess: null });
 
   finalizePembelian = () => {
     const s = this.state;
@@ -2890,12 +2906,13 @@ class Component extends DCLogic {
     const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
     const justAddedNew = preview.items.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
-    api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then(() => {
+    api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then((res) => {
       clearPembelianDraft();
       this.setState({
         busy: false,
         pembelianCart: [], pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
+        pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
       this.refreshBarang();
       this.refreshPembelianHistory();
@@ -3198,6 +3215,7 @@ class Component extends DCLogic {
       })),
       pembelianNotCompleted: !s.pembelianCompleted, pembelianCompletedFlag: s.pembelianCompleted,
       editPembelianPreview: this.editPembelianPreview, finalizePembelian: this.finalizePembelian,
+      pembelianLastSuccess: s.pembelianLastSuccess, dismissPembelianLastSuccess: this.dismissPembelianLastSuccess,
       pembelianHasJustAddedNew: s.pembelianJustAddedNew.length > 0,
       dismissPembelianJustAddedNew: this.dismissPembelianJustAddedNew,
       pembelianJustAddedNewView: s.pembelianJustAddedNew.map((item) => ({
