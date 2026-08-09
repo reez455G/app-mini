@@ -832,15 +832,29 @@
                       </sc-for>
                     </select>
                   </div>
-                  <div class="field">
-                    <label for="pb-product">Kode &amp; Nama Barang</label>
-                    <input class="input" id="pb-product-search" style="min-height:38px;font-size:13px;margin-bottom:6px;" placeholder="Cari kode/nama untuk mempersempit daftar di bawah..." value="{{ pembelianProductSearch }}" onChange="{{ setPembelianProductSearch }}" />
-                    <select class="input" id="pb-product" style="min-height:46px;font-size:15px;padding-right:36px;text-overflow:ellipsis;" value="{{ pembelianSelectedKode }}" onChange="{{ setPembelianProduct }}">
-                      <option value="__NEW__">+ Barang Baru (belum terdaftar)</option>
-                      <sc-for list="{{ pembelianProductOptions }}" as="p" hint-placeholder-count="8">
-                        <option value="{{ p.kode }}">{{ p.kode }} — {{ p.nama }}</option>
-                      </sc-for>
-                    </select>
+                  <div class="field" style="position:relative;">
+                    <label for="pb-product-combo">Kode &amp; Nama Barang</label>
+                    <input
+                      class="input" id="pb-product-combo" autocomplete="off"
+                      style="min-height:46px;font-size:15px;"
+                      placeholder="Ketik buat cari, atau klik buat lihat semua"
+                      value="{{ pembelianComboDisplayValue }}"
+                      onChange="{{ setPembelianComboQuery }}"
+                      onFocus="{{ openPembelianCombo }}"
+                      onClick="{{ openPembelianCombo }}"
+                      onKeyDown="{{ handlePembelianComboKeyDown }}"
+                      onBlur="{{ handlePembelianComboBlur }}"
+                    />
+                    <sc-if value="{{ pembelianProductComboOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;max-height:260px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);">
+                        <sc-if value="{{ pembelianComboOptionsEmpty }}" hint-placeholder-val="{{ false }}">
+                          <div style="padding:10px 12px;font-size:13px;opacity:0.6;">Tidak ada yang cocok.</div>
+                        </sc-if>
+                        <sc-for list="{{ pembelianComboOptionsView }}" as="opt" hint-placeholder-count="6">
+                          <div style="{{ opt.rowStyle }}" onMouseDown="{{ opt.mouseDownHandler }}" onClick="{{ opt.clickHandler }}">{{ opt.label }}</div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
                   </div>
                 </div>
                 <sc-if value="{{ pembelianIsNewItem }}" hint-placeholder-val="{{ false }}">
@@ -1905,8 +1919,10 @@ class Component extends DCLogic {
     pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
     pembelianKategoriFilter: 'ALL',
-    pembelianProductSearch: '',
     pembelianSelectedKode: '',
+    pembelianProductComboOpen: false,
+    pembelianProductComboQuery: '',
+    pembelianProductComboHighlight: 0,
     pembelianScanInput: '',
     pembelianScanReady: false,
     pembelianNewKode: '',
@@ -2470,21 +2486,72 @@ class Component extends DCLogic {
       if (s.pembelianSelectedKode === '__NEW__') {
         return { pembelianKategoriFilter: kategori, ...this.clearPembelianItemError() };
       }
-      const list = this.filterPembelianProducts(s.stokProducts, kategori, s.pembelianProductSearch);
+      const list = this.filterPembelianProducts(s.stokProducts, kategori, '');
       return { pembelianKategoriFilter: kategori, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode, ...this.clearPembelianItemError() };
     });
   };
-  setPembelianProductSearch = (e) => {
-    const search = e.target.value;
-    this.setState((s) => {
-      if (s.pembelianSelectedKode === '__NEW__') {
-        return { pembelianProductSearch: search, ...this.clearPembelianItemError() };
-      }
-      const list = this.filterPembelianProducts(s.stokProducts, s.pembelianKategoriFilter, search);
-      return { pembelianProductSearch: search, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode, ...this.clearPembelianItemError() };
-    });
+
+  // Combobox custom buat "Kode & Nama Barang" — <select> bawaan browser tidak
+  // bisa disisipi kotak cari DI DALAM panel-nya sama sekali (dirender native
+  // oleh OS/browser, bukan DOM halaman), jadi field ini gantinya: satu
+  // <input> yang jadi tampilan + kotak cari sekaligus, plus panel opsi custom
+  // di bawahnya.
+  pembelianComboOptions = (s) => {
+    const list = this.filterPembelianProducts(s.stokProducts, s.pembelianKategoriFilter, s.pembelianProductComboQuery);
+    return [
+      { kode: '__NEW__', label: '+ Barang Baru (belum terdaftar)' },
+      ...list.map((p) => ({ kode: p.kode, label: p.kode + ' — ' + p.nama })),
+    ];
   };
-  setPembelianProduct = (e) => this.setState({ pembelianSelectedKode: e.target.value });
+
+  // onFocus DAN onClick sama-sama panggil ini — .focus() di elemen yang sudah
+  // fokus tidak memicu event 'focus' baru sama sekali, jadi tanpa onClick
+  // klik ulang pada input yang panel-nya sudah tertutup (misal abis pilih
+  // opsi) tidak akan membuka panelnya lagi. Tapi kalau panel-nya SUDAH
+  // terbuka, jangan reset query — klik di sini juga kepakai buat
+  // menggeser kursor teks pas lagi ngetik.
+  openPembelianCombo = () => {
+    if (this.state.pembelianProductComboOpen) return;
+    this.setState({ pembelianProductComboOpen: true, pembelianProductComboQuery: '', pembelianProductComboHighlight: 0 });
+  };
+  closePembelianCombo = () => this.setState({ pembelianProductComboOpen: false });
+
+  setPembelianComboQuery = (e) => this.setState({ pembelianProductComboQuery: e.target.value, pembelianProductComboHighlight: 0, pembelianProductComboOpen: true });
+
+  selectPembelianCombo = (kode) => this.setState({ pembelianSelectedKode: kode, pembelianProductComboOpen: false, pembelianProductComboQuery: '' });
+
+  handlePembelianComboKeyDown = (e) => {
+    const s = this.state;
+    if (!s.pembelianProductComboOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') { e.preventDefault(); this.openPembelianCombo(); }
+      return;
+    }
+    const options = this.pembelianComboOptions(s);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.setState((st) => ({ pembelianProductComboHighlight: Math.min(st.pembelianProductComboHighlight + 1, options.length - 1) }));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.setState((st) => ({ pembelianProductComboHighlight: Math.max(st.pembelianProductComboHighlight - 1, 0) }));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const opt = options[s.pembelianProductComboHighlight];
+      if (opt) this.selectPembelianCombo(opt.kode);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.closePembelianCombo();
+    }
+  };
+
+  // mousedown+preventDefault di baris opsi mencegah <input> kehilangan fokus
+  // (blur) SEBELUM klik-nya sempat kepilih — teknik standar combobox tanpa
+  // library. handleComboBlur jadi jaring pengaman kalau pengguna klik di luar
+  // panel sama sekali (nutup panel-nya).
+  handlePembelianComboOptionMouseDown = (e) => e.preventDefault();
+  handlePembelianComboBlur = () => {
+    clearTimeout(this._pembelianComboBlurTimer);
+    this._pembelianComboBlurTimer = setTimeout(() => this.closePembelianCombo(), 150);
+  };
 
   // Scan barang saat menerima kiriman dari suplier — cocok: langsung pilih
   // barang itu di dropdown. Tidak cocok: pindah ke mode "Barang Baru" dengan
@@ -2633,7 +2700,7 @@ class Component extends DCLogic {
       clearPembelianDraft();
       this.setState((st) => ({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductSearch: '',
+        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
       }));
       this.refreshBarang();
@@ -2828,7 +2895,19 @@ class Component extends DCLogic {
   }
 
   pembelianVals(s) {
-    const filteredProducts = this.filterPembelianProducts(s.stokProducts, s.pembelianKategoriFilter, s.pembelianProductSearch);
+    const comboOptionsRaw = this.pembelianComboOptions(s);
+    const comboOptionsView = comboOptionsRaw.map((opt, i) => ({
+      ...opt,
+      rowStyle: 'padding:9px 12px;font-size:14px;cursor:pointer;'
+        + (i === s.pembelianProductComboHighlight ? 'background:var(--color-accent-100);' : '')
+        + (opt.kode === '__NEW__' ? 'font-weight:600;border-bottom:1px solid var(--color-divider);' : ''),
+      clickHandler: () => this.selectPembelianCombo(opt.kode),
+      mouseDownHandler: this.handlePembelianComboOptionMouseDown,
+    }));
+    const comboSelectedProduct = s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
+    const comboSelectedLabel = s.pembelianSelectedKode === '__NEW__'
+      ? '+ Barang Baru (belum terdaftar)'
+      : (comboSelectedProduct ? comboSelectedProduct.kode + ' — ' + comboSelectedProduct.nama : '');
     const pembelianCartView = s.pembelianCart.map((item, idx) => ({
       ...item, hargaFakturLabel: formatRp(item.hargaFaktur), hargaNettoLabel: formatRp(item.hargaNetto), subtotalLabel: formatRp(item.subtotal),
       pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
@@ -2856,9 +2935,12 @@ class Component extends DCLogic {
       pembelianSupplierNew: s.pembelianSupplierNew, setPembelianSupplierNew: this.setPembelianSupplierNew,
       pembelianKategoriOptions: s.kategoriList,
       pembelianKategoriFilter: s.pembelianKategoriFilter, setPembelianKategoriFilter: this.setPembelianKategoriFilter,
-      pembelianProductOptions: filteredProducts,
-      pembelianProductSearch: s.pembelianProductSearch, setPembelianProductSearch: this.setPembelianProductSearch,
-      pembelianSelectedKode: s.pembelianSelectedKode, setPembelianProduct: this.setPembelianProduct,
+      pembelianSelectedKode: s.pembelianSelectedKode,
+      pembelianComboOptionsView: comboOptionsView, pembelianComboOptionsEmpty: comboOptionsView.length <= 1,
+      pembelianComboDisplayValue: s.pembelianProductComboOpen ? s.pembelianProductComboQuery : comboSelectedLabel,
+      pembelianProductComboOpen: s.pembelianProductComboOpen,
+      openPembelianCombo: this.openPembelianCombo, setPembelianComboQuery: this.setPembelianComboQuery,
+      handlePembelianComboKeyDown: this.handlePembelianComboKeyDown, handlePembelianComboBlur: this.handlePembelianComboBlur,
       pembelianScanInput: s.pembelianScanInput, setPembelianScanInput: this.setPembelianScanInput,
       focusPembelianScanInput: this.focusPembelianScanInput,
       pembelianScanReady: s.pembelianScanReady,
