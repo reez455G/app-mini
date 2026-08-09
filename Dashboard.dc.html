@@ -638,7 +638,7 @@
             <sc-if value="{{ stokRowsEmpty }}">
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok.</p>
             </sc-if>
-            <table class="table" style="margin-top:8px;">
+            <table class="table" style="margin-top:8px;min-width:1180px;white-space:nowrap;">
               <thead><tr><th style="width:1%;"><input type="checkbox" checked="{{ stokAllVisibleSelected }}" onChange="{{ toggleStokSelectAll }}" aria-label="Pilih semua" /></th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <sc-for list="{{ stokRows }}" as="item" hint-placeholder-count="8">
