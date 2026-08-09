@@ -116,16 +116,19 @@ CREATE TABLE pembelian_item (
 ) ENGINE=InnoDB;
 
 -- Satu batch = satu baris di sini — dibuat otomatis tiap kali pembelian_item
--- disimpan (pembelian_item_id terisi), ATAU tiap kali retur penjualan dibuat
+-- disimpan (pembelian_item_id terisi), tiap kali retur penjualan dibuat
 -- (pembelian_item_id NULL — retur menciptakan batch baru, lihat komentar di
--- retur_penjualan_item). qty_sisa berkurang tiap kali FIFO menarik dari
--- batch ini (penjualan) atau batch ini diretur ke suplier; qty_awal tetap
--- jadi acuan "berapa banyak batch ini sebenarnya".
+-- retur_penjualan_item), ATAU tiap kali stok dinaikkan manual lewat Data
+-- Barang (batch penyesuaian: pembelian_item_id DAN suplier_id dua-duanya
+-- NULL, karena koreksi stok opname memang tidak berasal dari suplier
+-- manapun — lihat lot_sync_stok() di db.php). qty_sisa berkurang tiap kali
+-- FIFO menarik dari batch ini (penjualan) atau batch ini diretur ke suplier;
+-- qty_awal tetap jadi acuan "berapa banyak batch ini sebenarnya".
 CREATE TABLE barang_lot (
   id INT AUTO_INCREMENT PRIMARY KEY,
   barang_id INT NOT NULL,
   pembelian_item_id INT DEFAULT NULL,
-  suplier_id INT NOT NULL,
+  suplier_id INT DEFAULT NULL,
   harga_beli DECIMAL(14,2) NOT NULL,
   qty_awal INT NOT NULL,
   qty_sisa INT NOT NULL,

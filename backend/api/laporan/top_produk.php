@@ -11,9 +11,18 @@ $from = $_GET['from'] ?? '1970-01-01';
 $to = $_GET['to'] ?? date('Y-m-d');
 $limit = min(50, max(1, (int)($_GET['limit'] ?? 5)));
 
+// Modal diambil dari harga beli batch yang benar-benar terjual
+// (penjualan_item_lot), sama seperti laporan/laba.php — bukan harga barang
+// TERKINI yang bisa sudah berubah sejak transaksi lama.
+// Sengaja SUBQUERY BERKORELASI, bukan LEFT JOIN: query ini juga menjumlahkan
+// pi.subtotal, sedangkan satu penjualan_item bisa pecah ke >1 batch — join
+// akan menggandakan barisnya dan ikut menggandakan revenue-nya.
 $stmt = $pdo->prepare(
     "SELECT b.kode, b.nama, SUM(pi.qty) AS qty, SUM(pi.subtotal) AS revenue,
-            SUM(pi.subtotal) - SUM(pi.qty * IF(b.harga_netto > 0, b.harga_netto, b.harga_faktur)) AS profit
+            SUM(pi.subtotal) - COALESCE(SUM(
+                (SELECT SUM(pil.qty * pil.harga_beli) FROM penjualan_item_lot pil
+                 WHERE pil.penjualan_item_id = pi.id)
+            ), 0) AS profit
      FROM penjualan_item pi
      JOIN penjualan pj ON pj.id = pi.penjualan_id
      JOIN barang b ON b.id = pi.barang_id

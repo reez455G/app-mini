@@ -85,7 +85,8 @@ if ($method !== 'POST') json_error('Method not allowed', 405);
 $in = body();
 $supplierName = trim($in['suplier'] ?? '');
 $invoice = trim($in['original_invoice_no'] ?? '');
-$tanggal = $in['tanggal'] ?? date('Y-m-d');
+// ?: bukan ?? — lihat komentar yang sama di retur_penjualan.php.
+$tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
 $items = $in['items'] ?? [];
 if ($supplierName === '' || $invoice === '' || !$items) json_error('Suplier, no. faktur asal, dan minimal 1 barang wajib diisi.');
 

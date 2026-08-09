@@ -31,17 +31,21 @@ if ($method === 'DELETE') {
 
     $pdo->beginTransaction();
     try {
-        $h = $pdo->prepare('SELECT no_faktur FROM pembelian WHERE id = ? FOR UPDATE');
+        $h = $pdo->prepare('SELECT no_faktur, suplier_id FROM pembelian WHERE id = ? FOR UPDATE');
         $h->execute([$id]);
-        $noFaktur = $h->fetchColumn();
-        if (!$noFaktur) throw new RuntimeException('Pembelian tidak ditemukan.');
+        $header = $h->fetch();
+        if (!$header) throw new RuntimeException('Pembelian tidak ditemukan.');
+        $noFaktur = $header['no_faktur'];
 
         // Kalau sudah pernah diretur, batalkan hapusnya — retur_pembelian
         // masih mengacu ke no_faktur ini (bukan lewat FK, string biasa) dan
         // kalkulasi "sisa yang bisa diretur"-nya bergantung pembelian_item
         // masih ada. Hapus di sini bikin retur itu jadi tidak konsisten.
-        $retCount = $pdo->prepare('SELECT COUNT(*) FROM retur_pembelian WHERE original_invoice_no = ?');
-        $retCount->execute([$noFaktur]);
+        // Dicocokkan dengan suplier_id juga: no_faktur cuma unik per-suplier,
+        // jadi tanpa ini retur milik suplier LAIN yang kebetulan pakai nomor
+        // faktur sama ikut memblokir penghapusan ini.
+        $retCount = $pdo->prepare('SELECT COUNT(*) FROM retur_pembelian WHERE original_invoice_no = ? AND suplier_id = ?');
+        $retCount->execute([$noFaktur, $header['suplier_id']]);
         if ((int)$retCount->fetchColumn() > 0) {
             throw new RuntimeException("Pembelian $noFaktur sudah punya retur pembelian terkait, hapus retur-nya dulu.");
         }

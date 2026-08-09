@@ -529,7 +529,7 @@
                   </sc-if>
                   <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
                     <table class="table">
-                      <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th></tr></thead>
+                      <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th><th></th></tr></thead>
                       <tbody>
                         <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
                           <tr>
@@ -539,6 +539,11 @@
                             <td>{{ h.totalQty }} pcs</td>
                             <td>{{ h.grandTotalLabel }}</td>
                             <td><span class="tag {{ h.paymentTagClass }}" style="font-size:11px;">{{ h.paymentLabel }}</span></td>
+                            <td>
+                              <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+                                <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus transaksi" title="Hapus transaksi" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                              </sc-if>
+                            </td>
                           </tr>
                         </sc-for>
                       </tbody>
@@ -1079,7 +1084,7 @@
                      memanjang terus seiring bertambahnya riwayat. -->
                 <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
                   <table class="table">
-                    <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Jumlah</th><th>Total</th><th>Payment</th></tr></thead>
+                    <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Jumlah</th><th>Total</th><th>Payment</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="4">
                         <tr>
@@ -1089,6 +1094,9 @@
                           <td>{{ h.isiLabel }}</td>
                           <td>{{ h.totalBiayaLabel }}</td>
                           <td><span class="tag {{ h.paymentTagClass }}" style="font-size:11px;">{{ h.paymentLabel }}</span></td>
+                          <td>
+                            <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus pembelian" title="Hapus pembelian" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                          </td>
                         </tr>
                       </sc-for>
                     </tbody>
@@ -1589,10 +1597,16 @@
                 <div class="card elev-sm">
                   <div class="card-kicker">Riwayat Retur Penjualan</div>
                   <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>No. Retur</th><th>Pelanggan</th><th>Qty</th></tr></thead>
+                    <thead><tr><th>No. Retur</th><th>Pelanggan</th><th>Qty</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ returPjHistoryView }}" as="h" hint-placeholder-count="2">
-                        <tr><td>{{ h.noRetur }}<div style="font-size:11px;opacity:0.55;">{{ h.invoice }}</div></td><td>{{ h.customer }}</td><td>{{ h.totalQty }} pcs</td></tr>
+                        <tr><td>{{ h.noRetur }}<div style="font-size:11px;opacity:0.55;">{{ h.invoice }}</div></td><td>{{ h.customer }}</td><td>{{ h.totalQty }} pcs</td>
+                          <td>
+                            <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+                              <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus retur" title="Hapus retur" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                            </sc-if>
+                          </td>
+                        </tr>
                       </sc-for>
                     </tbody>
                   </table>
@@ -1681,10 +1695,14 @@
                 <div class="card elev-sm">
                   <div class="card-kicker">Riwayat Retur Pembelian</div>
                   <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>No. Retur</th><th>Suplier</th><th>Qty</th></tr></thead>
+                    <thead><tr><th>No. Retur</th><th>Suplier</th><th>Qty</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ returPbHistoryView }}" as="h" hint-placeholder-count="2">
-                        <tr><td>{{ h.noRetur }}<div style="font-size:11px;opacity:0.55;">{{ h.invoice }}</div></td><td>{{ h.supplier }}</td><td>{{ h.totalQty }} pcs</td></tr>
+                        <tr><td>{{ h.noRetur }}<div style="font-size:11px;opacity:0.55;">{{ h.invoice }}</div></td><td>{{ h.supplier }}</td><td>{{ h.totalQty }} pcs</td>
+                          <td>
+                            <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus retur" title="Hapus retur" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                          </td>
+                        </tr>
                       </sc-for>
                     </tbody>
                   </table>
@@ -1898,6 +1916,24 @@
         </div>
         <div class="dialog-actions">
           <button type="button" class="btn btn-primary" onClick="{{ closeDeleteError }}">Mengerti</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Konfirmasi hapus transaksi. Sibling #app-shell karena dipicu dari 4
+       modul berbeda (pembelian, penjualan, dan dua tab retur). -->
+  <sc-if value="{{ transaksiDeleteOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog">
+        <div class="dialog-title">Hapus Transaksi</div>
+        <div class="dialog-body" style="display:flex;flex-direction:column;gap:10px;">
+          <p style="margin:0;font-size:14px;">Yakin ingin menghapus <strong>{{ transaksiDeleteLabel }}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+          <p style="margin:0;font-size:13px;opacity:0.65;">Stok barang akan dikembalikan seperti sebelum transaksi ini. Kalau barangnya sudah terlanjur terjual atau diretur, penghapusan otomatis ditolak.</p>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" onClick="{{ cancelDeleteTransaksi }}">Batal</button>
+          <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteTransaksi }}">Hapus</button>
         </div>
       </div>
     </div>
@@ -2125,10 +2161,10 @@ function normalizeBarang(r) {
 function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
 function normalizePelanggan(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
 function normalizeUser(r) { return { id: r.id, username: r.username, role: r.role }; }
-function normalizePembelian(r) { return { noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya), paymentType: r.payment_type, jatuhTempo: r.jatuh_tempo }; }
-function normalizePenjualan(r) { return { invoiceNo: r.invoice_no, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, custName: r.cust_name, totalQty: r.total_qty, grandTotal: Number(r.grand_total), paymentMethod: r.payment_method }; }
-function normalizeReturPj(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, customer: r.customer_name, tanggal: r.tanggal, totalQty: r.total_qty }; }
-function normalizeReturPb(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, supplier: r.suplier, tanggal: r.tanggal, totalQty: r.total_qty }; }
+function normalizePembelian(r) { return { id: r.id, noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya), paymentType: r.payment_type, jatuhTempo: r.jatuh_tempo }; }
+function normalizePenjualan(r) { return { id: r.id, invoiceNo: r.invoice_no, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, custName: r.cust_name, totalQty: r.total_qty, grandTotal: Number(r.grand_total), paymentMethod: r.payment_method }; }
+function normalizeReturPj(r) { return { id: r.id, noRetur: r.no_retur, invoice: r.original_invoice_no, customer: r.customer_name, tanggal: r.tanggal, totalQty: r.total_qty }; }
+function normalizeReturPb(r) { return { id: r.id, noRetur: r.no_retur, invoice: r.original_invoice_no, supplier: r.suplier, tanggal: r.tanggal, totalQty: r.total_qty }; }
 
 class Component extends DCLogic {
   state = {
@@ -2142,6 +2178,7 @@ class Component extends DCLogic {
     busy: false,
     globalError: '',
     deleteError: '',
+    transaksiDeleteTarget: null,
     supplierHistoryOpen: false, supplierHistory: null, supplierHistoryError: '', supplierHistoryFor: null,
     activeModule: 'dashboard',
     navMobileOpen: false,
@@ -2630,6 +2667,33 @@ class Component extends DCLogic {
       this.setState({ busy: false, masterDeleteTarget: null });
       cfg.refresh();
     }).catch((e) => this.setState({ busy: false, masterDeleteTarget: null, deleteError: e.message }));
+  };
+
+  // Hapus transaksi (pembelian/penjualan/retur) — Owner only. Backend-nya
+  // sudah punya semua pengaman (menolak kalau batch-nya sudah terjual, dan
+  // membalik stok + qty_sisa per batch dengan presisi), jadi di sini cukup
+  // konfirmasi lalu panggil DELETE-nya. Pola sama dengan confirmDeleteMaster.
+  transaksiDeleteConfig = {
+    pembelian: { path: 'pembelian.php', label: 'Pembelian', refresh: 'refreshPembelianHistory' },
+    penjualan: { path: 'penjualan.php', label: 'Penjualan', refresh: 'refreshPenjHistory' },
+    returPj: { path: 'retur_penjualan.php', label: 'Retur Penjualan', refresh: 'refreshReturPj' },
+    returPb: { path: 'retur_pembelian.php', label: 'Retur Pembelian', refresh: 'refreshReturPb' },
+  };
+
+  requestDeleteTransaksi = (type, id, nomor) => this.setState({ transaksiDeleteTarget: { type, id, nomor } });
+  cancelDeleteTransaksi = () => this.setState({ transaksiDeleteTarget: null });
+  confirmDeleteTransaksi = () => {
+    const t = this.state.transaksiDeleteTarget;
+    if (!t) return;
+    const cfg = this.transaksiDeleteConfig[t.type];
+    this.setState({ busy: true });
+    api('DELETE', cfg.path + '?id=' + t.id).then(() => {
+      this.setState({ busy: false, transaksiDeleteTarget: null });
+      this[cfg.refresh]();
+      // Stok (dan batch-nya) ikut dibalik backend, jadi Data Barang harus
+      // ditarik ulang — kalau tidak, angka stok di layar jadi basi.
+      this.refreshBarang();
+    }).catch((e) => this.setState({ busy: false, transaksiDeleteTarget: null, deleteError: e.message }));
   };
 
   setLaporanDari = (e) => this.setState({ laporanDari: e.target.value }, () => this.loadLaporanTab(this.state.laporanLengkapTab));
@@ -3310,6 +3374,7 @@ class Component extends DCLogic {
       penjHistoryEmpty: s.penjHistory.length === 0,
       penjHistoryView: s.penjHistory.map((h) => ({
         ...h,
+        deleteHandler: () => this.requestDeleteTransaksi('penjualan', h.id, h.invoiceNo),
         tanggalPendek: formatTanggalPendek(h.tanggalISO),
         grandTotalLabel: formatRp(h.grandTotal),
         paymentLabel: h.paymentMethod === 'TRANSFER' ? 'Transfer' : 'Tunai',
@@ -3511,6 +3576,7 @@ class Component extends DCLogic {
       pembelianHistoryEmpty: s.pembelianHistory.length === 0, goLaporanPembelian: this.goLaporanPembelian,
       pembelianHistoryView: s.pembelianHistory.map((h) => ({
         ...h,
+        deleteHandler: () => this.requestDeleteTransaksi('pembelian', h.id, h.noFaktur),
         totalBiayaLabel: formatRp(h.totalBiaya),
         tanggalPendek: formatTanggalPendek(h.tanggalISO),
         isiLabel: `${h.totalItems} jenis · ${h.totalQty} pcs`,
@@ -3726,7 +3792,9 @@ class Component extends DCLogic {
       returPjHasItems: s.returPjInvoiceChecked && returPjItemsView.length > 0,
       returPjTotalQty,
       completeReturPj: this.completeReturPj, returPjCannotComplete: !canCompletePj,
-      returPjHistoryView: s.returPjHistory,
+      returPjHistoryView: s.returPjHistory.map((h) => ({
+        ...h, deleteHandler: () => this.requestDeleteTransaksi('returPj', h.id, h.noRetur),
+      })),
 
       returPbSupplier: s.returPbSupplier, setReturPbSupplier: this.setReturPbSupplier,
       returPbInvoice: s.returPbInvoice, setReturPbInvoice: this.setReturPbInvoice,
@@ -3737,7 +3805,9 @@ class Component extends DCLogic {
       returPbHasItems: s.returPbInvoiceChecked && returPbItemsView.length > 0,
       returPbTotalQty,
       completeReturPb: this.completeReturPb, returPbCannotComplete: !canCompletePb,
-      returPbHistoryView: s.returPbHistory,
+      returPbHistoryView: s.returPbHistory.map((h) => ({
+        ...h, deleteHandler: () => this.requestDeleteTransaksi('returPb', h.id, h.noRetur),
+      })),
     };
   }
 
@@ -3828,6 +3898,11 @@ class Component extends DCLogic {
       isApp: !s.booting && s.screen === 'app',
       globalError: s.globalError,
       deleteError: s.deleteError, closeDeleteError: this.closeDeleteError,
+      transaksiDeleteOpen: !!s.transaksiDeleteTarget,
+      transaksiDeleteLabel: s.transaksiDeleteTarget
+        ? (this.transaksiDeleteConfig[s.transaksiDeleteTarget.type].label + ' ' + s.transaksiDeleteTarget.nomor)
+        : '',
+      cancelDeleteTransaksi: this.cancelDeleteTransaksi, confirmDeleteTransaksi: this.confirmDeleteTransaksi,
       supplierHistoryOpen: s.supplierHistoryOpen, closeSupplierHistory: this.closeSupplierHistory,
       supplierHistoryForLabel: s.supplierHistoryFor ? (s.supplierHistoryFor.kode + ' — ' + s.supplierHistoryFor.nama) : '',
       supplierHistoryLoading, supplierHistoryError: s.supplierHistoryError, supplierHistoryRows,

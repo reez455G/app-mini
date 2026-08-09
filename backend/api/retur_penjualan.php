@@ -105,7 +105,10 @@ if ($method !== 'POST') json_error('Method not allowed', 405);
 $in = body();
 $customer = trim($in['customer_name'] ?? '');
 $invoice = trim($in['original_invoice_no'] ?? '');
-$tanggal = $in['tanggal'] ?? date('Y-m-d');
+// ?: bukan ??  — field tanggal yang dikosongkan user mengirim string kosong,
+// dan ?? cuma menangkap null. Tanpa ini '' masuk ke kolom DATE dan ditolak
+// MySQL (sql_mode STRICT) sebagai error mentah, bukan jatuh ke hari ini.
+$tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
 $items = $in['items'] ?? [];
 if ($customer === '' || $invoice === '' || !$items) json_error('Pelanggan, no. invoice asal, dan minimal 1 barang wajib diisi.');
 

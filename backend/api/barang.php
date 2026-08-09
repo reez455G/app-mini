@@ -109,20 +109,32 @@ if ($method === 'POST') {
     $katId = resolve_kategori($pdo, $in['kategori'] ?? '');
     $supId = resolve_suplier($pdo, $in['suplier'] ?? null);
 
+    $hargaFaktur = (float)($in['harga_faktur'] ?? 0);
+    $hargaNetto = (float)($in['harga_netto'] ?? 0);
+
+    $pdo->beginTransaction();
     try {
         $pdo->prepare(
             'INSERT INTO barang (kode, nama, kategori_id, suplier_id, harga_faktur, harga_netto, price_list_basis, harga_ecer, harga_bengkel, harga_grosir, stok, min_stok)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
-            $kode, $nama, $katId, $supId,
-            (float)($in['harga_faktur'] ?? 0), (float)($in['harga_netto'] ?? 0),
+            $kode, $nama, $katId, $supId, $hargaFaktur, $hargaNetto,
             ($in['price_list_basis'] ?? 'NETTO') === 'FAKTUR' ? 'FAKTUR' : 'NETTO',
             $ecer, $bengkel, $grosir, $stok, $minStok,
         ]);
+        $newId = (int)$pdo->lastInsertId();
+        // Stok awal harus punya batch juga, kalau tidak barang ini langsung
+        // lahir dalam kondisi desinkron dan penjualan pertamanya akan ditolak.
+        lot_sync_stok($pdo, $newId, 0, $stok, $hargaNetto > 0 ? $hargaNetto : $hargaFaktur);
+        $pdo->commit();
     } catch (PDOException $e) {
+        $pdo->rollBack();
         json_error('Kode barang sudah digunakan.', 409);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
     }
-    json_ok(['id' => (int)$pdo->lastInsertId()], 201);
+    json_ok(['id' => $newId], 201);
 }
 
 $id = (int)($_GET['id'] ?? 0);
@@ -143,15 +155,35 @@ if ($method === 'PUT') {
     $katId = resolve_kategori($pdo, $in['kategori'] ?? '');
     $supId = resolve_suplier($pdo, $in['suplier'] ?? null);
 
-    // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend)
-    $pdo->prepare(
-        'UPDATE barang SET nama=?, kategori_id=?, suplier_id=?, harga_faktur=?, harga_netto=?, price_list_basis=?, harga_ecer=?, harga_bengkel=?, harga_grosir=?, stok=?, min_stok=?, pending_setup=0
-         WHERE id=?'
-    )->execute([
-        $nama, $katId, $supId, (float)($in['harga_faktur'] ?? 0), (float)($in['harga_netto'] ?? 0),
-        ($in['price_list_basis'] ?? 'NETTO') === 'FAKTUR' ? 'FAKTUR' : 'NETTO',
-        $ecer, $bengkel, $grosir, $stok, $minStok, $id,
-    ]);
+    $hargaFaktur = (float)($in['harga_faktur'] ?? 0);
+    $hargaNetto = (float)($in['harga_netto'] ?? 0);
+
+    // Stok yang diubah manual di sini (koreksi stok opname) harus ikut
+    // menyesuaikan barang_lot — kalau tidak, barang.stok dan SUM(qty_sisa)
+    // berbeda dan penjualan barang ini berikutnya ditolak penjualan.php.
+    $pdo->beginTransaction();
+    try {
+        $cur = $pdo->prepare('SELECT stok FROM barang WHERE id = ? FOR UPDATE');
+        $cur->execute([$id]);
+        $stokLama = $cur->fetchColumn();
+        if ($stokLama === false) throw new RuntimeException('Barang tidak ditemukan.');
+
+        // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend)
+        $pdo->prepare(
+            'UPDATE barang SET nama=?, kategori_id=?, suplier_id=?, harga_faktur=?, harga_netto=?, price_list_basis=?, harga_ecer=?, harga_bengkel=?, harga_grosir=?, stok=?, min_stok=?, pending_setup=0
+             WHERE id=?'
+        )->execute([
+            $nama, $katId, $supId, $hargaFaktur, $hargaNetto,
+            ($in['price_list_basis'] ?? 'NETTO') === 'FAKTUR' ? 'FAKTUR' : 'NETTO',
+            $ecer, $bengkel, $grosir, $stok, $minStok, $id,
+        ]);
+        lot_sync_stok($pdo, $id, (int)$stokLama, $stok, $hargaNetto > 0 ? $hargaNetto : $hargaFaktur);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
     json_ok(['updated' => $id]);
 }
 
