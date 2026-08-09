@@ -1959,12 +1959,17 @@
           </sc-if>
           <sc-if value="{{ supplierHistoryRows.length }}" hint-placeholder-val="{{ false }}">
             <table class="table">
-              <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Harga Beli</th><th>Qty</th><th>Sisa</th></tr></thead>
+              <!-- Kolom Harga Beli cuma untuk Owner: dialog ini juga dibuka
+                   dari Laporan Stok yang boleh diakses Karyawan. Datanya
+                   sendiri sudah tidak dikirim backend untuk Karyawan. -->
+              <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}"><th>Harga Beli</th></sc-if><th>Qty</th><th>Sisa</th></tr></thead>
               <tbody>
                 <sc-for list="{{ supplierHistoryRows }}" as="r" hint-placeholder-count="3">
                   <tr>
                     <td>{{ r.noFaktur }}</td><td>{{ r.tanggal }}</td><td>{{ r.suplier }}</td>
-                    <td>{{ r.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ r.hargaBasisLabel }})</span></td>
+                    <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+                      <td>{{ r.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ r.hargaBasisLabel }})</span></td>
+                    </sc-if>
                     <td>{{ r.qty }} pcs</td>
                     <td>{{ r.sisaLabel }}</td>
                   </tr>
@@ -3416,9 +3421,9 @@ class Component extends DCLogic {
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
         printHandler: () => this.openStokPrint(p.kode, p.nama),
         isSelected: s.stokSelectedKodes.includes(p.kode), toggleSelect: () => this.toggleStokSelect(p.kode),
-        // Riwayat suplier (badge "+N") pakai data harga per pembelian —
-        // Owner only, sama seperti endpoint backend-nya.
-        supplierExtraCount: (s.role === 'owner' && p.supplierCount > 1) ? p.supplierCount - 1 : 0,
+        // Riwayat suplier (badge "+N"). Boleh dibuka Karyawan juga — harga
+        // belinya sudah dibuang backend untuk non-Owner (lihat barang.php).
+        supplierExtraCount: p.supplierCount > 1 ? p.supplierCount - 1 : 0,
         supplierHistoryHandler: () => this.openSupplierHistory(p),
       };
     });
@@ -3613,7 +3618,7 @@ class Component extends DCLogic {
     const rows = filtered.map((p) => ({
       ...p, ecerLabel: formatRp(p.ecer), bengkelLabel: formatRp(p.bengkel), grosirLabel: formatRp(p.grosir),
       statusIsKritis: p.status === 'Kritis', statusIsMenipis: p.status === 'Menipis', statusIsAman: p.status === 'Aman',
-      supplierExtraCount: (s.role === 'owner' && p.supplierCount > 1) ? p.supplierCount - 1 : 0,
+      supplierExtraCount: p.supplierCount > 1 ? p.supplierCount - 1 : 0,
       supplierHistoryHandler: () => this.openSupplierHistory(p),
     }));
     return {
@@ -3885,7 +3890,10 @@ class Component extends DCLogic {
 
     const supplierHistoryRows = (s.supplierHistory || []).map((r) => ({
       noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), suplier: r.suplier,
-      hargaBeliLabel: formatRp(r.harga_netto > 0 ? r.harga_netto : r.harga_faktur),
+      // Karyawan tidak dikirimi harga sama sekali oleh backend, jadi jangan
+      // diformat (formatRp(undefined) menghasilkan "Rp NaN") — kolomnya juga
+      // memang tidak dirender untuk mereka.
+      hargaBeliLabel: r.harga_netto === undefined ? '' : formatRp(r.harga_netto > 0 ? r.harga_netto : r.harga_faktur),
       hargaBasisLabel: r.harga_netto > 0 ? 'Netto' : 'Faktur',
       qty: r.qty,
       sisaLabel: r.sisa === null ? '-' : r.sisa + ' pcs',
