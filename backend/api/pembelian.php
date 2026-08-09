@@ -34,13 +34,22 @@ if ($supplierName === '' || !$items) json_error('Suplier dan minimal 1 barang wa
 $paymentType = ($in['payment_type'] ?? 'CASH') === 'TOP' ? 'TOP' : 'CASH';
 $jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : null;
 
-$sup = $pdo->prepare('SELECT id FROM suplier WHERE nama = ?');
-$sup->execute([$supplierName]);
-$suplierId = $sup->fetchColumn();
-if (!$suplierId) json_error('Suplier tidak ditemukan — tambahkan dulu di Master Data.');
-
 $pdo->beginTransaction();
 try {
+    // Suplier baru: sama seperti barang baru di bawah, dibuat otomatis (kode
+    // urut, alamat/no_hp default '-') supaya pembelian tetap bisa disimpan
+    // tanpa mampir ke Master Data dulu — kelengkapan alamat/no HP bisa
+    // dilengkapi belakangan lewat Master Data.
+    $sup = $pdo->prepare('SELECT id FROM suplier WHERE nama = ?');
+    $sup->execute([$supplierName]);
+    $suplierId = $sup->fetchColumn();
+    if (!$suplierId) {
+        $supKode = next_kode($pdo, 'suplier', 'SUP');
+        $pdo->prepare('INSERT INTO suplier (kode, nama, alamat, no_hp) VALUES (?, ?, ?, ?)')
+            ->execute([$supKode, $supplierName, '-', '-']);
+        $suplierId = (int)$pdo->lastInsertId();
+    }
+
     $totalQty = 0; $totalBiaya = 0; $rows = [];
     foreach ($items as $line) {
         $kode = trim($line['kode'] ?? '');
