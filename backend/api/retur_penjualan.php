@@ -6,6 +6,35 @@ $me = require_login(); // Retur Penjualan: Owner & Karyawan
 $method = $_SERVER['REQUEST_METHOD'];
 $pdo = db();
 
+// Cek invoice sebelum retur diproses: kembalikan pelanggan + daftar barang
+// yang MASIH bisa diretur dari invoice itu (qty terjual dikurangi yang sudah
+// pernah diretur), supaya frontend bisa isi tabel "Barang yang Diretur"
+// otomatis alih-alih user pilih barang manual dari seluruh stok (yang gampang
+// salah pilih barang yang tidak ada di invoice itu sama sekali).
+if ($method === 'GET' && !empty($_GET['invoice_no'])) {
+    $invoice = trim($_GET['invoice_no']);
+    $pj = $pdo->prepare('SELECT id, cust_name, tanggal FROM penjualan WHERE invoice_no = ?');
+    $pj->execute([$invoice]);
+    $header = $pj->fetch();
+    if (!$header) json_error("Invoice \"$invoice\" tidak ditemukan.", 404);
+
+    $items = $pdo->prepare(
+        'SELECT b.kode, pi.nama_snapshot AS nama, SUM(pi.qty) AS sold_qty,
+            (SELECT COALESCE(SUM(ri.qty), 0) FROM retur_penjualan_item ri
+             JOIN retur_penjualan r ON r.id = ri.retur_id
+             WHERE r.original_invoice_no = ? AND ri.barang_id = pi.barang_id) AS returned_qty
+         FROM penjualan_item pi JOIN barang b ON b.id = pi.barang_id
+         WHERE pi.penjualan_id = ?
+         GROUP BY pi.barang_id, b.kode, pi.nama_snapshot'
+    );
+    $items->execute([$invoice, $header['id']]);
+    $itemRows = array_values(array_filter(array_map(function ($r) {
+        return ['kode' => $r['kode'], 'nama' => $r['nama'], 'sisa' => (int)$r['sold_qty'] - (int)$r['returned_qty']];
+    }, $items->fetchAll()), fn($r) => $r['sisa'] > 0));
+
+    json_ok(['customer_name' => $header['cust_name'], 'tanggal' => $header['tanggal'], 'items' => $itemRows]);
+}
+
 if ($method === 'GET') {
     $rows = $pdo->query('SELECT id, no_retur, original_invoice_no, customer_name, tanggal, total_qty FROM retur_penjualan ORDER BY tanggal DESC, id DESC')->fetchAll();
     json_ok($rows);
