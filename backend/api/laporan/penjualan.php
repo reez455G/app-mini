@@ -8,7 +8,7 @@ $from = $_GET['from'] ?? '1970-01-01';
 $to = $_GET['to'] ?? date('Y-m-d');
 
 $stmt = $pdo->prepare(
-    'SELECT invoice_no, tanggal, created_at, cust_name, payment_method, total_qty, grand_total
+    'SELECT id, invoice_no, tanggal, created_at, cust_name, payment_method, total_qty, grand_total
      FROM penjualan WHERE tanggal BETWEEN ? AND ? ORDER BY tanggal DESC, created_at DESC'
 );
 $stmt->execute([$from, $to]);

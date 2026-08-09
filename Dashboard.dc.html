@@ -1233,11 +1233,56 @@
                 <thead><tr><th>Waktu</th><th>No. Invoice</th><th>Pelanggan</th><th>Payment</th><th>Qty</th><th>Total</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ penjualanRowsView }}" as="r" hint-placeholder-count="3">
-                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.paymentLabel }}</td><td>{{ r.totalQty }} pcs</td><td>{{ r.grandTotalLabel }}</td></tr>
+                    <tr>
+                      <td>{{ r.waktuLabel }}</td>
+                      <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" onClick="{{ r.detailHandler }}">{{ r.invoiceNo }}</button></td>
+                      <td>{{ r.custName }}</td><td>{{ r.paymentLabel }}</td><td>{{ r.totalQty }} pcs</td><td>{{ r.grandTotalLabel }}</td>
+                    </tr>
                   </sc-for>
                 </tbody>
               </table>
             </div>
+
+            <sc-if value="{{ laporanPenjualanDetailOpen }}" hint-placeholder-val="{{ false }}">
+              <div class="dialog-backdrop">
+                <div class="dialog" style="width:min(640px,100%);">
+                  <div class="dialog-title">Detail Penjualan</div>
+                  <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+                    <sc-if value="{{ laporanPenjualanDetailLoading }}" hint-placeholder-val="{{ false }}">
+                      <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
+                    </sc-if>
+                    <sc-if value="{{ laporanPenjualanDetailError }}" hint-placeholder-val="{{ false }}">
+                      <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ laporanPenjualanDetailError }}</p>
+                    </sc-if>
+                    <sc-if value="{{ laporanPenjualanDetail }}" hint-placeholder-val="{{ false }}">
+                      <div>
+                        <h3 style="margin:0;">{{ laporanPenjualanDetail.invoiceNo }}</h3>
+                        <div style="font-size:13px;opacity:0.7;margin-top:2px;">{{ laporanPenjualanDetail.tanggal }} · {{ laporanPenjualanDetail.custName }} · {{ laporanPenjualanDetail.paymentLabel }}</div>
+                      </div>
+                      <div style="max-height:320px;overflow-y:auto;">
+                        <table class="table">
+                          <thead><tr><th>Nama</th><th>Tier</th><th>Qty</th><th>Harga Satuan</th><th>Subtotal</th></tr></thead>
+                          <tbody>
+                            <sc-for list="{{ laporanPenjualanDetail.items }}" as="it" hint-placeholder-count="3">
+                              <tr>
+                                <td>{{ it.nama }}</td><td>{{ it.tierLabel }}</td><td>{{ it.qty }} pcs</td>
+                                <td>{{ it.unitPriceLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                              </tr>
+                            </sc-for>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
+                        <span>Total</span><span>{{ laporanPenjualanDetail.grandTotalLabel }}</span>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <div class="dialog-actions">
+                    <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPenjualanDetail }}">Tutup</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
           </sc-if>
 
           <sc-if value="{{ lapTabIsLaba }}" hint-placeholder-val="{{ false }}">
@@ -1972,6 +2017,7 @@ class Component extends DCLogic {
     remoteLaporanGlobal: null, remoteLaporanPembelian: null, remoteLaporanPenjualan: null,
     remoteLaporanLaba: null, remoteLaporanTop: null, remoteLaporanRetur: null,
     laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '',
+    laporanPenjualanDetailOpen: false, laporanPenjualanDetail: null, laporanPenjualanDetailError: '',
     dashboardTrend: null, dashboardTopProducts: null, dashboardToday: null,
     dashboardPembelianBulanIni: null, dashboardLabaBulanIni: null,
     returTab: 'penjualan',
@@ -2085,6 +2131,18 @@ class Component extends DCLogic {
   };
 
   closeLaporanPembelianDetail = () => this.setState({ laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '' });
+
+  // GET penjualan.php?id= sudah mengirim header + tiap item (nama, tier,
+  // qty, unit_price, subtotal) — dipakai apa adanya, tidak perlu endpoint
+  // laporan baru.
+  openLaporanPenjualanDetail = (id) => {
+    this.setState({ laporanPenjualanDetailOpen: true, laporanPenjualanDetail: null, laporanPenjualanDetailError: '' });
+    api('GET', 'penjualan.php?id=' + id)
+      .then((data) => this.setState({ laporanPenjualanDetail: data }))
+      .catch((e) => this.setState({ laporanPenjualanDetailError: e.message }));
+  };
+
+  closeLaporanPenjualanDetail = () => this.setState({ laporanPenjualanDetailOpen: false, laporanPenjualanDetail: null, laporanPenjualanDetailError: '' });
 
   loadModuleData = (key) => {
     if (key === 'pembelian') this.refreshPembelianHistory();
@@ -3151,6 +3209,18 @@ class Component extends DCLogic {
     } : null;
     const laporanPembelianDetailLoading = s.laporanPembelianDetailOpen && !laporanPembelianDetailView && !s.laporanPembelianDetailError;
 
+    const pjDetailRaw = s.laporanPenjualanDetail;
+    const laporanPenjualanDetailView = pjDetailRaw ? {
+      invoiceNo: pjDetailRaw.invoice_no, tanggal: formatTanggal(pjDetailRaw.tanggal), custName: pjDetailRaw.cust_name,
+      paymentLabel: pjDetailRaw.payment_method === 'TRANSFER' ? 'Transfer' : 'Tunai',
+      grandTotalLabel: formatRp(pjDetailRaw.grand_total),
+      items: (pjDetailRaw.items || []).map((it) => ({
+        ...it, tierLabel: it.tier.charAt(0).toUpperCase() + it.tier.slice(1),
+        unitPriceLabel: formatRp(it.unit_price), subtotalLabel: formatRp(it.subtotal),
+      })),
+    } : null;
+    const laporanPenjualanDetailLoading = s.laporanPenjualanDetailOpen && !laporanPenjualanDetailView && !s.laporanPenjualanDetailError;
+
     const g = s.remoteLaporanGlobal || {};
     const pb = s.remoteLaporanPembelian || { rows: [] };
     const pj = s.remoteLaporanPenjualan || { rows: [], per_customer: [] };
@@ -3162,6 +3232,9 @@ class Component extends DCLogic {
       laporanPembelianDetailOpen: s.laporanPembelianDetailOpen, laporanPembelianDetail: laporanPembelianDetailView,
       laporanPembelianDetailLoading, laporanPembelianDetailError: s.laporanPembelianDetailError,
       closeLaporanPembelianDetail: this.closeLaporanPembelianDetail,
+      laporanPenjualanDetailOpen: s.laporanPenjualanDetailOpen, laporanPenjualanDetail: laporanPenjualanDetailView,
+      laporanPenjualanDetailLoading, laporanPenjualanDetailError: s.laporanPenjualanDetailError,
+      closeLaporanPenjualanDetail: this.closeLaporanPenjualanDetail,
       isModLaporanLengkap: s.activeModule === 'laporanLengkap',
       laporanDari: s.laporanDari, setLaporanDari: this.setLaporanDari,
       laporanSampai: s.laporanSampai, setLaporanSampai: this.setLaporanSampai,
@@ -3184,6 +3257,7 @@ class Component extends DCLogic {
       penjualanRowsView: pj.rows.map((r) => ({
         invoiceNo: r.invoice_no, custName: r.cust_name, paymentLabel: r.payment_method === 'TRANSFER' ? 'Transfer' : 'Tunai',
         totalQty: r.total_qty, grandTotalLabel: formatRp(r.grand_total), waktuLabel: formatWaktu(r.created_at),
+        detailHandler: () => this.openLaporanPenjualanDetail(r.id),
       })).filter((r) => matches(r.invoiceNo, r.custName)),
       totalPenjualanLabel: formatRp(pj.total_revenue || 0), totalItemsTerjual: pj.total_items || 0,
       avgSaleLabel: formatRp(pj.avg_sale || 0), penjualanTxCount: pj.tx_count || 0,
