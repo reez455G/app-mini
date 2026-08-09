@@ -756,8 +756,7 @@
             </div>
           </sc-if>
           <sc-if value="{{ pembelianNotCompleted }}" hint-placeholder-val="{{ true }}">
-          <div class="rg" style="display:grid;grid-template-columns:minmax(420px,1.6fr) minmax(300px,1fr);gap:20px;align-items:start;">
-            <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+          <div style="display:flex;flex-direction:column;gap:20px;">
               <div class="card elev-sm">
                 <div class="card-kicker">Data Pembelian</div>
                 <div class="field" style="margin-top:10px;">
@@ -915,39 +914,34 @@
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
               <div class="card elev-sm">
                 <div class="card-kicker">Riwayat Pembelian</div>
                 <sc-if value="{{ pembelianHistoryEmpty }}" hint-placeholder-val="{{ false }}">
                   <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada pembelian tersimpan.</p>
                 </sc-if>
-                <!-- Kolomnya sempit: satu baris = 2 sel dua-lantai (faktur/tanggal+suplier
-                     di kiri, total/isi+payment di kanan) supaya muat lebih banyak info
-                     tanpa melebar. Dibatasi tinggi + scroll sendiri agar card tidak
+                <!-- Sekarang lebar penuh (bukan kolom kanan yang sempit), jadi
+                     baliknya ke tabel biasa satu kolom per field, bukan dua sel
+                     ditumpuk. Dibatasi tinggi + scroll sendiri supaya card tidak
                      memanjang terus seiring bertambahnya riwayat. -->
                 <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
-                  <table class="table" style="min-width:0;">
+                  <table class="table">
+                    <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Jumlah</th><th>Total</th><th>Payment</th></tr></thead>
                     <tbody>
-                      <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="2">
+                      <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="4">
                         <tr>
-                          <td style="vertical-align:top;">
-                            <div style="font-weight:600;">{{ h.noFaktur }}</div>
-                            <div style="font-size:11px;opacity:0.6;margin-top:2px;">{{ h.tanggalPendek }} · {{ h.supplier }}</div>
-                          </td>
-                          <td style="vertical-align:top;text-align:right;white-space:nowrap;">
-                            <div style="font-weight:600;">{{ h.totalBiayaLabel }}</div>
-                            <div style="font-size:11px;opacity:0.6;margin-top:2px;">{{ h.isiLabel }}</div>
-                            <span class="tag {{ h.paymentTagClass }}" style="font-size:10px;padding:1px 7px;margin-top:3px;">{{ h.paymentLabel }}</span>
-                          </td>
+                          <td>{{ h.noFaktur }}</td>
+                          <td>{{ h.tanggalPendek }}</td>
+                          <td>{{ h.supplier }}</td>
+                          <td>{{ h.isiLabel }}</td>
+                          <td>{{ h.totalBiayaLabel }}</td>
+                          <td><span class="tag {{ h.paymentTagClass }}" style="font-size:11px;">{{ h.paymentLabel }}</span></td>
                         </tr>
                       </sc-for>
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
           </div>
           </sc-if>
 
