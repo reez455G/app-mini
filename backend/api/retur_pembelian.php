@@ -6,6 +6,36 @@ $me = require_owner(); // Retur Pembelian: Owner only
 $method = $_SERVER['REQUEST_METHOD'];
 $pdo = db();
 
+// Cek faktur sebelum retur diproses (sama seperti ?invoice_no= di
+// retur_penjualan.php): kembalikan tanggal + daftar barang yang MASIH bisa
+// diretur dari faktur itu. Dicocokkan dengan suplier JUGA (bukan cuma
+// no_faktur) karena no_faktur di pembelian unik per-suplier, bukan global —
+// dua suplier berbeda bisa saja kebetulan pakai nomor faktur yang sama.
+if ($method === 'GET' && !empty($_GET['invoice_no']) && !empty($_GET['suplier'])) {
+    $invoice = trim($_GET['invoice_no']);
+    $supplierName = trim($_GET['suplier']);
+    $pb = $pdo->prepare('SELECT p.id, p.tanggal, s.id AS suplier_id FROM pembelian p JOIN suplier s ON s.id = p.suplier_id WHERE p.no_faktur = ? AND s.nama = ?');
+    $pb->execute([$invoice, $supplierName]);
+    $header = $pb->fetch();
+    if (!$header) json_error("No. Faktur \"$invoice\" untuk suplier \"$supplierName\" tidak ditemukan.", 404);
+
+    $items = $pdo->prepare(
+        'SELECT b.kode, pi.nama_snapshot AS nama, SUM(pi.qty) AS bought_qty,
+            (SELECT COALESCE(SUM(ri.qty), 0) FROM retur_pembelian_item ri
+             JOIN retur_pembelian r ON r.id = ri.retur_id
+             WHERE r.original_invoice_no = ? AND r.suplier_id = ? AND ri.barang_id = pi.barang_id) AS returned_qty
+         FROM pembelian_item pi JOIN barang b ON b.id = pi.barang_id
+         WHERE pi.pembelian_id = ?
+         GROUP BY pi.barang_id, b.kode, pi.nama_snapshot'
+    );
+    $items->execute([$invoice, $header['suplier_id'], $header['id']]);
+    $itemRows = array_values(array_filter(array_map(function ($r) {
+        return ['kode' => $r['kode'], 'nama' => $r['nama'], 'sisa' => (int)$r['bought_qty'] - (int)$r['returned_qty']];
+    }, $items->fetchAll()), fn($r) => $r['sisa'] > 0));
+
+    json_ok(['tanggal' => $header['tanggal'], 'items' => $itemRows]);
+}
+
 if ($method === 'GET') {
     $rows = $pdo->query(
         'SELECT rp.id, rp.no_retur, rp.original_invoice_no, s.nama AS suplier, rp.tanggal, rp.total_qty
@@ -64,10 +94,13 @@ $pdo->beginTransaction();
 try {
     // Sama seperti retur penjualan: retur harus mengacu ke faktur pembelian yang
     // benar-benar ada, supaya qty retur tidak bisa melebihi yang pernah dibeli.
-    $pb = $pdo->prepare('SELECT id FROM pembelian WHERE no_faktur = ?');
-    $pb->execute([$invoice]);
+    // Dicocokkan dengan suplier_id juga — no_faktur cuma unik per-suplier,
+    // bukan global, jadi kalau cuma dicocokkan no_faktur bisa salah ambil
+    // faktur milik suplier lain yang kebetulan pakai nomor sama.
+    $pb = $pdo->prepare('SELECT id FROM pembelian WHERE no_faktur = ? AND suplier_id = ?');
+    $pb->execute([$invoice, $suplierId]);
     $pembelianId = $pb->fetchColumn();
-    if (!$pembelianId) throw new RuntimeException("No. faktur \"$invoice\" tidak ditemukan.");
+    if (!$pembelianId) throw new RuntimeException("No. faktur \"$invoice\" untuk suplier \"$supplierName\" tidak ditemukan.");
 
     $totalQty = 0; $rows = [];
     foreach ($items as $line) {
@@ -88,9 +121,9 @@ try {
         $ret = $pdo->prepare(
             'SELECT COALESCE(SUM(ri.qty), 0) FROM retur_pembelian_item ri
              JOIN retur_pembelian r ON r.id = ri.retur_id
-             WHERE r.original_invoice_no = ? AND ri.barang_id = ?'
+             WHERE r.original_invoice_no = ? AND r.suplier_id = ? AND ri.barang_id = ?'
         );
-        $ret->execute([$invoice, $barang['id']]);
+        $ret->execute([$invoice, $suplierId, $barang['id']]);
         $sisa = $boughtQty - (int)$ret->fetchColumn();
         if ($qty > $sisa) throw new RuntimeException("Retur {$barang['nama']} melebihi yang bisa diretur dari faktur $invoice (sisa $sisa pcs).");
 

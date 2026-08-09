@@ -1618,58 +1618,54 @@
                     </div>
                     <div class="field">
                       <label for="rb-inv">No. Faktur Asal</label>
-                      <input class="input" id="rb-inv" style="min-height:46px;font-size:15px;" placeholder="Contoh: PB-260728-0001" value="{{ returPbInvoice }}" onChange="{{ setReturPbInvoice }}" />
+                      <div style="display:flex;gap:8px;">
+                        <input class="input" id="rb-inv" style="min-height:46px;font-size:15px;flex:1;min-width:0;" placeholder="Contoh: PB-260728-0001" value="{{ returPbInvoice }}" onChange="{{ setReturPbInvoice }}" />
+                        <button type="button" class="btn btn-secondary" style="min-height:46px;white-space:nowrap;flex:none;" disabled="{{ returPbChecking }}" onClick="{{ checkReturPbInvoice }}">Cek</button>
+                      </div>
                     </div>
                   </div>
                   <div class="field" style="margin-top:16px;width:220px;">
                     <label for="rb-tgl">Tanggal Retur</label>
                     <input class="input" id="rb-tgl" type="date" style="min-height:46px;font-size:15px;" value="{{ returPbTanggal }}" onChange="{{ setReturPbTanggal }}" />
                   </div>
-                </div>
-
-                <div class="card elev-sm">
-                  <div class="card-kicker">Tambah Barang Retur</div>
-                  <div class="rg" style="display:grid;grid-template-columns:2fr 0.7fr 1.2fr;gap:16px;margin-top:10px;">
-                    <div class="field">
-                      <label for="rb-product">Barang</label>
-                      <select class="input" id="rb-product" style="min-height:46px;font-size:15px;" value="{{ returPbKode }}" onChange="{{ setReturPbKode }}">
-                        <sc-for list="{{ returProductOptions }}" as="p" hint-placeholder-count="8">
-                          <option value="{{ p.kode }}">{{ p.kode }} — {{ p.nama }}</option>
-                        </sc-for>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label for="rb-qty">Jumlah</label>
-                      <input class="input" id="rb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ returPbQty }}" onChange="{{ setReturPbQty }}" />
-                    </div>
-                    <div class="field">
-                      <label for="rb-reason">Alasan</label>
-                      <select class="input" id="rb-reason" style="min-height:46px;font-size:15px;" value="{{ returPbReason }}" onChange="{{ setReturPbReason }}">
-                        <sc-for list="{{ reasonOptions }}" as="r" hint-placeholder-count="4">
-                          <option value="{{ r }}">{{ r }}</option>
-                        </sc-for>
-                      </select>
-                    </div>
-                  </div>
-                  <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addReturPbItem }}">+ Tambah Barang</button>
+                  <sc-if value="{{ returPbChecking }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:13px;opacity:0.6;">Memeriksa faktur...</p>
+                  </sc-if>
+                  <sc-if value="{{ returPbCheckError }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:13px;color:var(--color-accent-2-700);">{{ returPbCheckError }}</p>
+                  </sc-if>
                 </div>
 
                 <div class="card elev-sm">
                   <div class="card-kicker">Barang yang Diretur</div>
-                  <sc-if value="{{ returPbCartEmpty }}" hint-placeholder-val="{{ false }}">
-                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada barang ditambahkan.</p>
+                  <sc-if value="{{ !returPbInvoiceChecked }}" hint-placeholder-val="{{ true }}">
+                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Isi Nama Suplier dan No. Faktur Asal lalu klik "Cek" untuk menampilkan barang yang bisa diretur.</p>
                   </sc-if>
-                  <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Alasan</th><th></th></tr></thead>
-                    <tbody>
-                      <sc-for list="{{ returPbCartView }}" as="item" hint-placeholder-count="2">
-                        <tr>
-                          <td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.reason }}</td>
-                          <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.removeHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button></td>
-                        </tr>
-                      </sc-for>
-                    </tbody>
-                  </table>
+                  <sc-if value="{{ returPbItemsEmpty }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Semua barang di faktur ini sudah pernah diretur sepenuhnya.</p>
+                  </sc-if>
+                  <sc-if value="{{ returPbHasItems }}" hint-placeholder-val="{{ false }}">
+                    <table class="table" style="margin-top:8px;">
+                      <thead><tr><th>Kode</th><th>Nama Barang</th><th>Sisa</th><th>Qty Diretur</th><th>Alasan</th></tr></thead>
+                      <tbody>
+                        <sc-for list="{{ returPbItemsView }}" as="item" hint-placeholder-count="2">
+                          <tr>
+                            <td>{{ item.kode }}</td>
+                            <td>{{ item.nama }}</td>
+                            <td>{{ item.sisa }} pcs</td>
+                            <td><input class="input" type="number" min="0" max="{{ item.sisa }}" style="min-height:38px;font-size:14px;width:90px;" placeholder="0" value="{{ item.qtyValue }}" onChange="{{ item.setQty }}" /></td>
+                            <td>
+                              <select class="input" style="min-height:38px;font-size:14px;" value="{{ item.reasonValue }}" onChange="{{ item.setReason }}">
+                                <sc-for list="{{ reasonOptions }}" as="r" hint-placeholder-count="4">
+                                  <option value="{{ r }}">{{ r }}</option>
+                                </sc-for>
+                              </select>
+                            </td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </sc-if>
                 </div>
               </div>
 
@@ -2229,8 +2225,9 @@ class Component extends DCLogic {
     returPjHistory: [],
     returSubmitError: '',
     returPbSupplier: '', returPbInvoice: '', returPbTanggal: new Date().toISOString().slice(0, 10),
-    returPbKode: '', returPbQty: 1, returPbReason: 'Rusak',
-    returPbCart: [], returPbHistory: [],
+    returPbInvoiceChecked: false, returPbChecking: false, returPbCheckError: '',
+    returPbInvoiceItems: [], returPbItemQty: {}, returPbItemReason: {},
+    returPbHistory: [],
     pembelianCompleted: false,
     pembelianPreview: null,
     pembelianJustAddedNew: [],
@@ -2284,7 +2281,6 @@ class Component extends DCLogic {
       stokProducts: list,
       penjSelectedKode: list.some((p) => p.kode === s.penjSelectedKode) ? s.penjSelectedKode : (list[0] ? list[0].kode : ''),
       pembelianSelectedKode: (s.pembelianSelectedKode === '__NEW__' || list.some((p) => p.kode === s.pembelianSelectedKode)) ? s.pembelianSelectedKode : '',
-      returPbKode: list.some((p) => p.kode === s.returPbKode) ? s.returPbKode : (list[0] ? list[0].kode : ''),
     }));
   }).catch((e) => this.setState({ globalError: e.message }));
 
@@ -2511,32 +2507,52 @@ class Component extends DCLogic {
     }).catch((e) => this.setState({ busy: false, returSubmitError: e.message }));
   };
 
-  setReturPbSupplier = (e) => this.setState({ returPbSupplier: e.target.value });
-  setReturPbInvoice = (e) => this.setState({ returPbInvoice: e.target.value });
+  // Ganti suplier/invoice (atau edit sesudah dicek) selalu batalkan hasil
+  // cek yang lama — "Barang yang Diretur" harus selalu berasal dari
+  // kombinasi suplier+faktur yang BENAR-BENAR ada di dua field ini sekarang.
+  setReturPbSupplier = (e) => this.setState({
+    returPbSupplier: e.target.value, returPbInvoiceChecked: false, returPbInvoiceItems: [],
+    returPbItemQty: {}, returPbItemReason: {}, returPbCheckError: '',
+  });
+  setReturPbInvoice = (e) => this.setState({
+    returPbInvoice: e.target.value, returPbInvoiceChecked: false, returPbInvoiceItems: [],
+    returPbItemQty: {}, returPbItemReason: {}, returPbCheckError: '',
+  });
   setReturPbTanggal = (e) => this.setState({ returPbTanggal: e.target.value });
-  setReturPbKode = (e) => this.setState({ returPbKode: e.target.value });
-  setReturPbQty = (e) => this.setState({ returPbQty: e.target.value });
-  setReturPbReason = (e) => this.setState({ returPbReason: e.target.value });
 
-  addReturPbItem = () => {
+  // Cek faktur: tarik daftar barang yang MASIH bisa diretur dari faktur itu
+  // (backend sudah hitung qty dibeli dikurangi yang sudah pernah diretur,
+  // dicocokkan suplier+no_faktur karena no_faktur cuma unik per-suplier).
+  checkReturPbInvoice = () => {
     const s = this.state;
-    const qty = parseInt(s.returPbQty) || 0;
-    const product = s.stokProducts.find((p) => p.kode === s.returPbKode);
-    if (!product || qty < 1) return;
-    this.setState((st) => ({
-      returPbCart: [...st.returPbCart, { kode: product.kode, nama: product.nama, qty, reason: st.returPbReason }],
-      returPbQty: 1,
-    }));
+    const supplier = s.returPbSupplier.trim();
+    const invoice = s.returPbInvoice.trim();
+    if (!supplier || !invoice) { this.setState({ returPbCheckError: 'Isi Nama Suplier dan No. Faktur Asal dulu.' }); return; }
+    this.setState({ returPbChecking: true, returPbCheckError: '', returPbInvoiceChecked: false, returPbInvoiceItems: [] });
+    api('GET', 'retur_pembelian.php?invoice_no=' + encodeURIComponent(invoice) + '&suplier=' + encodeURIComponent(supplier)).then((data) => {
+      const qty = {}; const reason = {};
+      data.items.forEach((it) => { qty[it.kode] = ''; reason[it.kode] = RETUR_REASONS[0]; });
+      this.setState({
+        returPbChecking: false, returPbInvoiceChecked: true, returPbInvoiceItems: data.items,
+        returPbItemQty: qty, returPbItemReason: reason,
+      });
+    }).catch((e) => this.setState({ returPbChecking: false, returPbCheckError: e.message }));
   };
-  removeReturPbItem = (idx) => this.setState((s) => ({ returPbCart: s.returPbCart.filter((_, i) => i !== idx) }));
+  setReturPbItemQty = (kode) => (e) => this.setState((s) => ({ returPbItemQty: { ...s.returPbItemQty, [kode]: e.target.value } }));
+  setReturPbItemReason = (kode) => (e) => this.setState((s) => ({ returPbItemReason: { ...s.returPbItemReason, [kode]: e.target.value } }));
 
   completeReturPb = () => {
     const s = this.state;
-    if (!s.returPbSupplier.trim() || !s.returPbInvoice.trim() || s.returPbCart.length === 0) return;
-    const items = s.returPbCart.map((i) => ({ kode: i.kode, qty: i.qty, reason: i.reason }));
+    const items = s.returPbInvoiceItems
+      .map((it) => ({ kode: it.kode, qty: parseInt(s.returPbItemQty[it.kode]) || 0, reason: s.returPbItemReason[it.kode] }))
+      .filter((it) => it.qty > 0);
+    if (!s.returPbSupplier.trim() || !s.returPbInvoice.trim() || items.length === 0) return;
     this.setState({ busy: true, returSubmitError: '' });
     api('POST', 'retur_pembelian.php', { suplier: s.returPbSupplier.trim(), original_invoice_no: s.returPbInvoice.trim(), tanggal: s.returPbTanggal, items }).then(() => {
-      this.setState({ busy: false, returPbSupplier: '', returPbInvoice: '', returPbCart: [] });
+      this.setState({
+        busy: false, returPbSupplier: '', returPbInvoice: '', returPbInvoiceChecked: false,
+        returPbInvoiceItems: [], returPbItemQty: {}, returPbItemReason: {},
+      });
       this.refreshBarang();
       this.refreshReturPb();
     }).catch((e) => this.setState({ busy: false, returSubmitError: e.message }));
@@ -3669,8 +3685,16 @@ class Component extends DCLogic {
   returVals(s) {
     const isOwner = s.role === 'owner';
     const effectiveTab = (!isOwner && s.returTab === 'pembelian') ? 'penjualan' : s.returTab;
-    const returPbCartView = s.returPbCart.map((item, idx) => ({ ...item, removeHandler: () => this.removeReturPbItem(idx) }));
-    const canCompletePb = !s.busy && s.returPbSupplier.trim() !== '' && s.returPbInvoice.trim() !== '' && s.returPbCart.length > 0;
+
+    const returPbItemsView = s.returPbInvoiceItems.map((it) => ({
+      ...it,
+      qtyValue: s.returPbItemQty[it.kode] ?? '',
+      setQty: this.setReturPbItemQty(it.kode),
+      reasonValue: s.returPbItemReason[it.kode] ?? RETUR_REASONS[0],
+      setReason: this.setReturPbItemReason(it.kode),
+    }));
+    const returPbTotalQty = returPbItemsView.reduce((a, it) => a + (parseInt(it.qtyValue) || 0), 0);
+    const canCompletePb = !s.busy && s.returPbSupplier.trim() !== '' && s.returPbInvoice.trim() !== '' && returPbTotalQty > 0;
 
     const returPjItemsView = s.returPjInvoiceItems.map((it) => ({
       ...it,
@@ -3690,7 +3714,7 @@ class Component extends DCLogic {
       returTabIsPembelian_class: effectiveTab === 'pembelian' ? 'btn-primary' : 'btn-secondary',
       setReturTabPenjualan: () => this.setReturTab('penjualan'), setReturTabPembelian: () => this.setReturTab('pembelian'),
       returShowPembelianTab: isOwner,
-      returProductOptions: s.stokProducts, reasonOptions: RETUR_REASONS,
+      reasonOptions: RETUR_REASONS,
 
       returPjCustomer: s.returPjCustomer, setReturPjCustomer: this.setReturPjCustomer,
       returPjInvoice: s.returPjInvoice, setReturPjInvoice: this.setReturPjInvoice,
@@ -3706,11 +3730,11 @@ class Component extends DCLogic {
       returPbSupplier: s.returPbSupplier, setReturPbSupplier: this.setReturPbSupplier,
       returPbInvoice: s.returPbInvoice, setReturPbInvoice: this.setReturPbInvoice,
       returPbTanggal: s.returPbTanggal, setReturPbTanggal: this.setReturPbTanggal,
-      returPbKode: s.returPbKode, setReturPbKode: this.setReturPbKode,
-      returPbQty: s.returPbQty, setReturPbQty: this.setReturPbQty,
-      returPbReason: s.returPbReason, setReturPbReason: this.setReturPbReason,
-      addReturPbItem: this.addReturPbItem, returPbCartView, returPbCartEmpty: returPbCartView.length === 0,
-      returPbTotalQty: s.returPbCart.reduce((a, i) => a + i.qty, 0),
+      checkReturPbInvoice: this.checkReturPbInvoice, returPbChecking: s.returPbChecking, returPbCheckError: s.returPbCheckError,
+      returPbInvoiceChecked: s.returPbInvoiceChecked,
+      returPbItemsView, returPbItemsEmpty: s.returPbInvoiceChecked && returPbItemsView.length === 0,
+      returPbHasItems: s.returPbInvoiceChecked && returPbItemsView.length > 0,
+      returPbTotalQty,
       completeReturPb: this.completeReturPb, returPbCannotComplete: !canCompletePb,
       returPbHistoryView: s.returPbHistory,
     };
