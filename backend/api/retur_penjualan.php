@@ -11,6 +11,49 @@ if ($method === 'GET') {
     json_ok($rows);
 }
 
+if ($method === 'DELETE') {
+    require_owner(); // hapus transaksi: Owner only, beda dari GET/POST yang boleh Karyawan
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_error('id wajib diisi.', 400);
+
+    $pdo->beginTransaction();
+    try {
+        $h = $pdo->prepare('SELECT id FROM retur_penjualan WHERE id = ? FOR UPDATE');
+        $h->execute([$id]);
+        if (!$h->fetchColumn()) throw new RuntimeException('Retur penjualan tidak ditemukan.');
+
+        $items = $pdo->prepare('SELECT barang_id, qty, nama_snapshot FROM retur_penjualan_item WHERE retur_id = ?');
+        $items->execute([$id]);
+        $itemRows = $items->fetchAll();
+
+        // Balikkan efek stok retur penjualan (POST menambah stok — barang
+        // masuk lagi dari pelanggan — jadi di sini dikurangi kembali).
+        // Validasi dulu semua item supaya tidak ada yang kepotong negatif
+        // (mis. barang yang baru masuk lagi itu sudah keburu terjual ulang).
+        foreach ($itemRows as $it) {
+            $b = $pdo->prepare('SELECT stok FROM barang WHERE id = ? FOR UPDATE');
+            $b->execute([$it['barang_id']]);
+            $stok = $b->fetchColumn();
+            if ($stok === false) continue; // barangnya sendiri sudah dihapus terpisah
+            if ((int)$stok < (int)$it['qty']) {
+                throw new RuntimeException("Stok {$it['nama_snapshot']} tidak cukup untuk dibalik saat menghapus retur ini (tersisa $stok pcs, butuh {$it['qty']} pcs).");
+            }
+        }
+        foreach ($itemRows as $it) {
+            $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
+        }
+
+        // retur_penjualan_item ikut terhapus lewat ON DELETE CASCADE.
+        $pdo->prepare('DELETE FROM retur_penjualan WHERE id = ?')->execute([$id]);
+
+        $pdo->commit();
+        json_ok(['deleted' => $id]);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
+}
+
 if ($method !== 'POST') json_error('Method not allowed', 405);
 
 $in = body();

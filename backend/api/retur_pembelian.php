@@ -14,6 +14,38 @@ if ($method === 'GET') {
     json_ok($rows);
 }
 
+if ($method === 'DELETE') {
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_error('id wajib diisi.', 400);
+
+    $pdo->beginTransaction();
+    try {
+        $h = $pdo->prepare('SELECT id FROM retur_pembelian WHERE id = ? FOR UPDATE');
+        $h->execute([$id]);
+        if (!$h->fetchColumn()) throw new RuntimeException('Retur pembelian tidak ditemukan.');
+
+        $items = $pdo->prepare('SELECT barang_id, qty FROM retur_pembelian_item WHERE retur_id = ?');
+        $items->execute([$id]);
+        $itemRows = $items->fetchAll();
+
+        // Balikkan efek stok retur pembelian (POST mengurangi stok — barang
+        // keluar ke suplier — jadi di sini ditambah kembali). Menambah
+        // selalu aman, tidak perlu validasi negatif.
+        foreach ($itemRows as $it) {
+            $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
+        }
+
+        // retur_pembelian_item ikut terhapus lewat ON DELETE CASCADE.
+        $pdo->prepare('DELETE FROM retur_pembelian WHERE id = ?')->execute([$id]);
+
+        $pdo->commit();
+        json_ok(['deleted' => $id]);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
+}
+
 if ($method !== 'POST') json_error('Method not allowed', 405);
 
 $in = body();

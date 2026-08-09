@@ -29,6 +29,49 @@ if ($method === 'GET') {
     json_ok($rows);
 }
 
+if ($method === 'DELETE') {
+    require_owner(); // hapus transaksi: Owner only, beda dari GET/POST yang boleh Karyawan
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_error('id wajib diisi.', 400);
+
+    $pdo->beginTransaction();
+    try {
+        $h = $pdo->prepare('SELECT invoice_no FROM penjualan WHERE id = ? FOR UPDATE');
+        $h->execute([$id]);
+        $invoiceNo = $h->fetchColumn();
+        if (!$invoiceNo) throw new RuntimeException('Penjualan tidak ditemukan.');
+
+        // Kalau sudah pernah diretur, batalkan hapusnya — sama alasannya
+        // seperti di pembelian.php (retur_penjualan mengacu ke invoice_no
+        // ini, kalkulasi "sisa yang bisa diretur"-nya butuh penjualan_item).
+        $retCount = $pdo->prepare('SELECT COUNT(*) FROM retur_penjualan WHERE original_invoice_no = ?');
+        $retCount->execute([$invoiceNo]);
+        if ((int)$retCount->fetchColumn() > 0) {
+            throw new RuntimeException("Penjualan $invoiceNo sudah punya retur penjualan terkait, hapus retur-nya dulu.");
+        }
+
+        $items = $pdo->prepare('SELECT barang_id, qty FROM penjualan_item WHERE penjualan_id = ?');
+        $items->execute([$id]);
+        $itemRows = $items->fetchAll();
+
+        // Balikkan efek stok penjualan (POST mengurangi stok, jadi di sini
+        // ditambah kembali) — menambah selalu aman, tidak perlu validasi
+        // negatif seperti di pembelian.php.
+        foreach ($itemRows as $it) {
+            $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
+        }
+
+        // penjualan_item ikut terhapus lewat ON DELETE CASCADE.
+        $pdo->prepare('DELETE FROM penjualan WHERE id = ?')->execute([$id]);
+
+        $pdo->commit();
+        json_ok(['deleted' => $id]);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
+}
+
 if ($method !== 'POST') json_error('Method not allowed', 405);
 
 $in = body();

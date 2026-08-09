@@ -25,6 +25,60 @@ if ($method === 'GET') {
     json_ok($rows);
 }
 
+if ($method === 'DELETE') {
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_error('id wajib diisi.', 400);
+
+    $pdo->beginTransaction();
+    try {
+        $h = $pdo->prepare('SELECT no_faktur FROM pembelian WHERE id = ? FOR UPDATE');
+        $h->execute([$id]);
+        $noFaktur = $h->fetchColumn();
+        if (!$noFaktur) throw new RuntimeException('Pembelian tidak ditemukan.');
+
+        // Kalau sudah pernah diretur, batalkan hapusnya — retur_pembelian
+        // masih mengacu ke no_faktur ini (bukan lewat FK, string biasa) dan
+        // kalkulasi "sisa yang bisa diretur"-nya bergantung pembelian_item
+        // masih ada. Hapus di sini bikin retur itu jadi tidak konsisten.
+        $retCount = $pdo->prepare('SELECT COUNT(*) FROM retur_pembelian WHERE original_invoice_no = ?');
+        $retCount->execute([$noFaktur]);
+        if ((int)$retCount->fetchColumn() > 0) {
+            throw new RuntimeException("Pembelian $noFaktur sudah punya retur pembelian terkait, hapus retur-nya dulu.");
+        }
+
+        $items = $pdo->prepare('SELECT barang_id, qty, nama_snapshot FROM pembelian_item WHERE pembelian_id = ?');
+        $items->execute([$id]);
+        $itemRows = $items->fetchAll();
+
+        // Balikkan efek stok pembelian (POST menambah stok, jadi di sini
+        // dikurangi) — validasi SEMUA item dulu sebelum menyentuh satu pun,
+        // supaya kalau satu barang gagal (mis. sebagian sudah kejual/kepakai
+        // di pembelian lain sejak itu) tidak ada perubahan stok yang setengah
+        // jalan.
+        foreach ($itemRows as $it) {
+            $b = $pdo->prepare('SELECT stok FROM barang WHERE id = ? FOR UPDATE');
+            $b->execute([$it['barang_id']]);
+            $stok = $b->fetchColumn();
+            if ($stok === false) continue; // barangnya sendiri sudah dihapus terpisah, tidak ada yang perlu dibalik
+            if ((int)$stok < (int)$it['qty']) {
+                throw new RuntimeException("Stok {$it['nama_snapshot']} tidak cukup untuk dibalik saat menghapus pembelian ini (tersisa $stok pcs, butuh {$it['qty']} pcs).");
+            }
+        }
+        foreach ($itemRows as $it) {
+            $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$it['qty'], $it['barang_id']]);
+        }
+
+        // pembelian_item ikut terhapus lewat ON DELETE CASCADE.
+        $pdo->prepare('DELETE FROM pembelian WHERE id = ?')->execute([$id]);
+
+        $pdo->commit();
+        json_ok(['deleted' => $id]);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
+}
+
 if ($method !== 'POST') json_error('Method not allowed', 405);
 
 $in = body();
