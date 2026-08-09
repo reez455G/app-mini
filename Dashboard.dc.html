@@ -764,14 +764,29 @@
           <div style="display:flex;flex-direction:column;gap:20px;">
               <div class="card elev-sm">
                 <div class="card-kicker">Data Pembelian</div>
-                <div class="field" style="margin-top:10px;">
-                  <label for="pb-supplier">Nama Suplier</label>
-                  <select class="input" id="pb-supplier" style="min-height:46px;font-size:15px;" value="{{ pembelianSupplierChoice }}" onChange="{{ setPembelianSupplierChoice }}">
-                    <sc-for list="{{ supplierOptions }}" as="sup" hint-placeholder-count="4">
-                      <option value="{{ sup }}">{{ sup }}</option>
-                    </sc-for>
-                    <option value="__NEW__">+ Suplier Baru (belum terdaftar)</option>
-                  </select>
+                <div class="field" style="margin-top:10px;position:relative;">
+                  <label for="pb-supplier-combo">Nama Suplier</label>
+                  <input
+                    class="input" id="pb-supplier-combo" autocomplete="off"
+                    style="min-height:46px;font-size:15px;"
+                    placeholder="Ketik buat cari, atau klik buat lihat semua"
+                    value="{{ pembelianSupplierComboDisplayValue }}"
+                    onChange="{{ setPembelianSupplierComboQuery }}"
+                    onFocus="{{ openPembelianSupplierCombo }}"
+                    onClick="{{ openPembelianSupplierCombo }}"
+                    onKeyDown="{{ handlePembelianSupplierComboKeyDown }}"
+                    onBlur="{{ handlePembelianSupplierComboBlur }}"
+                  />
+                  <sc-if value="{{ pembelianSupplierComboOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;max-height:260px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);">
+                      <sc-if value="{{ pembelianSupplierComboOptionsEmpty }}" hint-placeholder-val="{{ false }}">
+                        <div style="padding:10px 12px;font-size:13px;opacity:0.6;">Tidak ada yang cocok.</div>
+                      </sc-if>
+                      <sc-for list="{{ pembelianSupplierComboOptionsView }}" as="opt" hint-placeholder-count="4">
+                        <div style="{{ opt.rowStyle }}" onMouseDown="{{ opt.mouseDownHandler }}" onClick="{{ opt.clickHandler }}">{{ opt.label }}</div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
                 </div>
                 <sc-if value="{{ pembelianSupplierIsNew }}" hint-placeholder-val="{{ false }}">
                   <div class="field">
@@ -1918,6 +1933,9 @@ class Component extends DCLogic {
     pembelianCart: [],
     pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
+    pembelianSupplierComboOpen: false,
+    pembelianSupplierComboQuery: '',
+    pembelianSupplierComboHighlight: 0,
     pembelianKategoriFilter: 'ALL',
     pembelianSelectedKode: '',
     pembelianProductComboOpen: false,
@@ -2462,9 +2480,58 @@ class Component extends DCLogic {
 
   closeDeleteError = () => this.setState({ deleteError: '' });
 
-  setPembelianSupplierChoice = (e) => this.setState({ pembelianSupplierChoice: e.target.value });
   setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
   resolvePembelianSupplier = (s) => (s.pembelianSupplierChoice === '__NEW__' ? s.pembelianSupplierNew.trim() : s.pembelianSupplierChoice);
+
+  // Combobox custom buat "Nama Suplier" — pola sama seperti "Kode & Nama
+  // Barang", cuma nilainya nama suplier itu sendiri (bukan kode), tidak ada
+  // filter kedua kayak Kategori, jadi tidak butuh penjagaan "jangan reset
+  // saat filter lain berubah".
+  pembelianSupplierComboOptions = (s) => {
+    const q = s.pembelianSupplierComboQuery.trim().toLowerCase();
+    const list = s.suplierList.filter((x) => !q || x.nama.toLowerCase().includes(q) || (x.kode || '').toLowerCase().includes(q));
+    return [
+      { value: '__NEW__', label: '+ Suplier Baru (belum terdaftar)' },
+      ...list.map((x) => ({ value: x.nama, label: x.nama })),
+    ];
+  };
+
+  openPembelianSupplierCombo = () => {
+    if (this.state.pembelianSupplierComboOpen) return;
+    this.setState({ pembelianSupplierComboOpen: true, pembelianSupplierComboQuery: '', pembelianSupplierComboHighlight: 0 });
+  };
+  closePembelianSupplierCombo = () => this.setState({ pembelianSupplierComboOpen: false });
+  setPembelianSupplierComboQuery = (e) => this.setState({ pembelianSupplierComboQuery: e.target.value, pembelianSupplierComboHighlight: 0, pembelianSupplierComboOpen: true });
+  selectPembelianSupplierCombo = (value) => this.setState({ pembelianSupplierChoice: value, pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '' });
+
+  handlePembelianSupplierComboKeyDown = (e) => {
+    const s = this.state;
+    if (!s.pembelianSupplierComboOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') { e.preventDefault(); this.openPembelianSupplierCombo(); }
+      return;
+    }
+    const options = this.pembelianSupplierComboOptions(s);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.setState((st) => ({ pembelianSupplierComboHighlight: Math.min(st.pembelianSupplierComboHighlight + 1, options.length - 1) }));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.setState((st) => ({ pembelianSupplierComboHighlight: Math.max(st.pembelianSupplierComboHighlight - 1, 0) }));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const opt = options[s.pembelianSupplierComboHighlight];
+      if (opt) this.selectPembelianSupplierCombo(opt.value);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.closePembelianSupplierCombo();
+    }
+  };
+
+  handlePembelianSupplierComboOptionMouseDown = (e) => e.preventDefault();
+  handlePembelianSupplierComboBlur = () => {
+    clearTimeout(this._pembelianSupplierComboBlurTimer);
+    this._pembelianSupplierComboBlurTimer = setTimeout(() => this.closePembelianSupplierCombo(), 150);
+  };
   // Dipakai bareng oleh pembelianVals() (isi dropdown) dan setter kategori/
   // search (buat auto-select match pertama) — satu sumber logic filter,
   // bukan diduplikasi di tiga tempat.
@@ -2700,7 +2767,7 @@ class Component extends DCLogic {
       clearPembelianDraft();
       this.setState((st) => ({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '',
+        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
       }));
       this.refreshBarang();
@@ -2908,6 +2975,19 @@ class Component extends DCLogic {
     const comboSelectedLabel = s.pembelianSelectedKode === '__NEW__'
       ? '+ Barang Baru (belum terdaftar)'
       : (comboSelectedProduct ? comboSelectedProduct.kode + ' — ' + comboSelectedProduct.nama : '');
+
+    const supplierComboOptionsView = this.pembelianSupplierComboOptions(s).map((opt, i) => ({
+      ...opt,
+      rowStyle: 'padding:9px 12px;font-size:14px;cursor:pointer;'
+        + (i === s.pembelianSupplierComboHighlight ? 'background:var(--color-accent-100);' : '')
+        + (opt.value === '__NEW__' ? 'font-weight:600;border-bottom:1px solid var(--color-divider);' : ''),
+      clickHandler: () => this.selectPembelianSupplierCombo(opt.value),
+      mouseDownHandler: this.handlePembelianSupplierComboOptionMouseDown,
+    }));
+    const supplierComboDisplayValue = s.pembelianSupplierComboOpen
+      ? s.pembelianSupplierComboQuery
+      : (s.pembelianSupplierChoice === '__NEW__' ? '+ Suplier Baru (belum terdaftar)' : s.pembelianSupplierChoice);
+
     const pembelianCartView = s.pembelianCart.map((item, idx) => ({
       ...item, hargaFakturLabel: formatRp(item.hargaFaktur), hargaNettoLabel: formatRp(item.hargaNetto), subtotalLabel: formatRp(item.subtotal),
       pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
@@ -2930,7 +3010,11 @@ class Component extends DCLogic {
     return {
       isModPembelian: s.activeModule === 'pembelian',
       supplierOptions: s.suplierList.map((x) => x.nama),
-      pembelianSupplierChoice: s.pembelianSupplierChoice, setPembelianSupplierChoice: this.setPembelianSupplierChoice,
+      pembelianSupplierChoice: s.pembelianSupplierChoice,
+      pembelianSupplierComboOptionsView: supplierComboOptionsView, pembelianSupplierComboOptionsEmpty: supplierComboOptionsView.length <= 1,
+      pembelianSupplierComboDisplayValue: supplierComboDisplayValue, pembelianSupplierComboOpen: s.pembelianSupplierComboOpen,
+      openPembelianSupplierCombo: this.openPembelianSupplierCombo, setPembelianSupplierComboQuery: this.setPembelianSupplierComboQuery,
+      handlePembelianSupplierComboKeyDown: this.handlePembelianSupplierComboKeyDown, handlePembelianSupplierComboBlur: this.handlePembelianSupplierComboBlur,
       pembelianSupplierIsNew: s.pembelianSupplierChoice === '__NEW__',
       pembelianSupplierNew: s.pembelianSupplierNew, setPembelianSupplierNew: this.setPembelianSupplierNew,
       pembelianKategoriOptions: s.kategoriList,
