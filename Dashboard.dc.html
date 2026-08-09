@@ -23,7 +23,7 @@
 <helmet>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>App-mini — Sistem Stok Toko</title>
-  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css?v=2" />
+  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css?v=3" />
   <script src="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/_ds_bundle.js"></script>
   <style>
     body { margin: 0; }
@@ -36,8 +36,15 @@
        terpisah yang di-cache browser, jadi setelah deploy pengguna masih bisa
        kebagian versi lamanya dan tombol Simpan kembali kepental keluar layar.
        Ditulis inline begini ikut terbawa file HTML-nya sendiri, jadi pasti kepakai.
-       min-height:0 wajib supaya flex item-nya mau menyusut dan scroll-nya aktif. */
-    .dialog { max-height: 90vh; display: flex; flex-direction: column; }
+       min-height:0 wajib supaya flex item-nya mau menyusut dan scroll-nya aktif.
+       90vh dulu (fallback), lalu 90dvh menimpanya di browser yang paham —
+       "vh" di HP dihitung dari tinggi viewport TERBESAR (address bar
+       collapsed), bukan tinggi yang kelihatan sekarang, jadi selama address
+       bar masih muncul 90vh bisa lebih tinggi dari layar sungguhan dan
+       .dialog-actions (tombol Tutup/Simpan) kepotong di bawah layar tanpa
+       bisa di-scroll (dialognya position:fixed). "dvh" ikut menyusut/
+       melebar sesuai address bar yang sedang tampil. */
+    .dialog { max-height: 90vh; max-height: 90dvh; display: flex; flex-direction: column; }
     .dialog-title, .dialog-actions { flex: none; }
     .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }

@@ -396,7 +396,7 @@ textarea.input { min-height: 90px; resize: vertical; }
   background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
 }
 .dialog {
-  width: min(440px, 100%); max-height: 90vh; display: flex; flex-direction: column; gap: var(--space-3);
+  width: min(440px, 100%); max-height: 90vh; max-height: 90dvh; display: flex; flex-direction: column; gap: var(--space-3);
   padding: var(--space-4); border-radius: var(--radius-lg);
   background: var(--color-surface); box-shadow: var(--shadow-lg);
 }
