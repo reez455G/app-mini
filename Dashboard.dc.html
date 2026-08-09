@@ -42,11 +42,16 @@
     .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }
     @media print {
-      /* Kertas label thermal 40x30mm (roll continuous) — margin 0 karena
-         printer label sudah otomatis pas per-label, bukan kertas A4 yang
-         perlu sisa putih di tepi. */
-      @page { size: 40mm 30mm; margin: 0; }
-      #app-shell { display: none !important; }
+      /* body:has(#stok-print-sheet) — #stok-print-sheet cuma ADA di DOM saat
+         stokPrintOpen true (dibungkus sc-if). Tanpa syarat :has() ini,
+         #app-shell disembunyikan untuk SEMUA aksi cetak — termasuk tombol
+         "Cetak" di layar konfirmasi pembelian / laporan, yang isinya justru
+         ADA di dalam #app-shell — hasilnya kertas kosong sama sekali.
+         Ukuran halaman 40x30mm (@page) TIDAK bisa ikut disyaratkan begini
+         (@page tidak boleh ada di dalam selector lain secara CSS) — makanya
+         dipasang/dilepas lewat JS (lihat setStokPrintPageSize) hanya selama
+         dialog Cetak Barcode terbuka, bukan lewat aturan statis di sini. */
+      body:has(#stok-print-sheet) #app-shell { display: none !important; }
       #stok-print-sheet { display: flex !important; }
       /* Dialog "Cetak Barcode" dirender sebagai sibling #app-shell (supaya bisa
          dibuka dari modul mana pun), jadi menyembunyikan #app-shell saja tidak
@@ -2214,7 +2219,29 @@ class Component extends DCLogic {
     if (e.key === 'Enter') { e.preventDefault(); this.resolveStokScan(e.target.value); }
   };
 
+  // @page tidak bisa disyaratkan lewat selector CSS biasa (tidak seperti
+  // #app-shell yang bisa pakai body:has(#stok-print-sheet)), jadi ukuran
+  // halaman 40x30mm dipasang/dilepas lewat <style> yang disisipkan sendiri,
+  // hidup-mati mengikuti buka/tutup dialog Cetak Barcode — supaya "Cetak"
+  // di layar lain (konfirmasi pembelian, laporan) tetap pakai ukuran kertas
+  // normal, bukan ikut kepotong jadi label kecil.
+  setStokPrintPageSize = (active) => {
+    const id = 'stok-print-page-style';
+    let el = document.getElementById(id);
+    if (active) {
+      if (!el) {
+        el = document.createElement('style');
+        el.id = id;
+        el.textContent = '@media print { @page { size: 40mm 30mm; margin: 0; } }';
+        document.head.appendChild(el);
+      }
+    } else if (el) {
+      el.remove();
+    }
+  };
+
   openStokPrint = (kode, nama) => {
+    this.setStokPrintPageSize(true);
     this.setState({ stokPrintOpen: true, stokPrintTargets: [{ kode, nama }] }, () => this.drawStokPrintCanvas());
   };
 
@@ -2228,10 +2255,14 @@ class Component extends DCLogic {
       .filter(Boolean)
       .map((p) => ({ kode: p.kode, nama: p.nama }));
     if (!targets.length) return;
+    this.setStokPrintPageSize(true);
     this.setState({ stokPrintOpen: true, stokPrintTargets: targets }, () => this.drawStokPrintCanvas());
   };
 
-  closeStokPrint = () => this.setState({ stokPrintOpen: false, stokPrintTargets: [] });
+  closeStokPrint = () => {
+    this.setStokPrintPageSize(false);
+    this.setState({ stokPrintOpen: false, stokPrintTargets: [] });
+  };
 
   toggleStokSelect = (kode) => this.setState((s) => ({
     stokSelectedKodes: s.stokSelectedKodes.includes(kode)
