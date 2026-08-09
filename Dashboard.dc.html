@@ -921,7 +921,10 @@
               </div>
 
               <div class="card elev-sm">
-                <div class="card-kicker">Riwayat Pembelian</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <div class="card-kicker">Riwayat Pembelian</div>
+                  <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ goLaporanPembelian }}">Detail &amp; Laporan &rarr;</button>
+                </div>
                 <sc-if value="{{ pembelianHistoryEmpty }}" hint-placeholder-val="{{ false }}">
                   <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada pembelian tersimpan.</p>
                 </sc-if>
@@ -1140,14 +1143,58 @@
             <div class="card elev-sm">
               <div class="card-kicker">Rincian per Suplier</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>Suplier</th><th>No. Faktur</th><th>Qty</th><th>Total</th></tr></thead>
+                <thead><tr><th>Suplier</th><th>No. Faktur</th><th>Qty</th><th>Total</th><th></th></tr></thead>
                 <tbody>
                   <sc-for list="{{ pembelianRowsView }}" as="h" hint-placeholder-count="3">
-                    <tr><td>{{ h.supplier }}</td><td>{{ h.noFaktur }}</td><td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td></tr>
+                    <tr>
+                      <td>{{ h.supplier }}</td><td>{{ h.noFaktur }}</td><td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td>
+                      <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Detail" title="Detail harga per barang" onClick="{{ h.detailHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><circle cx="116" cy="116" r="76" fill="none" stroke="currentColor" stroke-width="16"></circle><line x1="168" y1="168" x2="216" y2="216" stroke="currentColor" stroke-width="16" stroke-linecap="round"></line></svg></button></td>
+                    </tr>
                   </sc-for>
                 </tbody>
               </table>
             </div>
+
+            <sc-if value="{{ laporanPembelianDetailOpen }}" hint-placeholder-val="{{ false }}">
+              <div class="dialog-backdrop">
+                <div class="dialog" style="width:min(640px,100%);">
+                  <div class="dialog-title">Detail Pembelian</div>
+                  <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+                    <sc-if value="{{ laporanPembelianDetailLoading }}" hint-placeholder-val="{{ false }}">
+                      <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
+                    </sc-if>
+                    <sc-if value="{{ laporanPembelianDetailError }}" hint-placeholder-val="{{ false }}">
+                      <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ laporanPembelianDetailError }}</p>
+                    </sc-if>
+                    <sc-if value="{{ laporanPembelianDetail }}" hint-placeholder-val="{{ false }}">
+                      <div>
+                        <h3 style="margin:0;">{{ laporanPembelianDetail.noFaktur }}</h3>
+                        <div style="font-size:13px;opacity:0.7;margin-top:2px;">{{ laporanPembelianDetail.tanggal }} · {{ laporanPembelianDetail.supplier }} · {{ laporanPembelianDetail.paymentLabel }}</div>
+                      </div>
+                      <div style="max-height:320px;overflow-y:auto;">
+                        <table class="table">
+                          <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Faktur</th><th>Harga Netto</th><th>Pricelist</th><th>Subtotal</th></tr></thead>
+                          <tbody>
+                            <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
+                              <tr>
+                                <td>{{ it.kode }}</td><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td>
+                                <td>{{ it.hargaFakturLabel }}</td><td>{{ it.hargaNettoLabel }}</td><td>{{ it.pricelistLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                              </tr>
+                            </sc-for>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
+                        <span>Total</span><span>{{ laporanPembelianDetail.totalBiayaLabel }}</span>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <div class="dialog-actions">
+                    <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPembelianDetail }}">Tutup</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
           </sc-if>
 
           <sc-if value="{{ lapTabIsPenjualan }}" hint-placeholder-val="{{ false }}">
@@ -1883,6 +1930,7 @@ class Component extends DCLogic {
     laporanLengkapSearch: '',
     remoteLaporanGlobal: null, remoteLaporanPembelian: null, remoteLaporanPenjualan: null,
     remoteLaporanLaba: null, remoteLaporanTop: null, remoteLaporanRetur: null,
+    laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '',
     dashboardTrend: null, dashboardTopProducts: null, dashboardToday: null,
     dashboardPembelianBulanIni: null, dashboardLabaBulanIni: null,
     returTab: 'penjualan',
@@ -1984,6 +2032,18 @@ class Component extends DCLogic {
     };
     (setters[tab] || setters.global)().catch((e) => this.setState({ globalError: e.message }));
   };
+
+  // GET pembelian.php?id= sudah mengirim header + tiap item (kode, harga
+  // faktur/netto/pricelist, qty) — dipakai apa adanya, tidak perlu endpoint
+  // laporan baru.
+  openLaporanPembelianDetail = (id) => {
+    this.setState({ laporanPembelianDetailOpen: true, laporanPembelianDetail: null, laporanPembelianDetailError: '' });
+    api('GET', 'pembelian.php?id=' + id)
+      .then((data) => this.setState({ laporanPembelianDetail: data }))
+      .catch((e) => this.setState({ laporanPembelianDetailError: e.message }));
+  };
+
+  closeLaporanPembelianDetail = () => this.setState({ laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '' });
 
   loadModuleData = (key) => {
     if (key === 'pembelian') this.refreshPembelianHistory();
@@ -2530,7 +2590,7 @@ class Component extends DCLogic {
     const s = this.state;
     const preview = s.pembelianPreview;
     if (!preview) return;
-    const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, qty: i.qty }));
+    const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
     const justAddedNew = preview.items.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
     api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then(() => {
@@ -2568,6 +2628,17 @@ class Component extends DCLogic {
     if (!NAV_ACCESS[key].includes(this.state.role)) return;
     this.setState({ activeModule: key, navMobileOpen: false });
     this.loadModuleData(key);
+  };
+
+  // Lompat dari Input Pembelian langsung ke tab "Pembelian" di Laporan —
+  // goTo('laporanLengkap') sendirian akan reload tab yang SEDANG aktif di
+  // state (bisa saja bukan 'pembelian'), jadi tab-nya diset dulu di sini,
+  // baru fetch data tab itu secara eksplisit.
+  goLaporanPembelian = () => {
+    if (!NAV_ACCESS.laporanLengkap.includes(this.state.role)) return;
+    this.setState({ activeModule: 'laporanLengkap', laporanLengkapTab: 'pembelian', navMobileOpen: false }, () => {
+      this.loadLaporanTab('pembelian');
+    });
   };
 
   toggleNavMobile = () => this.setState((s) => ({ navMobileOpen: !s.navMobileOpen }));
@@ -2780,7 +2851,7 @@ class Component extends DCLogic {
       pembelianCannotComplete: !canComplete, completeSPembelian: this.completeSPembelian, pembelianNote,
       // Label riwayat dirakit di sini (bukan di template) supaya barisnya tetap
       // dua baris ringkas tanpa sc-if bercabang di dalam tabel.
-      pembelianHistoryEmpty: s.pembelianHistory.length === 0,
+      pembelianHistoryEmpty: s.pembelianHistory.length === 0, goLaporanPembelian: this.goLaporanPembelian,
       pembelianHistoryView: s.pembelianHistory.map((h) => ({
         ...h,
         totalBiayaLabel: formatRp(h.totalBiaya),
@@ -2857,6 +2928,20 @@ class Component extends DCLogic {
       };
     });
 
+    const detailRaw = s.laporanPembelianDetail;
+    const laporanPembelianDetailView = detailRaw ? {
+      noFaktur: detailRaw.no_faktur, tanggal: formatTanggal(detailRaw.tanggal), supplier: detailRaw.suplier,
+      paymentLabel: detailRaw.payment_type === 'TOP'
+        ? 'TOP' + (detailRaw.jatuh_tempo ? ' · jatuh tempo ' + formatTanggal(detailRaw.jatuh_tempo) : '')
+        : 'Cash',
+      totalBiayaLabel: formatRp(detailRaw.total_biaya),
+      items: (detailRaw.items || []).map((it) => ({
+        ...it, hargaFakturLabel: formatRp(it.harga_faktur), hargaNettoLabel: formatRp(it.harga_netto),
+        pricelistLabel: it.pricelist > 0 ? formatRp(it.pricelist) : '—', subtotalLabel: formatRp(it.subtotal),
+      })),
+    } : null;
+    const laporanPembelianDetailLoading = s.laporanPembelianDetailOpen && !laporanPembelianDetailView && !s.laporanPembelianDetailError;
+
     const g = s.remoteLaporanGlobal || {};
     const pb = s.remoteLaporanPembelian || { rows: [] };
     const pj = s.remoteLaporanPenjualan || { rows: [], per_customer: [] };
@@ -2874,6 +2959,9 @@ class Component extends DCLogic {
     }));
 
     return {
+      laporanPembelianDetailOpen: s.laporanPembelianDetailOpen, laporanPembelianDetail: laporanPembelianDetailView,
+      laporanPembelianDetailLoading, laporanPembelianDetailError: s.laporanPembelianDetailError,
+      closeLaporanPembelianDetail: this.closeLaporanPembelianDetail,
       isModLaporanLengkap: s.activeModule === 'laporanLengkap',
       laporanDari: s.laporanDari, setLaporanDari: this.setLaporanDari,
       laporanSampai: s.laporanSampai, setLaporanSampai: this.setLaporanSampai,
@@ -2883,7 +2971,10 @@ class Component extends DCLogic {
       lapTabIsPenjualan: s.laporanLengkapTab === 'penjualan', lapTabIsLaba: s.laporanLengkapTab === 'laba',
       lapTabIsLaris: s.laporanLengkapTab === 'laris', lapTabIsRetur: s.laporanLengkapTab === 'retur',
 
-      pembelianRowsView: pb.rows.map((r) => ({ supplier: r.suplier, noFaktur: r.no_faktur, totalQty: r.total_qty, totalBiayaLabel: formatRp(r.total_biaya) })).filter((h) => matches(h.supplier, h.noFaktur)),
+      pembelianRowsView: pb.rows.map((r) => ({
+        supplier: r.suplier, noFaktur: r.no_faktur, totalQty: r.total_qty, totalBiayaLabel: formatRp(r.total_biaya),
+        detailHandler: () => this.openLaporanPembelianDetail(r.id),
+      })).filter((h) => matches(h.supplier, h.noFaktur)),
       totalPembelianLabel: formatRp(pb.total_biaya || 0), totalItemsPembelian: pb.total_items || 0, avgInvoicePembelianLabel: formatRp(pb.avg_invoice || 0),
 
       custRows: custRows.filter((c) => matches(c.custName, c.invoiceLabel)),

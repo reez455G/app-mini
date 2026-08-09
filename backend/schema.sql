@@ -91,6 +91,7 @@ CREATE TABLE pembelian_item (
   kategori_snapshot VARCHAR(50) NOT NULL,
   harga_faktur DECIMAL(14,2) NOT NULL,
   harga_netto DECIMAL(14,2) NOT NULL,
+  pricelist DECIMAL(14,2) NOT NULL DEFAULT 0,
   qty INT NOT NULL,
   subtotal DECIMAL(14,2) NOT NULL,
   FOREIGN KEY (pembelian_id) REFERENCES pembelian(id) ON DELETE CASCADE,

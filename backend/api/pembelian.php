@@ -13,7 +13,7 @@ if ($method === 'GET') {
         $h->execute([$id]);
         $header = $h->fetch();
         if (!$header) json_error('Pembelian tidak ditemukan.', 404);
-        $it = $pdo->prepare('SELECT kode_snapshot AS kode, nama_snapshot AS nama, kategori_snapshot AS kategori, harga_faktur, harga_netto, qty, subtotal FROM pembelian_item WHERE pembelian_id = ?');
+        $it = $pdo->prepare('SELECT kode_snapshot AS kode, nama_snapshot AS nama, kategori_snapshot AS kategori, harga_faktur, harga_netto, pricelist, qty, subtotal FROM pembelian_item WHERE pembelian_id = ?');
         $it->execute([$id]);
         $header['items'] = $it->fetchAll();
         json_ok($header);
@@ -47,8 +47,9 @@ try {
         $qty = (int)($line['qty'] ?? 0);
         $hargaFaktur = (float)($line['harga_faktur'] ?? 0);
         $hargaNetto = (float)($line['harga_netto'] ?? 0);
-        if ($kode === '' || $qty < 1 || $hargaFaktur <= 0 || $hargaNetto <= 0) {
-            throw new RuntimeException('Setiap item butuh kode, qty >= 1, dan harga faktur/netto > 0.');
+        $pricelist = (float)($line['pricelist'] ?? 0);
+        if ($kode === '' || $qty < 1 || $hargaFaktur <= 0 || $hargaNetto <= 0 || $pricelist <= 0) {
+            throw new RuntimeException('Setiap item butuh kode, qty >= 1, dan harga faktur/netto/pricelist > 0.');
         }
 
         $b = $pdo->prepare('SELECT id, nama, kategori_id FROM barang WHERE kode = ? FOR UPDATE');
@@ -85,7 +86,7 @@ try {
         $subtotal = $qty * $hargaNetto;
         $totalQty += $qty;
         $totalBiaya += $subtotal;
-        $rows[] = [$barangId, $kode, $nama, $kategoriNama, $hargaFaktur, $hargaNetto, $qty, $subtotal];
+        $rows[] = [$barangId, $kode, $nama, $kategoriNama, $hargaFaktur, $hargaNetto, $pricelist, $qty, $subtotal];
     }
 
     $noFaktur = next_doc_no($pdo, 'pembelian', 'no_faktur', 'PB');
@@ -96,8 +97,8 @@ try {
     $pembelianId = (int)$pdo->lastInsertId();
 
     $itemStmt = $pdo->prepare(
-        'INSERT INTO pembelian_item (pembelian_id, barang_id, kode_snapshot, nama_snapshot, kategori_snapshot, harga_faktur, harga_netto, qty, subtotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO pembelian_item (pembelian_id, barang_id, kode_snapshot, nama_snapshot, kategori_snapshot, harga_faktur, harga_netto, pricelist, qty, subtotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     foreach ($rows as $r) $itemStmt->execute([$pembelianId, ...$r]);
 
