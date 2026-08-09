@@ -3,6 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- --app-100vh dipakai di .dialog (lihat <style> di bawah) supaya batas
+     tinggi dialog dihitung dari window.visualViewport.height — area yang
+     BENAR-BENAR kelihatan di layar, bukan "100vh" CSS yang di banyak
+     browser/WebView mobile dihitung dari tinggi viewport saat address bar
+     collapsed. Tanpa ini, tombol Tutup/Simpan di dialog panjang bisa
+     kepotong di bawah layar sungguhan meski secara CSS "seharusnya" muat. -->
+<script>
+  (function () {
+    function setAppVh() {
+      var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      document.documentElement.style.setProperty('--app-100vh', h + 'px');
+    }
+    setAppVh();
+    window.addEventListener('resize', setAppVh);
+    window.addEventListener('orientationchange', setAppVh);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', setAppVh);
+  })();
+</script>
 <!-- React dimuat lokal (offline) dengan script tag biasa, BUKAN lewat
      window.__resources. loadReactUmd() di support.js langsung melewati CDN
      kalau window.React sudah ada, jadi hasil offline-nya sama.
@@ -23,7 +41,7 @@
 <helmet>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>App-mini — Sistem Stok Toko</title>
-  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css?v=3" />
+  <link rel="stylesheet" href="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/styles.css?v=4" />
   <script src="_ds/broadsheet-3f4f7a63-668f-4f87-a7f3-c994b0588a7d/_ds_bundle.js"></script>
   <style>
     body { margin: 0; }
@@ -37,15 +55,25 @@
        kebagian versi lamanya dan tombol Simpan kembali kepental keluar layar.
        Ditulis inline begini ikut terbawa file HTML-nya sendiri, jadi pasti kepakai.
        min-height:0 wajib supaya flex item-nya mau menyusut dan scroll-nya aktif.
-       90vh dulu (fallback), lalu 90dvh menimpanya di browser yang paham —
-       "vh" di HP dihitung dari tinggi viewport TERBESAR (address bar
-       collapsed), bukan tinggi yang kelihatan sekarang, jadi selama address
-       bar masih muncul 90vh bisa lebih tinggi dari layar sungguhan dan
-       .dialog-actions (tombol Tutup/Simpan) kepotong di bawah layar tanpa
-       bisa di-scroll (dialognya position:fixed). "dvh" ikut menyusut/
-       melebar sesuai address bar yang sedang tampil. */
-    .dialog { max-height: 90vh; max-height: 90dvh; display: flex; flex-direction: column; }
+       Berlapis 3: 90vh (fallback universal) -> 90dvh (browser yang paham
+       dynamic viewport) -> calc(var(--app-100vh)*0.9) (dihitung JS lewat
+       window.visualViewport, lihat <script> di bawah <style> ini) — yang
+       terakhir MENANG di browser manapun yang sudah sempat menjalankan JS-nya,
+       termasuk browser/WebView yang belum kenal "dvh" sama sekali. Ini dipakai
+       karena "vh" (dan bahkan "dvh" di sebagian WebView) dihitung dari tinggi
+       viewport yang BUKAN benar-benar terlihat saat address bar/toolbar
+       browser masih tampil, jadi .dialog-actions (tombol Tutup/Simpan) bisa
+       kepotong di bawah layar sungguhan tanpa bisa di-scroll (dialognya
+       position:fixed). window.visualViewport.height selalu akurat ke area
+       yang BENAR-BENAR kelihatan, di semua browser modern. */
+    .dialog {
+      max-height: 90vh;
+      max-height: 90dvh;
+      max-height: calc(var(--app-100vh, 100vh) * 0.9);
+      display: flex; flex-direction: column;
+    }
     .dialog-title, .dialog-actions { flex: none; }
+    .dialog-actions { justify-content: center; }
     .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }
     @media print {
