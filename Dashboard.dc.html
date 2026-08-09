@@ -1167,12 +1167,25 @@
             <div class="card elev-sm">
               <div class="card-kicker">Rincian per Suplier</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>Suplier</th><th>No. Faktur</th><th>Waktu</th><th>Qty</th><th>Total</th><th></th></tr></thead>
+                <thead><tr><th>Suplier</th><th>No. Faktur</th><th>Waktu</th><th>Qty</th><th>Total</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ pembelianRowsView }}" as="h" hint-placeholder-count="3">
                     <tr>
-                      <td>{{ h.supplier }}</td><td>{{ h.noFaktur }}</td><td>{{ h.waktuLabel }}</td><td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td>
-                      <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Detail" title="Detail harga per barang" onClick="{{ h.detailHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><circle cx="116" cy="116" r="76" fill="none" stroke="currentColor" stroke-width="16"></circle><line x1="168" y1="168" x2="216" y2="216" stroke="currentColor" stroke-width="16" stroke-linecap="round"></line></svg></button></td>
+                      <td>{{ h.supplier }}</td>
+                      <td>
+                        <div style="display:inline-flex;align-items:center;gap:4px;">
+                          <button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" title="Detail harga per barang" onClick="{{ h.detailHandler }}">{{ h.noFaktur }}</button>
+                          <button type="button" class="btn btn-ghost btn-icon" aria-label="Salin nomor faktur" title="Salin nomor faktur" onClick="{{ h.copyHandler }}">
+                            <sc-if value="{{ h.isCopied }}" hint-placeholder-val="{{ false }}">
+                              <svg width="14" height="14" viewBox="0 0 256 256"><polyline points="216 72 104 184 40 120" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+                            </sc-if>
+                            <sc-if value="{{ !h.isCopied }}" hint-placeholder-val="{{ true }}">
+                              <svg width="14" height="14" viewBox="0 0 256 256"><rect x="88" y="88" width="128" height="128" rx="12" fill="none" stroke="currentColor" stroke-width="16"></rect><path d="M168,88V56a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V160a8,8,0,0,0,8,8H88" fill="none" stroke="currentColor" stroke-width="16"></path></svg>
+                            </sc-if>
+                          </button>
+                        </div>
+                      </td>
+                      <td>{{ h.waktuLabel }}</td><td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td>
                     </tr>
                   </sc-for>
                 </tbody>
@@ -2017,6 +2030,7 @@ class Component extends DCLogic {
     remoteLaporanGlobal: null, remoteLaporanPembelian: null, remoteLaporanPenjualan: null,
     remoteLaporanLaba: null, remoteLaporanTop: null, remoteLaporanRetur: null,
     laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '',
+    copiedFaktur: '',
     laporanPenjualanDetailOpen: false, laporanPenjualanDetail: null, laporanPenjualanDetailError: '',
     dashboardTrend: null, dashboardTopProducts: null, dashboardToday: null,
     dashboardPembelianBulanIni: null, dashboardLabaBulanIni: null,
@@ -2131,6 +2145,13 @@ class Component extends DCLogic {
   };
 
   closeLaporanPembelianDetail = () => this.setState({ laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '' });
+
+  copyNoFaktur = (noFaktur) => {
+    navigator.clipboard.writeText(noFaktur).then(() => {
+      this.setState({ copiedFaktur: noFaktur });
+      setTimeout(() => this.setState((s) => (s.copiedFaktur === noFaktur ? { copiedFaktur: '' } : null)), 1200);
+    });
+  };
 
   // GET penjualan.php?id= sudah mengirim header + tiap item (nama, tier,
   // qty, unit_price, subtotal) — dipakai apa adanya, tidak perlu endpoint
@@ -3248,6 +3269,8 @@ class Component extends DCLogic {
         supplier: r.suplier, noFaktur: r.no_faktur, totalQty: r.total_qty, totalBiayaLabel: formatRp(r.total_biaya),
         waktuLabel: formatWaktu(r.created_at),
         detailHandler: () => this.openLaporanPembelianDetail(r.id),
+        copyHandler: () => this.copyNoFaktur(r.no_faktur),
+        isCopied: s.copiedFaktur === r.no_faktur,
       })).filter((h) => matches(h.supplier, h.noFaktur)),
       totalPembelianLabel: formatRp(pb.total_biaya || 0), totalItemsPembelian: pb.total_items || 0, avgInvoicePembelianLabel: formatRp(pb.avg_invoice || 0),
 
