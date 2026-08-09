@@ -1168,9 +1168,15 @@
                 </select>
               </div>
             </div>
-            <div style="display:flex;gap:10px;flex:none;">
-              <button type="button" class="btn btn-secondary" style="min-height:44px;white-space:nowrap;" onClick="{{ exportLaporanCsv }}">Export Excel</button>
-              <button type="button" class="btn btn-primary" style="min-height:44px;white-space:nowrap;" onClick="{{ printLaporan }}">Cetak / Export PDF</button>
+            <div style="position:relative;flex:none;">
+              <button type="button" class="btn btn-primary" style="min-height:44px;white-space:nowrap;" onClick="{{ toggleLaporanExportMenu }}">Export &darr;</button>
+              <sc-if value="{{ laporanExportMenuOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="position:fixed;inset:0;z-index:15;" onClick="{{ closeLaporanExportMenu }}"></div>
+                <div style="position:absolute;top:100%;right:0;z-index:20;margin-top:4px;min-width:160px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);overflow:hidden;">
+                  <div style="padding:9px 12px;font-size:14px;cursor:pointer;" onClick="{{ exportLaporanXlsx }}">Excel (.xls)</div>
+                  <div style="padding:9px 12px;font-size:14px;cursor:pointer;" onClick="{{ exportLaporanPdf }}">Cetak / PDF</div>
+                </div>
+              </sc-if>
             </div>
           </div>
 
@@ -2205,6 +2211,7 @@ class Component extends DCLogic {
     laporanKategoriFilter: 'ALL',
     laporanSupplierFilter: 'ALL',
     laporanStatusFilter: 'ALL',
+    laporanExportMenuOpen: false,
     laporanLengkapTab: 'global',
     laporanDari: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
     laporanSampai: new Date().toISOString().slice(0, 10),
@@ -3002,18 +3009,32 @@ class Component extends DCLogic {
   setLaporanSupplierFilter = (e) => this.setState({ laporanSupplierFilter: e.target.value });
   setLaporanStatusFilter = (e) => this.setState({ laporanStatusFilter: e.target.value });
 
-  exportLaporanCsv = () => {
+  toggleLaporanExportMenu = () => this.setState((s) => ({ laporanExportMenuOpen: !s.laporanExportMenuOpen }));
+  closeLaporanExportMenu = () => this.setState({ laporanExportMenuOpen: false });
+
+  // Excel via CSV pecah berantakan di banyak setup (Excel Indonesia baca ";"
+  // sebagai pemisah kolom bukan ",", angka format Rp/ribuan ikut kepotong-potong
+  // jadi kolom baru). Dibuat file .xls berisi HTML <table> biasa (dibaca MS
+  // Excel/LibreOffice/Google Sheets sebagai spreadsheet asli, sel per sel,
+  // tanpa masalah pemisah/locale) — pola umum bikin "Excel export" tanpa
+  // library tambahan.
+  exportLaporanXlsx = () => {
+    this.closeLaporanExportMenu();
     const rows = this.laporanFilteredRows(this.state);
+    const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
-    const lines = [header.join(',')].concat(rows.map((p) => [p.kode, '"' + p.nama.replace(/"/g, '""') + '"', p.kategori, '"' + (p.supplier || '') + '"', p.stok, p.ecer, p.bengkel, p.grosir, p.status].join(',')));
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const headHtml = '<tr>' + header.map((h) => `<th>${esc(h)}</th>`).join('') + '</tr>';
+    const bodyHtml = rows.map((p) => '<tr>' + [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status].map((v) => `<td>${esc(v)}</td>`).join('') + '</tr>').join('');
+    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${headHtml}${bodyHtml}</table></body></html>`;
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'laporan-stok.csv'; a.click();
+    a.href = url; a.download = 'laporan-stok.xls'; a.click();
     URL.revokeObjectURL(url);
   };
 
-  printLaporan = () => window.print();
+  exportLaporanPdf = () => { this.closeLaporanExportMenu(); window.print(); };
+
   printPage = () => window.print();
 
   laporanFilteredRows = (s) => {
@@ -3497,7 +3518,8 @@ class Component extends DCLogic {
       laporanRows: rows, laporanRowsEmpty: rows.length === 0,
       laporanTotalStok: filtered.reduce((a, p) => a + p.stok, 0),
       laporanTotalNilaiJualLabel: formatRp(filtered.reduce((a, p) => a + p.stok * p.ecer, 0)),
-      exportLaporanCsv: this.exportLaporanCsv, printLaporan: this.printLaporan,
+      laporanExportMenuOpen: s.laporanExportMenuOpen, toggleLaporanExportMenu: this.toggleLaporanExportMenu, closeLaporanExportMenu: this.closeLaporanExportMenu,
+      exportLaporanXlsx: this.exportLaporanXlsx, exportLaporanPdf: this.exportLaporanPdf,
     };
   }
 
