@@ -57,21 +57,34 @@ try {
         $hargaFaktur = (float)($line['harga_faktur'] ?? 0);
         $hargaNetto = (float)($line['harga_netto'] ?? 0);
         $pricelist = (float)($line['pricelist'] ?? 0);
-        if ($kode === '' || $qty < 1 || $hargaFaktur <= 0 || $hargaNetto <= 0 || $pricelist <= 0) {
-            throw new RuntimeException('Setiap item butuh kode, qty >= 1, dan harga faktur/netto/pricelist > 0.');
+        // Input Pembelian sekarang cuma minta SATU basis harga (Faktur ATAU
+        // Netto, bukan dua-duanya) — jadi salah satu boleh 0, tapi keduanya
+        // 0 sekaligus tetap ditolak.
+        if ($kode === '' || $qty < 1 || ($hargaFaktur <= 0 && $hargaNetto <= 0) || $pricelist <= 0) {
+            throw new RuntimeException('Setiap item butuh kode, qty >= 1, salah satu harga faktur/netto, dan pricelist > 0.');
         }
+        // Netto lebih diutamakan sebagai basis biaya (harga bersih yang
+        // beneran dibayar) — sama seperti fallback IF(harga_netto>0,...) di
+        // laporan/laba.php & laporan/global.php.
+        $hargaBeli = $hargaNetto > 0 ? $hargaNetto : $hargaFaktur;
 
         $b = $pdo->prepare('SELECT id, nama, kategori_id FROM barang WHERE kode = ? FOR UPDATE');
         $b->execute([$kode]);
         $barang = $b->fetch();
 
         if ($barang) {
-            // Barang sudah ada: tambah stok, timpa harga beli terakhir & suplier
-            // (sama seperti finalizePembelian() di Dashboard.dc.html — suplier_id
-            // dipertahankan sebagai "suplier terakhir dibeli dari", bukan cuma
-            // diisi sekali waktu barang dibuat).
-            $pdo->prepare('UPDATE barang SET stok = stok + ?, harga_faktur = ?, harga_netto = ?, suplier_id = ? WHERE id = ?')
-                ->execute([$qty, $hargaFaktur, $hargaNetto, $suplierId, $barang['id']]);
+            // Barang sudah ada: tambah stok, timpa suplier, dan timpa HANYA
+            // basis harga yang diisi kali ini — basis yang tidak diisi
+            // dipertahankan dari pembelian sebelumnya (bukan ditimpa jadi 0),
+            // supaya kalau bulan ini beli pakai Netto lalu bulan depan pakai
+            // Faktur, dua-duanya tetap punya nilai terakhir yang wajar.
+            $pdo->prepare(
+                'UPDATE barang SET stok = stok + ?,
+                    harga_faktur = IF(? > 0, ?, harga_faktur),
+                    harga_netto = IF(? > 0, ?, harga_netto),
+                    suplier_id = ?
+                 WHERE id = ?'
+            )->execute([$qty, $hargaFaktur, $hargaFaktur, $hargaNetto, $hargaNetto, $suplierId, $barang['id']]);
             $barangId = $barang['id'];
             $nama = $barang['nama'];
             $kn = $pdo->prepare('SELECT nama FROM kategori WHERE id = ?');
@@ -94,7 +107,7 @@ try {
             $barangId = (int)$pdo->lastInsertId();
         }
 
-        $subtotal = $qty * $hargaNetto;
+        $subtotal = $qty * $hargaBeli;
         $totalQty += $qty;
         $totalBiaya += $subtotal;
         $rows[] = [$barangId, $kode, $nama, $kategoriNama, $hargaFaktur, $hargaNetto, $pricelist, $qty, $subtotal];

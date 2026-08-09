@@ -943,12 +943,19 @@
                 </sc-if>
                 <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 0.7fr;gap:16px;margin-top:16px;">
                   <div class="field">
-                    <label for="pb-harga-faktur">Harga Faktur</label>
-                    <input class="input {{ pembelianHargaFakturInvalidClass }}" id="pb-harga-faktur" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaFaktur }}" onChange="{{ setPembelianHargaFaktur }}" />
+                    <label id="pb-harga-basis-label">Basis Harga</label>
+                    <div class="seg" role="radiogroup" aria-labelledby="pb-harga-basis-label" style="width:100%;">
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                        <input type="radio" name="pb-harga-basis" checked="{{ pembelianHargaBasisIsFaktur }}" onChange="{{ setPembelianHargaBasisFaktur }}" />Faktur
+                      </label>
+                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                        <input type="radio" name="pb-harga-basis" checked="{{ pembelianHargaBasisIsNetto }}" onChange="{{ setPembelianHargaBasisNetto }}" />Netto
+                      </label>
+                    </div>
                   </div>
                   <div class="field">
-                    <label for="pb-harga-netto">Harga Netto</label>
-                    <input class="input {{ pembelianHargaNettoInvalidClass }}" id="pb-harga-netto" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaNetto }}" onChange="{{ setPembelianHargaNetto }}" />
+                    <label for="pb-harga-beli">Harga Beli</label>
+                    <input class="input {{ pembelianHargaBeliInvalidClass }}" id="pb-harga-beli" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianHargaBeli }}" onChange="{{ setPembelianHargaBeli }}" />
                   </div>
                   <div class="field">
                     <label for="pb-qty">Jumlah</label>
@@ -972,7 +979,7 @@
                 </sc-if>
                 <sc-if value="{{ pembelianCartNotEmpty }}" hint-placeholder-val="{{ true }}">
                   <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Faktur</th><th>Harga Netto</th><th>Price List</th><th>Subtotal</th><th></th></tr></thead>
+                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Beli</th><th>Price List</th><th>Subtotal</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ pembelianCartView }}" as="item" hint-placeholder-count="3">
                         <tr>
@@ -980,8 +987,7 @@
                           <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Cetak Barcode" title="Cetak Barcode" onClick="{{ item.printHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg></button></td>
                           <td>{{ item.nama }}</td>
                           <td>{{ item.qty }} pcs</td>
-                          <td>{{ item.hargaFakturLabel }}</td>
-                          <td>{{ item.hargaNettoLabel }}</td>
+                          <td>{{ item.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.hargaBasisLabel }})</span></td>
                           <td>{{ item.pricelistLabel }}</td>
                           <td>{{ item.subtotalLabel }}</td>
                           <td><button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus" onClick="{{ item.removeHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button></td>
@@ -1054,13 +1060,12 @@
                   <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Payment</span><span>{{ pembelianPreviewView.paymentLabel }}</span></div>
                   <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Kategori</span><span>{{ pembelianPreviewView.kategori }}</span></div>
                   <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Pricelist</span><span>{{ pembelianPreviewView.pricelist }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Harga Faktur</span><span>{{ pembelianPreviewView.hargaFaktur }}</span></div>
                 </div>
                 <table class="table">
-                  <thead><tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga Netto</th><th>Subtotal</th></tr></thead>
+                  <thead><tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga Beli</th><th>Subtotal</th></tr></thead>
                   <tbody>
                     <sc-for list="{{ pembelianPreviewView.itemsView }}" as="item" hint-placeholder-count="3">
-                      <tr><td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.hargaNettoLabel }}</td><td>{{ item.subtotalLabel }}</td></tr>
+                      <tr><td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.hargaBeliLabel }} ({{ item.hargaBasisLabel }})</td><td>{{ item.subtotalLabel }}</td></tr>
                     </sc-for>
                   </tbody>
                 </table>
@@ -1273,12 +1278,12 @@
                       </div>
                       <div style="max-height:320px;overflow-y:auto;">
                         <table class="table">
-                          <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Faktur</th><th>Harga Netto</th><th>Pricelist</th><th>Subtotal</th></tr></thead>
+                          <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist</th><th>Subtotal</th></tr></thead>
                           <tbody>
                             <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
                               <tr>
                                 <td>{{ it.kode }}</td><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td>
-                                <td>{{ it.hargaFakturLabel }}</td><td>{{ it.hargaNettoLabel }}</td><td>{{ it.pricelistLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                                <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistLabel }}</td><td>{{ it.subtotalLabel }}</td>
                               </tr>
                             </sc-for>
                           </tbody>
@@ -1961,7 +1966,7 @@ const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
 const PEMBELIAN_DRAFT_FIELDS = [
   'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
   'pembelianKategoriFilter', 'pembelianNewKode', 'pembelianNewNama',
-  'pembelianHargaFaktur', 'pembelianHargaNetto', 'pembelianPricelist', 'pembelianQty',
+  'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianPricelist', 'pembelianQty',
   'pembelianCart',
 ];
 
@@ -2085,8 +2090,8 @@ class Component extends DCLogic {
     pembelianNewKode: '',
     pembelianNewNama: '',
     pembelianQty: 1,
-    pembelianHargaFaktur: '',
-    pembelianHargaNetto: '',
+    pembelianHargaBasis: 'NETTO',
+    pembelianHargaBeli: '',
     pembelianPricelist: '',
     pembelianJatuhTempo: '',
     pembelianPayment: 'CASH',
@@ -2829,8 +2834,9 @@ class Component extends DCLogic {
   setPembelianNewKode = (e) => this.setState({ pembelianNewKode: e.target.value, ...this.clearPembelianItemError() });
   setPembelianNewNama = (e) => this.setState({ pembelianNewNama: e.target.value, ...this.clearPembelianItemError() });
   setPembelianQty = (e) => this.setState({ pembelianQty: e.target.value, ...this.clearPembelianItemError() });
-  setPembelianHargaFaktur = (e) => this.setState({ pembelianHargaFaktur: e.target.value, ...this.clearPembelianItemError() });
-  setPembelianHargaNetto = (e) => this.setState({ pembelianHargaNetto: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianHargaBasisFaktur = () => this.setState({ pembelianHargaBasis: 'FAKTUR', ...this.clearPembelianItemError() });
+  setPembelianHargaBasisNetto = () => this.setState({ pembelianHargaBasis: 'NETTO', ...this.clearPembelianItemError() });
+  setPembelianHargaBeli = (e) => this.setState({ pembelianHargaBeli: e.target.value, ...this.clearPembelianItemError() });
   setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value, ...this.clearPembelianItemError() });
   setPembelianJatuhTempo = (e) => this.setState({ pembelianJatuhTempo: e.target.value });
   setLaporanSearch = (e) => this.setState({ laporanSearch: e.target.value });
@@ -2870,8 +2876,7 @@ class Component extends DCLogic {
     const isNewItem = s.pembelianSelectedKode === '__NEW__';
     const product = isNewItem ? null : s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
     const qty = parseInt(s.pembelianQty) || 0;
-    const hargaFaktur = parseFloat(s.pembelianHargaFaktur) || 0;
-    const hargaNetto = parseFloat(s.pembelianHargaNetto) || 0;
+    const hargaBeli = parseFloat(s.pembelianHargaBeli) || 0;
     const pricelist = parseFloat(s.pembelianPricelist) || 0;
 
     const missing = [];
@@ -2885,8 +2890,7 @@ class Component extends DCLogic {
     if (isNewItem && !s.pembelianNewKode.trim()) { missing.push('Kode Barang Baru'); missingKeys.push('newKode'); }
     if (isNewItem && !s.pembelianNewNama.trim()) { missing.push('Nama Barang Baru'); missingKeys.push('newNama'); }
     if (!qty) { missing.push('Jumlah'); missingKeys.push('qty'); }
-    if (!hargaFaktur) { missing.push('Harga Faktur'); missingKeys.push('hargaFaktur'); }
-    if (!hargaNetto) { missing.push('Harga Netto'); missingKeys.push('hargaNetto'); }
+    if (!hargaBeli) { missing.push('Harga Beli'); missingKeys.push('hargaBeli'); }
     if (!pricelist) { missing.push('Pricelist'); missingKeys.push('pricelist'); }
     if (missing.length) {
       this.setState({ pembelianItemFormError: 'Lengkapi dulu: ' + missing.join(', ') + '.', pembelianItemFieldErrors: missingKeys });
@@ -2901,10 +2905,16 @@ class Component extends DCLogic {
       return;
     }
     const kategori = isNewItem ? s.pembelianKategoriFilter : product.kategori;
+    const hargaBasis = s.pembelianHargaBasis;
 
     this.setState((st) => ({
-      pembelianCart: [...st.pembelianCart, { kode, nama, kategori, isNew: isNewItem, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
-      pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
+      pembelianCart: [...st.pembelianCart, {
+        kode, nama, kategori, isNew: isNewItem, qty, hargaBasis,
+        hargaFaktur: hargaBasis === 'FAKTUR' ? hargaBeli : 0,
+        hargaNetto: hargaBasis === 'NETTO' ? hargaBeli : 0,
+        pricelist, subtotal: qty * hargaBeli,
+      }],
+      pembelianQty: 1, pembelianHargaBeli: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
       pembelianItemFormError: '', pembelianItemFieldErrors: [],
     }));
   };
@@ -2924,7 +2934,6 @@ class Component extends DCLogic {
         jatuhTempo: s.pembelianJatuhTempo, payment: s.pembelianPayment,
         kategori: s.pembelianKategoriFilter === 'ALL' ? [...new Set(s.pembelianCart.map((i) => i.kategori))].join(', ') : s.pembelianKategoriFilter,
         pricelist: s.pembelianCart.map((i) => formatRp(i.pricelist || 0)).join(', '),
-        hargaFaktur: s.pembelianCart.map((i) => formatRp(i.hargaFaktur)).join(', '),
         items: s.pembelianCart, totalItems: s.pembelianCart.length, totalQty, totalBiaya,
       },
     });
@@ -2946,7 +2955,7 @@ class Component extends DCLogic {
       clearPembelianDraft();
       this.setState({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
+        pembelianCart: [], pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
         pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
@@ -3173,7 +3182,10 @@ class Component extends DCLogic {
       : (s.pembelianSupplierChoice === '__NEW__' ? '+ Suplier Baru (belum terdaftar)' : s.pembelianSupplierChoice);
 
     const pembelianCartView = s.pembelianCart.map((item, idx) => ({
-      ...item, hargaFakturLabel: formatRp(item.hargaFaktur), hargaNettoLabel: formatRp(item.hargaNetto), subtotalLabel: formatRp(item.subtotal),
+      ...item,
+      hargaBeliLabel: formatRp(item.hargaBasis === 'FAKTUR' ? item.hargaFaktur : item.hargaNetto),
+      hargaBasisLabel: item.hargaBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
+      subtotalLabel: formatRp(item.subtotal),
       pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
       removeHandler: () => this.removeFromPembelianCart(idx),
       // Cetak Barcode langsung dari daftar keranjang — belum perlu tunggu
@@ -3217,8 +3229,9 @@ class Component extends DCLogic {
       pembelianNewKode: s.pembelianNewKode, setPembelianNewKode: this.setPembelianNewKode,
       pembelianNewNama: s.pembelianNewNama, setPembelianNewNama: this.setPembelianNewNama,
       pembelianQty: s.pembelianQty, setPembelianQty: this.setPembelianQty,
-      pembelianHargaFaktur: s.pembelianHargaFaktur, setPembelianHargaFaktur: this.setPembelianHargaFaktur,
-      pembelianHargaNetto: s.pembelianHargaNetto, setPembelianHargaNetto: this.setPembelianHargaNetto,
+      pembelianHargaBasisIsFaktur: s.pembelianHargaBasis === 'FAKTUR', pembelianHargaBasisIsNetto: s.pembelianHargaBasis === 'NETTO',
+      setPembelianHargaBasisFaktur: this.setPembelianHargaBasisFaktur, setPembelianHargaBasisNetto: this.setPembelianHargaBasisNetto,
+      pembelianHargaBeli: s.pembelianHargaBeli, setPembelianHargaBeli: this.setPembelianHargaBeli,
       pembelianPricelist: s.pembelianPricelist, setPembelianPricelist: this.setPembelianPricelist,
       pembelianJatuhTempo: s.pembelianJatuhTempo, setPembelianJatuhTempo: this.setPembelianJatuhTempo,
       payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
@@ -3229,8 +3242,7 @@ class Component extends DCLogic {
       pembelianNewKodeInvalidClass: s.pembelianItemFieldErrors.includes('newKode') ? 'input-invalid' : '',
       pembelianNewNamaInvalidClass: s.pembelianItemFieldErrors.includes('newNama') ? 'input-invalid' : '',
       pembelianQtyInvalidClass: s.pembelianItemFieldErrors.includes('qty') ? 'input-invalid' : '',
-      pembelianHargaFakturInvalidClass: s.pembelianItemFieldErrors.includes('hargaFaktur') ? 'input-invalid' : '',
-      pembelianHargaNettoInvalidClass: s.pembelianItemFieldErrors.includes('hargaNetto') ? 'input-invalid' : '',
+      pembelianHargaBeliInvalidClass: s.pembelianItemFieldErrors.includes('hargaBeli') ? 'input-invalid' : '',
       pembelianPricelistInvalidClass: s.pembelianItemFieldErrors.includes('pricelist') ? 'input-invalid' : '',
       pembelianCartEmpty: s.pembelianCart.length === 0, pembelianCartNotEmpty: s.pembelianCart.length > 0,
       pembelianCartView,
@@ -3264,7 +3276,12 @@ class Component extends DCLogic {
         paymentLabel: s.pembelianPreview.payment === 'CASH' ? 'Cash' : 'TOP',
         jatuhTempoLabel: s.pembelianPreview.jatuhTempo || '-',
         totalBiayaLabel: formatRp(s.pembelianPreview.totalBiaya),
-        itemsView: s.pembelianPreview.items.map((i) => ({ ...i, hargaNettoLabel: formatRp(i.hargaNetto), subtotalLabel: formatRp(i.subtotal) })),
+        itemsView: s.pembelianPreview.items.map((i) => ({
+          ...i,
+          hargaBeliLabel: formatRp(i.hargaBasis === 'FAKTUR' ? i.hargaFaktur : i.hargaNetto),
+          hargaBasisLabel: i.hargaBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
+          subtotalLabel: formatRp(i.subtotal),
+        })),
       } : null,
     };
   }
@@ -3325,7 +3342,9 @@ class Component extends DCLogic {
         : 'Cash',
       totalBiayaLabel: formatRp(detailRaw.total_biaya),
       items: (detailRaw.items || []).map((it) => ({
-        ...it, hargaFakturLabel: formatRp(it.harga_faktur), hargaNettoLabel: formatRp(it.harga_netto),
+        ...it,
+        hargaBeliLabel: formatRp(it.harga_netto > 0 ? it.harga_netto : it.harga_faktur),
+        hargaBasisLabel: it.harga_netto > 0 ? 'Netto' : 'Faktur',
         pricelistLabel: it.pricelist > 0 ? formatRp(it.pricelist) : '—', subtotalLabel: formatRp(it.subtotal),
       })),
     } : null;
