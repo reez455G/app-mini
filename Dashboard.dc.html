@@ -1891,9 +1891,13 @@ function formatWaktu(datetime) {
 // ponytail: draft disimpan di localStorage, bukan server — cukup buat jaga-jaga
 // refresh/tutup tab tidak sengaja saat lagi input pembelian, bukan sync antar device.
 const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
+// pembelianSupplierChoice & pembelianSelectedKode SENGAJA tidak ikut disimpan —
+// itu cuma pilihan "lagi lihat apa" di dropdown, bukan pekerjaan yang perlu
+// diselamatkan; kalau ikut dipulihkan, field itu terasa "nyangkut" ke barang/
+// suplier lama tiap kali reload (termasuk setelah data di-cleanse).
 const PEMBELIAN_DRAFT_FIELDS = [
-  'pembelianSupplierChoice', 'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
-  'pembelianKategoriFilter', 'pembelianSelectedKode', 'pembelianNewKode', 'pembelianNewNama',
+  'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
+  'pembelianKategoriFilter', 'pembelianNewKode', 'pembelianNewNama',
   'pembelianHargaFaktur', 'pembelianHargaNetto', 'pembelianPricelist', 'pembelianQty',
   'pembelianCart',
 ];
@@ -1901,7 +1905,15 @@ const PEMBELIAN_DRAFT_FIELDS = [
 function loadPembelianDraft() {
   try {
     const raw = localStorage.getItem(PEMBELIAN_DRAFT_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const stored = JSON.parse(raw);
+    // Filter lewat whitelist saat ini juga (bukan cuma saat simpan) — draft
+    // lama di localStorage browser bisa saja masih punya field yang sudah
+    // tidak dipersist lagi (mis. field yang baru dihapus dari
+    // PEMBELIAN_DRAFT_FIELDS), jadi jangan ikut dipulihkan.
+    const draft = {};
+    PEMBELIAN_DRAFT_FIELDS.forEach((k) => { if (k in stored) draft[k] = stored[k]; });
+    return draft;
   } catch (e) { return null; }
 }
 
@@ -2080,10 +2092,7 @@ class Component extends DCLogic {
       rows.forEach((r) => { this._kategoriIds[r.nama] = r.id; });
       this.setState({ kategoriList: rows.map((r) => r.nama) });
     }).catch((e) => this.setState({ globalError: e.message }));
-    api('GET', 'suplier.php').then((rows) => this.setState((s) => ({
-      suplierList: rows.map(normalizeSuplier),
-      pembelianSupplierChoice: s.pembelianSupplierChoice || (rows[0] ? rows[0].nama : ''),
-    }))).catch((e) => this.setState({ globalError: e.message }));
+    api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
     api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.setState({ globalError: e.message }));
     if (this.state.role === 'owner') {
       api('GET', 'users.php').then((rows) => this.setState({ userList: rows.map(normalizeUser) })).catch((e) => this.setState({ globalError: e.message }));
@@ -2096,7 +2105,7 @@ class Component extends DCLogic {
     this.setState((s) => ({
       stokProducts: list,
       penjSelectedKode: list.some((p) => p.kode === s.penjSelectedKode) ? s.penjSelectedKode : (list[0] ? list[0].kode : ''),
-      pembelianSelectedKode: list.some((p) => p.kode === s.pembelianSelectedKode) ? s.pembelianSelectedKode : (list[0] ? list[0].kode : ''),
+      pembelianSelectedKode: (s.pembelianSelectedKode === '__NEW__' || list.some((p) => p.kode === s.pembelianSelectedKode)) ? s.pembelianSelectedKode : '',
       returPjKode: list.some((p) => p.kode === s.returPjKode) ? s.returPjKode : (list[0] ? list[0].kode : ''),
       returPbKode: list.some((p) => p.kode === s.returPbKode) ? s.returPbKode : (list[0] ? list[0].kode : ''),
     }));
@@ -2849,11 +2858,11 @@ class Component extends DCLogic {
     this.setState({ busy: true, pembelianSubmitError: '' });
     api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then(() => {
       clearPembelianDraft();
-      this.setState((st) => ({
+      this.setState({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
+        pembelianCart: [], pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
-      }));
+      });
       this.refreshBarang();
       this.refreshPembelianHistory();
     }).catch((e) => this.setState({ busy: false, pembelianCompleted: false, pembelianSubmitError: e.message }));
