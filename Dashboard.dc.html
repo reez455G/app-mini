@@ -683,8 +683,8 @@
             <sc-if value="{{ stokRowsEmpty }}">
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok.</p>
             </sc-if>
-            <table class="table" style="margin-top:8px;min-width:1180px;white-space:nowrap;">
-              <thead><tr><th style="width:1%;"><input type="checkbox" checked="{{ stokAllVisibleSelected }}" onChange="{{ toggleStokSelectAll }}" aria-label="Pilih semua" /></th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
+            <table class="table" style="margin-top:8px;min-width:1300px;white-space:nowrap;">
+              <thead><tr><th style="width:1%;"><input type="checkbox" checked="{{ stokAllVisibleSelected }}" onChange="{{ toggleStokSelectAll }}" aria-label="Pilih semua" /></th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Beli</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <sc-for list="{{ stokRows }}" as="item" hint-placeholder-count="8">
                   <tr>
@@ -699,6 +699,7 @@
                       </sc-if>
                     </td>
                     <td>{{ item.priceListValueLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.priceListBasisLabel }})</span></td>
+                    <td>{{ item.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.hargaBasisLabel }})</span></td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
                     <td>{{ item.grosirLabel }}</td>
@@ -3318,10 +3319,17 @@ class Component extends DCLogic {
     const filtered = this.stokFilteredProducts(s);
     const stokRows = filtered.map((p) => {
       const priceListValue = p.priceListBasis === 'FAKTUR' ? p.hargaFaktur : p.hargaNetto;
+      // Harga Beli beda dari Price List di atas: Price List ikut basis yang
+      // DIPILIH manual per barang (acuan tampilan), sedangkan ini selalu
+      // Netto-diutamakan-fallback-Faktur — konsisten dengan "Harga Beli" di
+      // Riwayat Pembelian/Suplier/Detail Pembelian di tempat lain.
+      const hargaBeliValue = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
       return {
         ...p, ecerLabel: p.pendingSetup ? '—' : formatRp(p.ecer), bengkelLabel: p.pendingSetup ? '—' : formatRp(p.bengkel), grosirLabel: p.pendingSetup ? '—' : formatRp(p.grosir),
         priceListBasisLabel: p.priceListBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
         priceListValueLabel: priceListValue ? formatRp(priceListValue) : '—',
+        hargaBasisLabel: p.hargaNetto > 0 ? 'Netto' : 'Faktur',
+        hargaBeliLabel: hargaBeliValue ? formatRp(hargaBeliValue) : '—',
         statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
         printHandler: () => this.openStokPrint(p.kode, p.nama),
