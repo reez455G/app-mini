@@ -452,13 +452,29 @@
                 <div class="card elev-sm">
                   <div class="card-kicker">Tambah Barang</div>
                   <div class="rg" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:10px;">
-                    <div class="field">
-                      <label for="penj-product">Cari Barang</label>
-                      <select class="input" id="penj-product" style="min-height:46px;font-size:15px;" value="{{ penjSelectedKode }}" onChange="{{ setPenjProduct }}">
-                        <sc-for list="{{ productOptions }}" as="p" hint-placeholder-count="8">
-                          <option value="{{ p.kode }}">{{ p.nama }}</option>
-                        </sc-for>
-                      </select>
+                    <div class="field" style="position:relative;">
+                      <label for="penj-product-combo">Cari Barang</label>
+                      <input
+                        class="input" id="penj-product-combo" autocomplete="off"
+                        style="min-height:46px;font-size:15px;"
+                        placeholder="Pilih kode atau nama barang"
+                        value="{{ penjComboDisplayValue }}"
+                        onChange="{{ setPenjComboQuery }}"
+                        onFocus="{{ openPenjCombo }}"
+                        onClick="{{ openPenjCombo }}"
+                        onKeyDown="{{ handlePenjComboKeyDown }}"
+                        onBlur="{{ handlePenjComboBlur }}"
+                      />
+                      <sc-if value="{{ penjProductComboOpen }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;max-height:260px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);">
+                          <sc-if value="{{ penjComboOptionsEmpty }}" hint-placeholder-val="{{ false }}">
+                            <div style="padding:10px 12px;font-size:13px;opacity:0.6;">Tidak ada yang cocok.</div>
+                          </sc-if>
+                          <sc-for list="{{ penjComboOptionsView }}" as="opt" hint-placeholder-count="6">
+                            <div style="{{ opt.rowStyle }}" onMouseDown="{{ opt.mouseDownHandler }}" onClick="{{ opt.clickHandler }}">{{ opt.label }}</div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
                     </div>
                     <div class="field">
                       <label for="penj-qty">Jumlah</label>
@@ -2107,6 +2123,9 @@ class Component extends DCLogic {
     penjPaymentMethod: 'TUNAI',
     penjAmountPaid: '',
     penjSelectedKode: '',
+    penjProductComboOpen: false,
+    penjProductComboQuery: '',
+    penjProductComboHighlight: 0,
     penjQty: 1,
     penjCompleted: false,
     penjLastInvoice: null,
@@ -2315,7 +2334,48 @@ class Component extends DCLogic {
   };
 
   setPenjCustName = (e) => this.setState({ penjCustName: e.target.value });
-  setPenjProduct = (e) => this.setState({ penjSelectedKode: e.target.value });
+  // Combobox custom buat "Cari Barang" — sama persis polanya dengan combobox
+  // "Kode & Nama Barang" di Input Pembelian, cuma tanpa filter kategori dan
+  // tanpa opsi "+ Barang Baru" (di Penjualan cuma bisa jual barang yang
+  // sudah terdaftar).
+  penjComboOptions = (s) => {
+    const list = this.filterPembelianProducts(s.stokProducts, 'ALL', s.penjProductComboQuery);
+    return list.map((p) => ({ kode: p.kode, label: p.kode + ' — ' + p.nama }));
+  };
+  openPenjCombo = () => {
+    if (this.state.penjProductComboOpen) return;
+    this.setState({ penjProductComboOpen: true, penjProductComboQuery: '', penjProductComboHighlight: 0 });
+  };
+  closePenjCombo = () => this.setState({ penjProductComboOpen: false });
+  setPenjComboQuery = (e) => this.setState({ penjProductComboQuery: e.target.value, penjProductComboHighlight: 0, penjProductComboOpen: true });
+  selectPenjCombo = (kode) => this.setState({ penjSelectedKode: kode, penjProductComboOpen: false, penjProductComboQuery: '' });
+  handlePenjComboKeyDown = (e) => {
+    const s = this.state;
+    if (!s.penjProductComboOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') { e.preventDefault(); this.openPenjCombo(); }
+      return;
+    }
+    const options = this.penjComboOptions(s);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.setState((st) => ({ penjProductComboHighlight: Math.min(st.penjProductComboHighlight + 1, options.length - 1) }));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.setState((st) => ({ penjProductComboHighlight: Math.max(st.penjProductComboHighlight - 1, 0) }));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const opt = options[s.penjProductComboHighlight];
+      if (opt) this.selectPenjCombo(opt.kode);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.closePenjCombo();
+    }
+  };
+  handlePenjComboOptionMouseDown = (e) => e.preventDefault();
+  handlePenjComboBlur = () => {
+    clearTimeout(this._penjComboBlurTimer);
+    this._penjComboBlurTimer = setTimeout(() => this.closePenjCombo(), 150);
+  };
   setPenjQty = (e) => this.setState({ penjQty: e.target.value });
   setPenjAmountPaid = (e) => this.setState({ penjAmountPaid: e.target.value });
   setPenjTunai = () => this.setState({ penjPaymentMethod: 'TUNAI' });
@@ -3118,9 +3178,22 @@ class Component extends DCLogic {
       };
     }
 
+    const penjComboOptionsRaw = this.penjComboOptions(s);
+    const penjComboOptionsView = penjComboOptionsRaw.map((opt, i) => ({
+      ...opt,
+      rowStyle: 'padding:9px 12px;font-size:14px;cursor:pointer;' + (i === s.penjProductComboHighlight ? 'background:var(--color-accent-100);' : ''),
+      clickHandler: () => this.selectPenjCombo(opt.kode),
+      mouseDownHandler: this.handlePenjComboOptionMouseDown,
+    }));
+    const penjComboSelectedLabel = selectedProduct.kode ? selectedProduct.kode + ' — ' + selectedProduct.nama : '';
+
     return {
-      productOptions: s.stokProducts,
-      penjSelectedKode: s.penjSelectedKode, setPenjProduct: this.setPenjProduct,
+      penjSelectedKode: s.penjSelectedKode,
+      penjComboOptionsView, penjComboOptionsEmpty: penjComboOptionsView.length === 0,
+      penjComboDisplayValue: s.penjProductComboOpen ? s.penjProductComboQuery : penjComboSelectedLabel,
+      penjProductComboOpen: s.penjProductComboOpen,
+      openPenjCombo: this.openPenjCombo, setPenjComboQuery: this.setPenjComboQuery,
+      handlePenjComboKeyDown: this.handlePenjComboKeyDown, handlePenjComboBlur: this.handlePenjComboBlur,
       penjQty: s.penjQty, setPenjQty: this.setPenjQty,
       availableStokLabel: String(availableStok), hasTier: !!tier, tierLabel, unitPriceLabel: formatRp(unitPrice),
       qtyExceedsStock, cannotAdd: !canAdd, addToCart: this.addToCart,
