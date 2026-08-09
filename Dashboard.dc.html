@@ -3087,7 +3087,7 @@ class Component extends DCLogic {
     if (isNewItem && !s.pembelianNewNama.trim()) { missing.push('Nama Barang Baru'); missingKeys.push('newNama'); }
     if (!qty) { missing.push('Jumlah'); missingKeys.push('qty'); }
     if (!hargaBeli) { missing.push('Harga Beli'); missingKeys.push('hargaBeli'); }
-    if (!pricelist) { missing.push('Pricelist'); missingKeys.push('pricelist'); }
+    // Pricelist boleh 0/kosong — sebagian barang memang tidak perlu diisi.
     if (missing.length) {
       this.setState({ pembelianItemFormError: 'Lengkapi dulu: ' + missing.join(', ') + '.', pembelianItemFieldErrors: missingKeys });
       return;

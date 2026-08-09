@@ -114,9 +114,10 @@ try {
         $pricelist = (float)($line['pricelist'] ?? 0);
         // Input Pembelian sekarang cuma minta SATU basis harga (Faktur ATAU
         // Netto, bukan dua-duanya) — jadi salah satu boleh 0, tapi keduanya
-        // 0 sekaligus tetap ditolak.
-        if ($kode === '' || $qty < 1 || ($hargaFaktur <= 0 && $hargaNetto <= 0) || $pricelist <= 0) {
-            throw new RuntimeException('Setiap item butuh kode, qty >= 1, salah satu harga faktur/netto, dan pricelist > 0.');
+        // 0 sekaligus tetap ditolak. Pricelist boleh 0/kosong — sebagian
+        // barang memang tidak perlu diisi pricelist-nya.
+        if ($kode === '' || $qty < 1 || ($hargaFaktur <= 0 && $hargaNetto <= 0)) {
+            throw new RuntimeException('Setiap item butuh kode, qty >= 1, dan salah satu harga faktur/netto.');
         }
         // Netto lebih diutamakan sebagai basis biaya (harga bersih yang
         // beneran dibayar) — sama seperti fallback IF(harga_netto>0,...) di
