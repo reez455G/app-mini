@@ -825,7 +825,7 @@
                   <div class="field" style="position:relative;">
                     <label for="pb-kategori">Kategori</label>
                     <button type="button" class="btn btn-ghost btn-icon" aria-label="Tambah kategori baru" title="Tambah kategori baru" style="position:absolute;top:-4px;right:0;min-height:24px;min-width:24px;padding:0;" tabindex="-1" onClick="{{ goMaster }}"><svg width="13" height="13" viewBox="0 0 256 256"><line x1="128" y1="40" x2="128" y2="216" stroke="currentColor" stroke-width="24"></line><line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="24"></line></svg></button>
-                    <select class="input" id="pb-kategori" style="min-height:46px;font-size:15px;padding-right:36px;" value="{{ pembelianKategoriFilter }}" onChange="{{ setPembelianKategoriFilter }}">
+                    <select class="input {{ pembelianKategoriInvalidClass }}" id="pb-kategori" style="min-height:46px;font-size:15px;padding-right:36px;" value="{{ pembelianKategoriFilter }}" onChange="{{ setPembelianKategoriFilter }}">
                       <option value="ALL">Semua Kategori</option>
                       <sc-for list="{{ pembelianKategoriOptions }}" as="k" hint-placeholder-count="4">
                         <option value="{{ k }}">{{ k }}</option>
@@ -2450,8 +2450,15 @@ class Component extends DCLogic {
   setPembelianKategoriFilter = (e) => {
     const kategori = e.target.value;
     this.setState((s) => {
+      // Kalau lagi di mode "+ Barang Baru", JANGAN timpa pembelianSelectedKode
+      // ke produk lama — dulu ganti kategori diam-diam melompat balik ke
+      // produk yang sudah ada, membuang kode/nama barang baru yang sudah
+      // diketik (field-nya ikut hilang dari layar tanpa peringatan apa pun).
+      if (s.pembelianSelectedKode === '__NEW__') {
+        return { pembelianKategoriFilter: kategori, ...this.clearPembelianItemError() };
+      }
       const list = s.stokProducts.filter((p) => kategori === 'ALL' || p.kategori === kategori);
-      return { pembelianKategoriFilter: kategori, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode };
+      return { pembelianKategoriFilter: kategori, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode, ...this.clearPembelianItemError() };
     });
   };
   setPembelianProduct = (e) => this.setState({ pembelianSelectedKode: e.target.value });
@@ -2534,6 +2541,12 @@ class Component extends DCLogic {
 
     const missing = [];
     const missingKeys = [];
+    // Kategori dropdown dobel fungsi: filter daftar produk yang ada, DAN
+    // (kalau isNewItem) kategori barang baru itu sendiri — dulu kalau
+    // dibiarkan di "Semua Kategori" pas nambah barang baru, diam-diam jatuh
+    // ke default 'BAN' tanpa sepengetahuan pengguna. Sekarang wajib pilih
+    // kategori asli dulu.
+    if (isNewItem && s.pembelianKategoriFilter === 'ALL') { missing.push('Kategori'); missingKeys.push('kategori'); }
     if (isNewItem && !s.pembelianNewKode.trim()) { missing.push('Kode Barang Baru'); missingKeys.push('newKode'); }
     if (isNewItem && !s.pembelianNewNama.trim()) { missing.push('Nama Barang Baru'); missingKeys.push('newNama'); }
     if (!qty) { missing.push('Jumlah'); missingKeys.push('qty'); }
@@ -2552,7 +2565,7 @@ class Component extends DCLogic {
       this.setState({ pembelianItemFormError: `Kode "${kode}" sudah dipakai, pilih kode lain.`, pembelianItemFieldErrors: ['newKode'] });
       return;
     }
-    const kategori = isNewItem ? (s.pembelianKategoriFilter === 'ALL' ? 'BAN' : s.pembelianKategoriFilter) : product.kategori;
+    const kategori = isNewItem ? s.pembelianKategoriFilter : product.kategori;
 
     this.setState((st) => ({
       pembelianCart: [...st.pembelianCart, { kode, nama, kategori, isNew: isNewItem, qty, hargaFaktur, hargaNetto, pricelist, subtotal: qty * hargaNetto }],
@@ -2838,6 +2851,7 @@ class Component extends DCLogic {
       setPembelianCash: this.setPembelianCash, setPembelianTop: this.setPembelianTop,
       addToPembelianCart: this.addToPembelianCart,
       pembelianItemFormError: s.pembelianItemFormError,
+      pembelianKategoriInvalidClass: s.pembelianItemFieldErrors.includes('kategori') ? 'input-invalid' : '',
       pembelianNewKodeInvalidClass: s.pembelianItemFieldErrors.includes('newKode') ? 'input-invalid' : '',
       pembelianNewNamaInvalidClass: s.pembelianItemFieldErrors.includes('newNama') ? 'input-invalid' : '',
       pembelianQtyInvalidClass: s.pembelianItemFieldErrors.includes('qty') ? 'input-invalid' : '',
