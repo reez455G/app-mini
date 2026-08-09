@@ -595,6 +595,7 @@
                   <sc-if value="{{ stokCanPrintBatch }}" hint-placeholder-val="{{ false }}">
                     <button type="button" class="btn btn-secondary" style="min-height:36px;font-size:12px;padding:6px 12px;" onClick="{{ openStokPrintBatch }}">Cetak Barcode ({{ stokSelectedCount }})</button>
                   </sc-if>
+                  <button type="button" class="btn btn-secondary" style="min-height:36px;font-size:12px;padding:6px 12px;color:var(--color-accent-2-700);" onClick="{{ openStokBulkDeleteConfirm }}">Hapus ({{ stokSelectedCount }})</button>
                   <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ clearStokSelection }}">Batal Pilih</button>
                 </div>
               </sc-if>
@@ -726,6 +727,19 @@
                 <div class="dialog-actions">
                   <button type="button" class="btn btn-ghost" onClick="{{ cancelDeleteStok }}">Batal</button>
                   <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteStok }}">Hapus</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ stokBulkDeleteConfirm }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog">
+                <div class="dialog-title">Hapus {{ stokSelectedCount }} Barang</div>
+                <div class="dialog-body">Yakin ingin menghapus <strong>{{ stokSelectedCount }} barang</strong> yang dipilih dari daftar barang? Tindakan ini tidak dapat dibatalkan. Barang yang masih dipakai di data transaksi tersimpan akan otomatis dilewati.</div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ cancelStokBulkDelete }}">Batal</button>
+                  <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmStokBulkDelete }}">Hapus</button>
                 </div>
               </div>
             </div>
@@ -2001,6 +2015,7 @@ class Component extends DCLogic {
     stokFormError: '',
     stokDeleteTarget: null,
     stokSelectedKodes: [],
+    stokBulkDeleteConfirm: false,
     stokPrintOpen: false,
     stokPrintTargets: [],
     stokPrintType: 'qr',
@@ -2573,6 +2588,25 @@ class Component extends DCLogic {
 
   closeDeleteError = () => this.setState({ deleteError: '' });
 
+  openStokBulkDeleteConfirm = () => this.setState({ stokBulkDeleteConfirm: true });
+  cancelStokBulkDelete = () => this.setState({ stokBulkDeleteConfirm: false });
+  confirmStokBulkDelete = () => {
+    const s = this.state;
+    const targets = s.stokProducts.filter((p) => s.stokSelectedKodes.includes(p.kode));
+    this.setState({ busy: true });
+    Promise.all(targets.map((p) => api('DELETE', 'barang.php?id=' + p.id).then(() => ({ ok: true, p })).catch(() => ({ ok: false, p }))))
+      .then((results) => {
+        const failed = results.filter((r) => !r.ok);
+        this.setState({
+          busy: false, stokBulkDeleteConfirm: false, stokSelectedKodes: [],
+          deleteError: failed.length
+            ? `${failed.length} dari ${targets.length} barang tidak bisa dihapus karena masih dipakai di data transaksi: ${failed.map((f) => f.p.nama).join(', ')}.`
+            : '',
+        });
+        this.refreshBarang();
+      });
+  };
+
   setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
   resolvePembelianSupplier = (s) => (s.pembelianSupplierChoice === '__NEW__' ? s.pembelianSupplierNew.trim() : s.pembelianSupplierChoice);
 
@@ -3051,6 +3085,9 @@ class Component extends DCLogic {
       stokFormError: s.stokFormError, saveStokForm: this.saveStokForm,
       stokDeleteTarget: s.stokDeleteTarget, deleteTargetName: deleteTargetProduct ? deleteTargetProduct.nama : '',
       cancelDeleteStok: this.cancelDeleteStok, confirmDeleteStok: this.confirmDeleteStok,
+      stokBulkDeleteConfirm: s.stokBulkDeleteConfirm,
+      openStokBulkDeleteConfirm: this.openStokBulkDeleteConfirm,
+      cancelStokBulkDelete: this.cancelStokBulkDelete, confirmStokBulkDelete: this.confirmStokBulkDelete,
     };
   }
 
