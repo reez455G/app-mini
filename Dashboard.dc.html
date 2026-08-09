@@ -834,6 +834,7 @@
                   </div>
                   <div class="field">
                     <label for="pb-product">Kode &amp; Nama Barang</label>
+                    <input class="input" id="pb-product-search" style="min-height:38px;font-size:13px;margin-bottom:6px;" placeholder="Cari kode/nama untuk mempersempit daftar di bawah..." value="{{ pembelianProductSearch }}" onChange="{{ setPembelianProductSearch }}" />
                     <select class="input" id="pb-product" style="min-height:46px;font-size:15px;padding-right:36px;text-overflow:ellipsis;" value="{{ pembelianSelectedKode }}" onChange="{{ setPembelianProduct }}">
                       <option value="__NEW__">+ Barang Baru (belum terdaftar)</option>
                       <sc-for list="{{ pembelianProductOptions }}" as="p" hint-placeholder-count="8">
@@ -1904,6 +1905,7 @@ class Component extends DCLogic {
     pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
     pembelianKategoriFilter: 'ALL',
+    pembelianProductSearch: '',
     pembelianSelectedKode: '',
     pembelianScanInput: '',
     pembelianScanReady: false,
@@ -2447,6 +2449,17 @@ class Component extends DCLogic {
   setPembelianSupplierChoice = (e) => this.setState({ pembelianSupplierChoice: e.target.value });
   setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
   resolvePembelianSupplier = (s) => (s.pembelianSupplierChoice === '__NEW__' ? s.pembelianSupplierNew.trim() : s.pembelianSupplierChoice);
+  // Dipakai bareng oleh pembelianVals() (isi dropdown) dan setter kategori/
+  // search (buat auto-select match pertama) — satu sumber logic filter,
+  // bukan diduplikasi di tiga tempat.
+  filterPembelianProducts = (products, kategori, search) => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) =>
+      (kategori === 'ALL' || p.kategori === kategori) &&
+      (!q || p.kode.toLowerCase().includes(q) || p.nama.toLowerCase().includes(q))
+    );
+  };
+
   setPembelianKategoriFilter = (e) => {
     const kategori = e.target.value;
     this.setState((s) => {
@@ -2457,8 +2470,18 @@ class Component extends DCLogic {
       if (s.pembelianSelectedKode === '__NEW__') {
         return { pembelianKategoriFilter: kategori, ...this.clearPembelianItemError() };
       }
-      const list = s.stokProducts.filter((p) => kategori === 'ALL' || p.kategori === kategori);
+      const list = this.filterPembelianProducts(s.stokProducts, kategori, s.pembelianProductSearch);
       return { pembelianKategoriFilter: kategori, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode, ...this.clearPembelianItemError() };
+    });
+  };
+  setPembelianProductSearch = (e) => {
+    const search = e.target.value;
+    this.setState((s) => {
+      if (s.pembelianSelectedKode === '__NEW__') {
+        return { pembelianProductSearch: search, ...this.clearPembelianItemError() };
+      }
+      const list = this.filterPembelianProducts(s.stokProducts, s.pembelianKategoriFilter, search);
+      return { pembelianProductSearch: search, pembelianSelectedKode: list[0] ? list[0].kode : s.pembelianSelectedKode, ...this.clearPembelianItemError() };
     });
   };
   setPembelianProduct = (e) => this.setState({ pembelianSelectedKode: e.target.value });
@@ -2610,7 +2633,7 @@ class Component extends DCLogic {
       clearPembelianDraft();
       this.setState((st) => ({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false,
+        pembelianCart: [], pembelianSupplierChoice: (st.suplierList[0] || {}).nama || '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaFaktur: '', pembelianHargaNetto: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductSearch: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
       }));
       this.refreshBarang();
@@ -2805,7 +2828,7 @@ class Component extends DCLogic {
   }
 
   pembelianVals(s) {
-    const filteredProducts = s.stokProducts.filter((p) => s.pembelianKategoriFilter === 'ALL' || p.kategori === s.pembelianKategoriFilter);
+    const filteredProducts = this.filterPembelianProducts(s.stokProducts, s.pembelianKategoriFilter, s.pembelianProductSearch);
     const pembelianCartView = s.pembelianCart.map((item, idx) => ({
       ...item, hargaFakturLabel: formatRp(item.hargaFaktur), hargaNettoLabel: formatRp(item.hargaNetto), subtotalLabel: formatRp(item.subtotal),
       pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
@@ -2834,6 +2857,7 @@ class Component extends DCLogic {
       pembelianKategoriOptions: s.kategoriList,
       pembelianKategoriFilter: s.pembelianKategoriFilter, setPembelianKategoriFilter: this.setPembelianKategoriFilter,
       pembelianProductOptions: filteredProducts,
+      pembelianProductSearch: s.pembelianProductSearch, setPembelianProductSearch: this.setPembelianProductSearch,
       pembelianSelectedKode: s.pembelianSelectedKode, setPembelianProduct: this.setPembelianProduct,
       pembelianScanInput: s.pembelianScanInput, setPembelianScanInput: this.setPembelianScanInput,
       focusPembelianScanInput: this.focusPembelianScanInput,
