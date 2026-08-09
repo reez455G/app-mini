@@ -806,7 +806,7 @@
                   <label for="pb-scan-input">Scan / Kode Barang</label>
                   <div style="display:flex;gap:8px;">
                     <input class="input" id="pb-scan-input" style="min-height:44px;font-size:15px;flex:1;min-width:0;" placeholder="Sorot ke sini lalu scan, atau ketik kode + Enter" value="{{ pembelianScanInput }}" onChange="{{ setPembelianScanInput }}" onKeyDown="{{ handlePembelianScanKeyDown }}" />
-                    <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Scan Barcode" title="Scan Barcode (alat scanner USB/Bluetooth)" onClick="{{ focusPembelianScanInput }}">
+                    <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Scan Barcode" title="Scan Barcode (alat scanner USB/Bluetooth)" tabindex="-1" onClick="{{ focusPembelianScanInput }}">
                       <svg width="16" height="16" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg>
                     </button>
                   </div>
@@ -820,7 +820,7 @@
                 <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:10px;">
                   <div class="field" style="position:relative;">
                     <label for="pb-kategori">Kategori</label>
-                    <button type="button" class="btn btn-ghost btn-icon" aria-label="Tambah kategori baru" title="Tambah kategori baru" style="position:absolute;top:-4px;right:0;min-height:24px;min-width:24px;padding:0;" onClick="{{ goMaster }}"><svg width="13" height="13" viewBox="0 0 256 256"><line x1="128" y1="40" x2="128" y2="216" stroke="currentColor" stroke-width="24"></line><line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="24"></line></svg></button>
+                    <button type="button" class="btn btn-ghost btn-icon" aria-label="Tambah kategori baru" title="Tambah kategori baru" style="position:absolute;top:-4px;right:0;min-height:24px;min-width:24px;padding:0;" tabindex="-1" onClick="{{ goMaster }}"><svg width="13" height="13" viewBox="0 0 256 256"><line x1="128" y1="40" x2="128" y2="216" stroke="currentColor" stroke-width="24"></line><line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="24"></line></svg></button>
                     <select class="input" id="pb-kategori" style="min-height:46px;font-size:15px;padding-right:36px;" value="{{ pembelianKategoriFilter }}" onChange="{{ setPembelianKategoriFilter }}">
                       <option value="ALL">Semua Kategori</option>
                       <sc-for list="{{ pembelianKategoriOptions }}" as="k" hint-placeholder-count="4">
