@@ -68,7 +68,7 @@ CREATE TABLE barang (
 -- ── Pembelian (Owner only) ────────────────────────────────────────────
 CREATE TABLE pembelian (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  no_faktur VARCHAR(30) NOT NULL UNIQUE,
+  no_faktur VARCHAR(30) NOT NULL,        -- diketik manual dari faktur fisik suplier, bukan dibuat sistem
   tanggal DATE NOT NULL,
   suplier_id INT NOT NULL,
   payment_type ENUM('CASH','TOP') NOT NULL DEFAULT 'CASH',
@@ -78,6 +78,10 @@ CREATE TABLE pembelian (
   total_biaya DECIMAL(14,2) NOT NULL,
   created_by INT DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- Unique per suplier, BUKAN global: dua suplier berbeda bisa saja
+  -- kebetulan pakai penomoran faktur yang sama (mis. sama-sama mulai dari
+  -- "001"), jadi no_faktur cuma perlu unik dalam lingkup satu suplier.
+  UNIQUE KEY no_faktur_per_suplier (suplier_id, no_faktur),
   FOREIGN KEY (suplier_id) REFERENCES suplier(id),
   FOREIGN KEY (created_by) REFERENCES users(id)
 ) ENGINE=InnoDB;

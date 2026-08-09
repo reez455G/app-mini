@@ -83,8 +83,9 @@ if ($method !== 'POST') json_error('Method not allowed', 405);
 
 $in = body();
 $supplierName = trim($in['suplier'] ?? '');
+$noFaktur = trim($in['no_faktur'] ?? '');
 $items = $in['items'] ?? [];
-if ($supplierName === '' || !$items) json_error('Suplier dan minimal 1 barang wajib diisi.');
+if ($supplierName === '' || $noFaktur === '' || !$items) json_error('Suplier, No. Faktur, dan minimal 1 barang wajib diisi.');
 $paymentType = ($in['payment_type'] ?? 'CASH') === 'TOP' ? 'TOP' : 'CASH';
 $jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : null;
 
@@ -167,11 +168,20 @@ try {
         $rows[] = [$barangId, $kode, $nama, $kategoriNama, $hargaFaktur, $hargaNetto, $pricelist, $qty, $subtotal];
     }
 
-    $noFaktur = next_doc_no($pdo, 'pembelian', 'no_faktur', 'PB');
-    $pdo->prepare(
-        'INSERT INTO pembelian (no_faktur, tanggal, suplier_id, payment_type, jatuh_tempo, total_items, total_qty, total_biaya, created_by)
-         VALUES (?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)'
-    )->execute([$noFaktur, $suplierId, $paymentType, $jatuhTempo, count($items), $totalQty, $totalBiaya, $me['id']]);
+    // no_faktur diketik manual (faktur fisik dari suplier, bukan nomor buatan
+    // sistem) — unique per suplier (lihat schema.sql), jadi tangkap duplicate
+    // key di sini biar pesannya jelas alih-alih HTTP 500 mentah.
+    try {
+        $pdo->prepare(
+            'INSERT INTO pembelian (no_faktur, tanggal, suplier_id, payment_type, jatuh_tempo, total_items, total_qty, total_biaya, created_by)
+             VALUES (?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([$noFaktur, $suplierId, $paymentType, $jatuhTempo, count($items), $totalQty, $totalBiaya, $me['id']]);
+    } catch (PDOException $e) {
+        if ($e->getCode() === '23000') {
+            throw new RuntimeException("No. Faktur \"$noFaktur\" sudah pernah diinput untuk suplier \"$supplierName\".");
+        }
+        throw $e;
+    }
     $pembelianId = (int)$pdo->lastInsertId();
 
     $itemStmt = $pdo->prepare(

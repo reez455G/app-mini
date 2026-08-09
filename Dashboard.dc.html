@@ -902,8 +902,9 @@
                   </div>
                 </sc-if>
                 <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;margin-top:12px;">
-                  <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;">
-                    <span>No. Faktur</span><span style="font-weight:600;opacity:1;">{{ previewPembelianNo }}</span>
+                  <div class="field" style="margin:0;">
+                    <label for="pb-no-faktur" style="font-size:13px;opacity:0.65;">No. Faktur</label>
+                    <input class="input" id="pb-no-faktur" style="min-height:40px;font-size:14px;" placeholder="Sesuai faktur fisik dari suplier" value="{{ pembelianNoFaktur }}" onChange="{{ setPembelianNoFaktur }}" />
                   </div>
                   <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;">
                     <span>Tanggal Faktur</span><span style="font-weight:600;opacity:1;">{{ todayLabel }}</span>
@@ -2061,7 +2062,7 @@ const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
 // diselamatkan; kalau ikut dipulihkan, field itu terasa "nyangkut" ke barang/
 // suplier lama tiap kali reload (termasuk setelah data di-cleanse).
 const PEMBELIAN_DRAFT_FIELDS = [
-  'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
+  'pembelianNoFaktur', 'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
   'pembelianKategoriFilter', 'pembelianNewKode', 'pembelianNewNama',
   'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianPricelist', 'pembelianQty',
   'pembelianCart',
@@ -2178,6 +2179,7 @@ class Component extends DCLogic {
     stokPrintType: 'qr',
     stokPrintLayout: 'nama',
     pembelianCart: [],
+    pembelianNoFaktur: '',
     pembelianSupplierChoice: '',
     pembelianSupplierNew: '',
     pembelianSupplierComboOpen: false,
@@ -2842,6 +2844,7 @@ class Component extends DCLogic {
   };
 
   setPembelianSupplierNew = (e) => this.setState({ pembelianSupplierNew: e.target.value });
+  setPembelianNoFaktur = (e) => this.setState({ pembelianNoFaktur: e.target.value });
   resolvePembelianSupplier = (s) => (s.pembelianSupplierChoice === '__NEW__' ? s.pembelianSupplierNew.trim() : s.pembelianSupplierChoice);
 
   // Combobox custom buat "Nama Suplier" — pola sama seperti "Kode & Nama
@@ -3116,12 +3119,13 @@ class Component extends DCLogic {
   completeSPembelian = () => {
     const s = this.state;
     const supplierName = this.resolvePembelianSupplier(s);
-    if (!supplierName || s.pembelianCart.length === 0) return;
+    if (!supplierName || !s.pembelianNoFaktur.trim() || s.pembelianCart.length === 0) return;
     const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
     const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
     this.setState({
       pembelianCompleted: true,
       pembelianPreview: {
+        noFaktur: s.pembelianNoFaktur.trim(),
         supplier: supplierName, tanggal: formatTanggal(new Date().toISOString().slice(0, 10)),
         jatuhTempo: s.pembelianJatuhTempo, payment: s.pembelianPayment,
         kategori: s.pembelianKategoriFilter === 'ALL' ? [...new Set(s.pembelianCart.map((i) => i.kategori))].join(', ') : s.pembelianKategoriFilter,
@@ -3143,11 +3147,11 @@ class Component extends DCLogic {
     const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
     const justAddedNew = preview.items.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
-    api('POST', 'pembelian.php', { suplier: preview.supplier, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then((res) => {
+    api('POST', 'pembelian.php', { suplier: preview.supplier, no_faktur: preview.noFaktur, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then((res) => {
       clearPembelianDraft();
       this.setState({
         busy: false,
-        pembelianCart: [], pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
+        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
         pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
@@ -3423,11 +3427,12 @@ class Component extends DCLogic {
     const totalItems = s.pembelianCart.length;
     const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
     const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
-    const canComplete = !s.busy && this.resolvePembelianSupplier(s) !== '' && s.pembelianCart.length > 0;
+    const canComplete = !s.busy && this.resolvePembelianSupplier(s) !== '' && s.pembelianNoFaktur.trim() !== '' && s.pembelianCart.length > 0;
     let pembelianNote = s.pembelianSubmitError;
     if (!pembelianNote) {
       if (s.pembelianCart.length === 0) pembelianNote = 'Tambahkan barang ke daftar pembelian terlebih dahulu.';
       else if (this.resolvePembelianSupplier(s) === '') pembelianNote = 'Pilih atau isi nama suplier.';
+      else if (s.pembelianNoFaktur.trim() === '') pembelianNote = 'Isi No. Faktur sesuai faktur fisik dari suplier.';
     }
 
     return {
@@ -3474,7 +3479,7 @@ class Component extends DCLogic {
       pembelianCartEmpty: s.pembelianCart.length === 0, pembelianCartNotEmpty: s.pembelianCart.length > 0,
       pembelianCartView,
       pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
-      previewPembelianNo: 'Dibuat otomatis saat disimpan',
+      pembelianNoFaktur: s.pembelianNoFaktur, setPembelianNoFaktur: this.setPembelianNoFaktur,
       pembelianCannotComplete: !canComplete, completeSPembelian: this.completeSPembelian, pembelianNote,
       // Label riwayat dirakit di sini (bukan di template) supaya barisnya tetap
       // dua baris ringkas tanpa sc-if bercabang di dalam tabel.
@@ -3499,7 +3504,6 @@ class Component extends DCLogic {
       })),
       pembelianPreviewView: s.pembelianPreview ? {
         ...s.pembelianPreview,
-        noFaktur: 'Dibuat otomatis saat disimpan',
         paymentLabel: s.pembelianPreview.payment === 'CASH' ? 'Cash' : 'TOP',
         jatuhTempoLabel: s.pembelianPreview.jatuhTempo || '-',
         totalBiayaLabel: formatRp(s.pembelianPreview.totalBiaya),
