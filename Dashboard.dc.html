@@ -516,6 +516,35 @@
                     </table>
                   </sc-if>
                 </div>
+
+                <div class="card elev-sm">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <div class="card-kicker">Riwayat Penjualan</div>
+                    <sc-if value="{{ penjHistoryShowLaporanLink }}" hint-placeholder-val="{{ false }}">
+                      <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ goLaporanPenjualan }}">Detail &amp; Laporan &rarr;</button>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ penjHistoryEmpty }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada penjualan tersimpan.</p>
+                  </sc-if>
+                  <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
+                    <table class="table">
+                      <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th></tr></thead>
+                      <tbody>
+                        <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
+                          <tr>
+                            <td>{{ h.invoiceNo }}</td>
+                            <td>{{ h.tanggalPendek }}</td>
+                            <td>{{ h.custName }}</td>
+                            <td>{{ h.totalQty }} pcs</td>
+                            <td>{{ h.grandTotalLabel }}</td>
+                            <td><span class="tag {{ h.paymentTagClass }}" style="font-size:11px;">{{ h.paymentLabel }}</span></td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
 
               <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
@@ -2096,6 +2125,7 @@ function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, al
 function normalizePelanggan(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
 function normalizeUser(r) { return { id: r.id, username: r.username, role: r.role }; }
 function normalizePembelian(r) { return { noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya), paymentType: r.payment_type, jatuhTempo: r.jatuh_tempo }; }
+function normalizePenjualan(r) { return { invoiceNo: r.invoice_no, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, custName: r.cust_name, totalQty: r.total_qty, grandTotal: Number(r.grand_total), paymentMethod: r.payment_method }; }
 function normalizeReturPj(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, customer: r.customer_name, tanggal: r.tanggal, totalQty: r.total_qty }; }
 function normalizeReturPb(r) { return { noRetur: r.no_retur, invoice: r.original_invoice_no, supplier: r.suplier, tanggal: r.tanggal, totalQty: r.total_qty }; }
 
@@ -2130,6 +2160,7 @@ class Component extends DCLogic {
     penjCompleted: false,
     penjLastInvoice: null,
     penjSubmitError: '',
+    penjHistory: [],
     stokProducts: [],
     stokSearch: '',
     stokKategoriFilter: 'ALL',
@@ -2252,6 +2283,7 @@ class Component extends DCLogic {
   }).catch((e) => this.setState({ globalError: e.message }));
 
   refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.setState({ globalError: e.message }));
+  refreshPenjHistory = () => api('GET', 'penjualan.php').then((rows) => this.setState({ penjHistory: rows.map(normalizePenjualan) })).catch((e) => this.setState({ globalError: e.message }));
   refreshSuplier = () => api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
   refreshReturPj = () => api('GET', 'retur_penjualan.php').then((rows) => this.setState({ returPjHistory: rows.map(normalizeReturPj) })).catch((e) => this.setState({ globalError: e.message }));
   refreshReturPb = () => api('GET', 'retur_pembelian.php').then((rows) => this.setState({ returPbHistory: rows.map(normalizeReturPb) })).catch((e) => this.setState({ globalError: e.message }));
@@ -2317,6 +2349,7 @@ class Component extends DCLogic {
 
   loadModuleData = (key) => {
     if (key === 'pembelian') this.refreshPembelianHistory();
+    else if (key === 'penjualan') this.refreshPenjHistory();
     else if (key === 'retur') { this.refreshReturPj(); if (this.state.role === 'owner') this.refreshReturPb(); }
     else if (key === 'laporanLengkap') this.loadLaporanTab(this.state.laporanLengkapTab);
     else if (key === 'dashboard') this.loadDashboardWidgets();
@@ -2411,6 +2444,7 @@ class Component extends DCLogic {
       };
       this.setState({ busy: false, penjCompleted: true, penjLastInvoice: newInvoice });
       this.refreshBarang();
+      this.refreshPenjHistory();
     }).catch((e) => this.setState({ busy: false, penjSubmitError: e.message }));
   };
 
@@ -3123,6 +3157,13 @@ class Component extends DCLogic {
     });
   };
 
+  goLaporanPenjualan = () => {
+    if (!NAV_ACCESS.laporanLengkap.includes(this.state.role)) return;
+    this.setState({ activeModule: 'laporanLengkap', laporanLengkapTab: 'penjualan', navMobileOpen: false }, () => {
+      this.loadLaporanTab('penjualan');
+    });
+  };
+
   toggleNavMobile = () => this.setState((s) => ({ navMobileOpen: !s.navMobileOpen }));
   closeNavMobile = () => this.setState({ navMobileOpen: false });
 
@@ -3208,6 +3249,17 @@ class Component extends DCLogic {
       penjCannotComplete: !penjCanComplete, completeTransaction: this.completeTransaction, penjNote,
       penjNotCompleted: !s.penjCompleted, penjCompletedFlag: s.penjCompleted,
       penjLastInvoiceView, newTransaction: this.newTransaction,
+      penjHistoryEmpty: s.penjHistory.length === 0,
+      penjHistoryView: s.penjHistory.map((h) => ({
+        ...h,
+        tanggalPendek: formatTanggalPendek(h.tanggalISO),
+        grandTotalLabel: formatRp(h.grandTotal),
+        paymentLabel: h.paymentMethod === 'TRANSFER' ? 'Transfer' : 'Tunai',
+        paymentTagClass: h.paymentMethod === 'TRANSFER' ? 'tag-accent' : 'tag-neutral',
+      })),
+      // Tombol "Detail & Laporan" cuma masuk akal buat Owner — Laporan
+      // Lengkap sendiri Owner-only, Karyawan cukup lihat tabel riwayatnya.
+      penjHistoryShowLaporanLink: s.role === 'owner', goLaporanPenjualan: this.goLaporanPenjualan,
     };
   }
 
