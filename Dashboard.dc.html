@@ -538,7 +538,7 @@
                       <tbody>
                         <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
                           <tr>
-                            <td>{{ h.invoiceNo }}</td>
+                            <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" title="Detail transaksi" onClick="{{ h.detailHandler }}">{{ h.invoiceNo }}</button></td>
                             <td>{{ h.tanggalPendek }}</td>
                             <td>{{ h.custName }}</td>
                             <td>{{ h.totalQty }} pcs</td>
@@ -1416,47 +1416,6 @@
                 </tbody>
               </table>
             </div>
-
-            <sc-if value="{{ laporanPenjualanDetailOpen }}" hint-placeholder-val="{{ false }}">
-              <div class="dialog-backdrop">
-                <div class="dialog" style="width:min(640px,100%);">
-                  <div class="dialog-title">Detail Penjualan</div>
-                  <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
-                    <sc-if value="{{ laporanPenjualanDetailLoading }}" hint-placeholder-val="{{ false }}">
-                      <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
-                    </sc-if>
-                    <sc-if value="{{ laporanPenjualanDetailError }}" hint-placeholder-val="{{ false }}">
-                      <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ laporanPenjualanDetailError }}</p>
-                    </sc-if>
-                    <sc-if value="{{ laporanPenjualanDetail }}" hint-placeholder-val="{{ false }}">
-                      <div>
-                        <h3 style="margin:0;">{{ laporanPenjualanDetail.invoiceNo }}</h3>
-                        <div style="font-size:13px;opacity:0.7;margin-top:2px;">{{ laporanPenjualanDetail.tanggal }} · {{ laporanPenjualanDetail.custName }} · {{ laporanPenjualanDetail.paymentLabel }}</div>
-                      </div>
-                      <div style="max-height:320px;overflow-y:auto;">
-                        <table class="table">
-                          <thead><tr><th>Nama</th><th>Tier</th><th>Qty</th><th>Harga Satuan</th><th>Subtotal</th></tr></thead>
-                          <tbody>
-                            <sc-for list="{{ laporanPenjualanDetail.items }}" as="it" hint-placeholder-count="3">
-                              <tr>
-                                <td>{{ it.nama }}</td><td>{{ it.tierLabel }}</td><td>{{ it.qty }} pcs</td>
-                                <td>{{ it.unitPriceLabel }}</td><td>{{ it.subtotalLabel }}</td>
-                              </tr>
-                            </sc-for>
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
-                        <span>Total</span><span>{{ laporanPenjualanDetail.grandTotalLabel }}</span>
-                      </div>
-                    </sc-if>
-                  </div>
-                  <div class="dialog-actions">
-                    <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPenjualanDetail }}">Tutup</button>
-                  </div>
-                </div>
-              </div>
-            </sc-if>
           </sc-if>
 
           <sc-if value="{{ lapTabIsLaba }}" hint-placeholder-val="{{ false }}">
@@ -1985,6 +1944,54 @@
         <div class="dialog-actions">
           <button type="button" class="btn btn-secondary" onClick="{{ cancelDeleteTransaksi }}">Batal</button>
           <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteTransaksi }}">Hapus</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Detail Penjualan — dipicu dari No. Invoice di Riwayat Penjualan
+       (Transaksi Penjualan, Owner & Karyawan) MAUPUN dari Laporan Lengkap
+       (Owner only), jadi sibling #app-shell supaya bisa dibuka dari
+       keduanya. Endpoint GET penjualan.php?id= sendiri sudah require_login()
+       biasa (bukan require_owner), jadi Karyawan memang boleh lihat detail
+       transaksi penjualan — cuma modal beli barang (Laporan Laba, dst) yang
+       tetap disembunyikan lewat endpoint lain. -->
+  <sc-if value="{{ laporanPenjualanDetailOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog" style="width:min(640px,100%);">
+        <div class="dialog-title">Detail Penjualan</div>
+        <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+          <sc-if value="{{ laporanPenjualanDetailLoading }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
+          </sc-if>
+          <sc-if value="{{ laporanPenjualanDetailError }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ laporanPenjualanDetailError }}</p>
+          </sc-if>
+          <sc-if value="{{ laporanPenjualanDetail }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <h3 style="margin:0;">{{ laporanPenjualanDetail.invoiceNo }}</h3>
+              <div style="font-size:13px;opacity:0.7;margin-top:2px;">{{ laporanPenjualanDetail.tanggal }} · {{ laporanPenjualanDetail.custName }} · {{ laporanPenjualanDetail.paymentLabel }}</div>
+            </div>
+            <div style="max-height:320px;overflow-y:auto;">
+              <table class="table">
+                <thead><tr><th>Nama</th><th>Tier</th><th>Qty</th><th>Harga Satuan</th><th>Subtotal</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ laporanPenjualanDetail.items }}" as="it" hint-placeholder-count="3">
+                    <tr>
+                      <td>{{ it.nama }}</td><td>{{ it.tierLabel }}</td><td>{{ it.qty }} pcs</td>
+                      <td>{{ it.unitPriceLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
+              <span>Total</span><span>{{ laporanPenjualanDetail.grandTotalLabel }}</span>
+            </div>
+          </sc-if>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPenjualanDetail }}">Tutup</button>
         </div>
       </div>
     </div>
@@ -3476,6 +3483,11 @@ class Component extends DCLogic {
       penjHistoryView: s.penjHistory.map((h) => ({
         ...h,
         deleteHandler: () => this.requestDeleteTransaksi('penjualan', h.id, h.invoiceNo),
+        // Klik No. Invoice buka detail transaksi — dibuka Owner MAUPUN
+        // Karyawan (endpoint-nya sendiri sudah require_login biasa), supaya
+        // Karyawan bisa lihat riwayat pembelian pelanggan tanpa perlu masuk
+        // Laporan Lengkap (yang memang Owner-only).
+        detailHandler: () => this.openLaporanPenjualanDetail(h.id),
         tanggalPendek: formatTanggalPendek(h.tanggalISO),
         grandTotalLabel: formatRp(h.grandTotal),
         paymentLabel: h.paymentMethod === 'TRANSFER' ? 'Transfer' : 'Tunai',
