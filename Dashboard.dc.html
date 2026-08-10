@@ -528,7 +528,7 @@
                     <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada penjualan tersimpan.</p>
                   </sc-if>
                   <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
-                    <table class="table">
+                    <table class="table" style="min-width:800px;white-space:nowrap;">
                       <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th><th></th></tr></thead>
                       <tbody>
                         <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
