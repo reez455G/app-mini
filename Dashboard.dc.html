@@ -173,7 +173,7 @@
   <div style="display:flex;min-height:100vh;background:var(--color-bg);font-family:var(--font-body);">
     <div class="login-brand-panel" style="width:42%;min-width:340px;background:var(--color-neutral-900);color:var(--color-bg);display:flex;flex-direction:column;justify-content:space-between;padding:48px;box-sizing:border-box;">
       <div>
-        <img src="assets/logo.png" alt="{{ storeName }}" style="max-width:240px;width:100%;height:auto;border-radius:8px;display:block;" />
+        <img src="assets/logo.png?v={{ assetV }}" alt="{{ storeName }}" style="max-width:240px;width:100%;height:auto;border-radius:8px;display:block;" />
         <div style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 65%, transparent);margin-top:14px;">Sistem Stok &amp; Kasir Toko</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:22px;">
@@ -612,7 +612,7 @@
                      kecil di pojok kanan atas, teks tetap rata tengah. -->
                 <sc-if value="{{ tokoNama }}" hint-placeholder-val="{{ false }}">
                   <div style="position:relative;text-align:center;border-bottom:1px solid var(--color-border);padding-bottom:14px;">
-                    <img src="assets/logo-mono.png" alt="" style="position:absolute;top:0;right:0;width:76px;height:auto;" />
+                    <img src="assets/logo-mono.png?v={{ assetV }}" alt="" style="position:absolute;top:0;right:0;width:76px;height:auto;" />
                     <div style="font-family:var(--font-heading);font-weight:700;font-size:18px;">{{ tokoNama }}</div>
                     <sc-if value="{{ tokoAlamat }}" hint-placeholder-val="{{ false }}">
                       <div style="font-size:12px;opacity:0.7;margin-top:2px;">{{ tokoAlamat }}</div>
@@ -2178,6 +2178,13 @@ function clearPembelianDraft() {
 }
 
 const API_BASE = 'backend/api/';
+
+// Cache-busting untuk file di assets/ (logo, dst) — Cloudflare (dan browser)
+// nge-cache gambar cukup agresif meski server tidak kirim Cache-Control.
+// Tanpa query string ini, ganti file logo tidak akan langsung kelihatan buat
+// pengguna sampai cache-nya kedaluwarsa sendiri. Naikkan angka ini SETIAP KALI
+// file di assets/ diganti (bukan dibuat baru dengan nama beda).
+const ASSET_V = 3;
 
 function api(method, path, body) {
   return fetch(API_BASE + path, {
@@ -4001,7 +4008,7 @@ class Component extends DCLogic {
       dismissGlobalError: () => this.setState({ globalError: '' }),
       busy: s.busy,
       isOwner, isKaryawan: !isOwner,
-      storeName,
+      storeName, assetV: ASSET_V,
       username: s.username, password: s.password, loginError: s.loginError,
       setUsername: this.setUsername, setPassword: this.setPassword,
       doLogin: this.doLogin, doLogout: this.doLogout,
