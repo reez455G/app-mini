@@ -1322,10 +1322,11 @@
             <div class="card elev-sm">
               <div class="card-kicker">Rincian per Suplier</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>Suplier</th><th>No. Faktur</th><th>Waktu</th><th>Qty</th><th>Total</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortPembelianHandler }}">Waktu {{ sortPembelianArrow }}</th><th>Suplier</th><th>No. Faktur</th><th>Qty</th><th>Total</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ pembelianRowsView }}" as="h" hint-placeholder-count="3">
                     <tr>
+                      <td>{{ h.waktuLabel }}</td>
                       <td>{{ h.supplier }}</td>
                       <td>
                         <div style="display:inline-flex;align-items:center;gap:4px;">
@@ -1340,7 +1341,7 @@
                           </button>
                         </div>
                       </td>
-                      <td>{{ h.waktuLabel }}</td><td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td>
+                      <td>{{ h.totalQty }} pcs</td><td>{{ h.totalBiayaLabel }}</td>
                     </tr>
                   </sc-for>
                 </tbody>
@@ -1398,7 +1399,7 @@
             <div class="card elev-sm">
               <div class="card-kicker">Rincian Transaksi</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>Waktu</th><th>No. Invoice</th><th>Pelanggan</th><th>Payment</th><th>Qty</th><th>Total</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortPenjualanHandler }}">Waktu {{ sortPenjualanArrow }}</th><th>No. Invoice</th><th>Pelanggan</th><th>Payment</th><th>Qty</th><th>Total</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ penjualanRowsView }}" as="r" hint-placeholder-count="3">
                     <tr>
@@ -1462,10 +1463,10 @@
             <div class="card elev-sm">
               <div class="card-kicker">Laba per Transaksi</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>No. Invoice</th><th>Pelanggan</th><th>Laba</th><th>Margin</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortLabaHandler }}">Waktu {{ sortLabaArrow }}</th><th>No. Invoice</th><th>Pelanggan</th><th>Laba</th><th>Margin</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ labaRows }}" as="r" hint-placeholder-count="3">
-                    <tr><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.profitLabel }}</td><td>{{ r.marginLabel }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.profitLabel }}</td><td>{{ r.marginLabel }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
@@ -1508,10 +1509,10 @@
             <div class="card elev-sm">
               <div class="card-kicker">Retur Penjualan</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>No. Retur</th><th>Pelanggan</th><th>Invoice Asal</th><th>Waktu</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortReturPjHandler }}">Waktu {{ sortReturPjArrow }}</th><th>No. Retur</th><th>Pelanggan</th><th>Invoice Asal</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ returPjLaporanRows }}" as="r" hint-placeholder-count="2">
-                    <tr><td>{{ r.noRetur }}</td><td>{{ r.customer }}</td><td>{{ r.invoice }}</td><td>{{ r.waktuLabel }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.noRetur }}</td><td>{{ r.customer }}</td><td>{{ r.invoice }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
@@ -1519,10 +1520,10 @@
             <div class="card elev-sm">
               <div class="card-kicker">Retur Pembelian</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th>No. Retur</th><th>Suplier</th><th>Faktur Asal</th><th>Waktu</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortReturPbHandler }}">Waktu {{ sortReturPbArrow }}</th><th>No. Retur</th><th>Suplier</th><th>Faktur Asal</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ returPbLaporanRows }}" as="r" hint-placeholder-count="2">
-                    <tr><td>{{ r.noRetur }}</td><td>{{ r.supplier }}</td><td>{{ r.invoice }}</td><td>{{ r.waktuLabel }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.noRetur }}</td><td>{{ r.supplier }}</td><td>{{ r.invoice }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
@@ -2306,6 +2307,10 @@ class Component extends DCLogic {
     laporanDari: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
     laporanSampai: new Date().toISOString().slice(0, 10),
     laporanLengkapSearch: '',
+    // Sort kolom Waktu per tabel — 'desc' (terbaru dulu) cocok dengan urutan
+    // default dari backend (ORDER BY tanggal DESC), jadi ini sekadar toggle
+    // klien, bukan re-fetch.
+    lapSort: { pembelian: 'desc', penjualan: 'desc', laba: 'desc', returPj: 'desc', returPb: 'desc' },
     remoteLaporanGlobal: null, remoteLaporanPembelian: null, remoteLaporanPenjualan: null,
     remoteLaporanLaba: null, remoteLaporanTop: null, remoteLaporanRetur: null,
     laporanPembelianDetailOpen: false, laporanPembelianDetail: null, laporanPembelianDetailError: '',
@@ -2780,6 +2785,8 @@ class Component extends DCLogic {
       this.refreshBarang();
     }).catch((e) => this.setState({ busy: false, transaksiDeleteTarget: null, deleteError: e.message }));
   };
+
+  toggleLapSort = (key) => this.setState((s) => ({ lapSort: { ...s.lapSort, [key]: s.lapSort[key] === 'asc' ? 'desc' : 'asc' } }));
 
   setLaporanDari = (e) => this.setState({ laporanDari: e.target.value }, () => this.loadLaporanTab(this.state.laporanLengkapTab));
   setLaporanSampai = (e) => this.setState({ laporanSampai: e.target.value }, () => this.loadLaporanTab(this.state.laporanLengkapTab));
@@ -3783,6 +3790,12 @@ class Component extends DCLogic {
     const top = s.remoteLaporanTop || { by_qty: [], by_revenue: [] };
     const retur = s.remoteLaporanRetur || { retur_penjualan: [], retur_pembelian: [] };
 
+    // Sort kolom Waktu — string created_at ("YYYY-MM-DD HH:MM:SS") aman
+    // dibandingkan leksikografis, tidak perlu parse Date dulu.
+    const byCreatedAt = (rows, dir) => [...rows].sort((a, b) =>
+      dir === 'asc' ? String(a.created_at).localeCompare(b.created_at) : String(b.created_at).localeCompare(a.created_at));
+    const sortArrow = (dir) => dir === 'asc' ? '▲' : '▼';
+
     return {
       laporanPembelianDetailOpen: s.laporanPembelianDetailOpen, laporanPembelianDetail: laporanPembelianDetailView,
       laporanPembelianDetailLoading, laporanPembelianDetailError: s.laporanPembelianDetailError,
@@ -3799,7 +3812,7 @@ class Component extends DCLogic {
       lapTabIsPenjualan: s.laporanLengkapTab === 'penjualan', lapTabIsLaba: s.laporanLengkapTab === 'laba',
       lapTabIsLaris: s.laporanLengkapTab === 'laris', lapTabIsRetur: s.laporanLengkapTab === 'retur',
 
-      pembelianRowsView: pb.rows.map((r) => ({
+      pembelianRowsView: byCreatedAt(pb.rows, s.lapSort.pembelian).map((r) => ({
         supplier: r.suplier, noFaktur: r.no_faktur, totalQty: r.total_qty, totalBiayaLabel: formatRp(r.total_biaya),
         waktuLabel: formatWaktu(r.created_at),
         detailHandler: () => this.openLaporanPembelianDetail(r.id),
@@ -3807,28 +3820,33 @@ class Component extends DCLogic {
         isCopied: s.copiedFaktur === r.no_faktur,
       })).filter((h) => matches(h.supplier, h.noFaktur)),
       totalPembelianLabel: formatRp(pb.total_biaya || 0), totalItemsPembelian: pb.total_items || 0, avgInvoicePembelianLabel: formatRp(pb.avg_invoice || 0),
+      sortPembelianHandler: () => this.toggleLapSort('pembelian'), sortPembelianArrow: sortArrow(s.lapSort.pembelian),
 
       // Dulu digabung per pelanggan (satu baris = beberapa invoice ditumpuk),
       // sekarang satu baris = satu transaksi supaya kolom timestamp-nya
       // presisi per transaksi, bukan rata-rata/gabungan.
-      penjualanRowsView: pj.rows.map((r) => ({
+      penjualanRowsView: byCreatedAt(pj.rows, s.lapSort.penjualan).map((r) => ({
         invoiceNo: r.invoice_no, custName: r.cust_name, paymentLabel: r.payment_method === 'TRANSFER' ? 'Transfer' : 'Tunai',
         totalQty: r.total_qty, grandTotalLabel: formatRp(r.grand_total), waktuLabel: formatWaktu(r.created_at),
         detailHandler: () => this.openLaporanPenjualanDetail(r.id),
       })).filter((r) => matches(r.invoiceNo, r.custName)),
       totalPenjualanLabel: formatRp(pj.total_revenue || 0), totalItemsTerjual: pj.total_items || 0,
       avgSaleLabel: formatRp(pj.avg_sale || 0), penjualanTxCount: pj.tx_count || 0,
+      sortPenjualanHandler: () => this.toggleLapSort('penjualan'), sortPenjualanArrow: sortArrow(s.lapSort.penjualan),
 
-      labaRows: laba.rows.map((r) => ({ invoiceNo: r.invoice_no, custName: r.cust_name, profitLabel: formatRp(r.profit), marginLabel: r.margin_pct.toFixed(1) + '%' })).filter((r) => matches(r.invoiceNo, r.custName)),
+      labaRows: byCreatedAt(laba.rows, s.lapSort.laba).map((r) => ({ invoiceNo: r.invoice_no, custName: r.cust_name, waktuLabel: formatWaktu(r.created_at), profitLabel: formatRp(r.profit), marginLabel: r.margin_pct.toFixed(1) + '%' })).filter((r) => matches(r.invoiceNo, r.custName)),
       totalRevenueLabel: formatRp(laba.total_revenue || 0), totalCostLabel: formatRp(laba.total_cost || 0),
       grossProfitLabel: formatRp(laba.gross_profit || 0), marginPctLabel: (laba.margin_pct || 0).toFixed(1) + '%',
+      sortLabaHandler: () => this.toggleLapSort('laba'), sortLabaArrow: sortArrow(s.lapSort.laba),
 
       byQty: top.by_qty.map((it) => ({ nama: it.nama, kode: it.kode, qty: it.qty })).filter((it) => matches(it.nama, it.kode)),
       byRevenue: top.by_revenue.map((it) => ({ nama: it.nama, kode: it.kode, revenueLabel: formatRp(it.revenue) })).filter((it) => matches(it.nama, it.kode)),
 
-      returPjLaporanRows: retur.retur_penjualan.map((r) => ({ noRetur: r.no_retur, customer: r.customer_name, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.customer, r.nama)),
-      returPbLaporanRows: retur.retur_pembelian.map((r) => ({ noRetur: r.no_retur, supplier: r.suplier, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.supplier, r.nama)),
+      returPjLaporanRows: byCreatedAt(retur.retur_penjualan, s.lapSort.returPj).map((r) => ({ noRetur: r.no_retur, customer: r.customer_name, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.customer, r.nama)),
+      returPbLaporanRows: byCreatedAt(retur.retur_pembelian, s.lapSort.returPb).map((r) => ({ noRetur: r.no_retur, supplier: r.suplier, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.supplier, r.nama)),
       returLaporanEmpty: retur.retur_penjualan.length === 0 && retur.retur_pembelian.length === 0,
+      sortReturPjHandler: () => this.toggleLapSort('returPj'), sortReturPjArrow: sortArrow(s.lapSort.returPj),
+      sortReturPbHandler: () => this.toggleLapSort('returPb'), sortReturPbArrow: sortArrow(s.lapSort.returPb),
 
       kpiTotalRevenueLabel: formatRp(g.total_revenue || 0), kpiTotalCostLabel: formatRp(g.total_cost || 0),
       kpiNetProfitLabel: formatRp(g.net_profit || 0), kpiMarginLabel: (g.margin_pct || 0).toFixed(1) + '%', kpiRoiLabel: (g.roi_pct || 0).toFixed(1) + '%',

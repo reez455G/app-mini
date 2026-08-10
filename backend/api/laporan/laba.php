@@ -13,13 +13,13 @@ $to = $_GET['to'] ?? date('Y-m-d');
 // LEFT JOIN: transaksi lama sebelum migrasi lot belum punya baris ini —
 // cost-nya jadi 0 sampai skrip backfill dijalankan.
 $stmt = $pdo->prepare(
-    "SELECT pj.id, pj.invoice_no, pj.cust_name, pj.grand_total,
+    "SELECT pj.id, pj.invoice_no, pj.cust_name, pj.grand_total, pj.created_at,
             COALESCE(SUM(pil.qty * pil.harga_beli), 0) AS cost
      FROM penjualan pj
      JOIN penjualan_item pi ON pi.penjualan_id = pj.id
      LEFT JOIN penjualan_item_lot pil ON pil.penjualan_item_id = pi.id
      WHERE pj.tanggal BETWEEN ? AND ?
-     GROUP BY pj.id, pj.invoice_no, pj.cust_name, pj.grand_total
+     GROUP BY pj.id, pj.invoice_no, pj.cust_name, pj.grand_total, pj.created_at
      ORDER BY pj.tanggal DESC"
 );
 $stmt->execute([$from, $to]);
@@ -31,7 +31,7 @@ $perTx = array_map(function ($r) use (&$totalRevenue, &$totalCost) {
     $margin = $r['grand_total'] > 0 ? $profit / $r['grand_total'] * 100 : 0;
     $totalRevenue += (float)$r['grand_total'];
     $totalCost += (float)$r['cost'];
-    return ['invoice_no' => $r['invoice_no'], 'cust_name' => $r['cust_name'], 'profit' => $profit, 'margin_pct' => $margin];
+    return ['invoice_no' => $r['invoice_no'], 'cust_name' => $r['cust_name'], 'created_at' => $r['created_at'], 'profit' => $profit, 'margin_pct' => $margin];
 }, $data);
 
 $grossProfit = $totalRevenue - $totalCost;
