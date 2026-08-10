@@ -243,6 +243,19 @@ CREATE TABLE retur_pembelian_item (
   FOREIGN KEY (barang_lot_id) REFERENCES barang_lot(id)
 ) ENGINE=InnoDB;
 
+-- ── Profil toko ───────────────────────────────────────────────────────
+-- Selalu tepat SATU baris (id=1) — bukan daftar seperti suplier/pelanggan,
+-- jadi tidak ada kode/AUTO_INCREMENT. Ditampilkan & diedit di Master Data.
+CREATE TABLE toko_profil (
+  id INT PRIMARY KEY DEFAULT 1,
+  nama VARCHAR(150) NOT NULL,
+  alamat VARCHAR(255) NOT NULL DEFAULT '-',
+  no_hp VARCHAR(30) NOT NULL DEFAULT '-'
+) ENGINE=InnoDB;
+
+INSERT INTO toko_profil (id, nama, alamat, no_hp) VALUES
+  (1, 'PUTRA JAYA MOTOR', 'Jl. Jati Raya Blok J No. 11, Banyumanik, Semarang', '08155608055');
+
 -- ════════════════════════════════════════════════════════════════════
 -- Seed data — sama dengan data contoh yang sudah ada di Dashboard.dc.html,
 -- supaya demo/testing konsisten dengan prototipe frontend.

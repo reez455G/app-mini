@@ -1718,6 +1718,7 @@
             <button type="button" class="btn {{ masterTabPelanggan_class }}" style="min-height:44px;" onClick="{{ setMasterTabPelanggan }}">Pelanggan</button>
             <button type="button" class="btn {{ masterTabKategori_class }}" style="min-height:44px;" onClick="{{ setMasterTabKategori }}">Kategori Barang</button>
             <button type="button" class="btn {{ masterTabUser_class }}" style="min-height:44px;" onClick="{{ setMasterTabUser }}">Pengguna</button>
+            <button type="button" class="btn {{ masterTabToko_class }}" style="min-height:44px;" onClick="{{ setMasterTabToko }}">Toko</button>
           </div>
 
           <sc-if value="{{ masterTabIsSuplier }}" hint-placeholder-val="{{ true }}">
@@ -1817,6 +1818,34 @@
                   </sc-for>
                 </tbody>
               </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterTabIsToko }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm" style="max-width:520px;">
+              <div class="card-kicker">Profil Toko</div>
+              <p style="margin:6px 0 16px;font-size:13px;opacity:0.65;">Data ini cuma informasi toko, dilihat semua pengguna tapi hanya Owner yang bisa mengubahnya.</p>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="field">
+                  <label for="toko-nama">Nama Toko</label>
+                  <input class="input" id="toko-nama" style="min-height:46px;font-size:15px;" value="{{ tokoForm.nama }}" onChange="{{ setTokoNama }}" />
+                </div>
+                <div class="field">
+                  <label for="toko-alamat">Alamat</label>
+                  <input class="input" id="toko-alamat" style="min-height:46px;font-size:15px;" value="{{ tokoForm.alamat }}" onChange="{{ setTokoAlamat }}" />
+                </div>
+                <div class="field">
+                  <label for="toko-notelp">No. Telp/WA</label>
+                  <input class="input" id="toko-notelp" style="min-height:46px;font-size:15px;" value="{{ tokoForm.noHp }}" onChange="{{ setTokoNoHp }}" />
+                </div>
+                <sc-if value="{{ tokoFormError }}" hint-placeholder-val="{{ false }}">
+                  <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ tokoFormError }}</p>
+                </sc-if>
+                <sc-if value="{{ tokoSaved }}" hint-placeholder-val="{{ false }}">
+                  <p style="margin:0;font-size:13px;color:var(--color-accent-700);">Tersimpan.</p>
+                </sc-if>
+                <button type="button" class="btn btn-primary" style="min-height:46px;align-self:flex-start;padding:0 24px;" disabled="{{ busy }}" onClick="{{ saveTokoProfil }}">Simpan</button>
+              </div>
             </div>
           </sc-if>
 
@@ -2283,6 +2312,8 @@ class Component extends DCLogic {
     masterModalOpen: false, masterModalType: null, masterEditKey: null,
     masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan', password: '' },
     masterFormError: '', masterDeleteTarget: null,
+    tokoForm: { nama: '', alamat: '', noHp: '' },
+    tokoFormError: '', tokoSaved: false,
   };
 
   componentDidMount() {
@@ -2602,6 +2633,26 @@ class Component extends DCLogic {
   };
 
   setMasterTab = (key) => this.setState({ masterTab: key });
+
+  // Profil toko: selalu 1 baris, dimuat baru saat tab-nya dibuka (bukan
+  // dieagerkan di loadCoreData seperti suplier/pelanggan) karena tidak
+  // dipakai di tempat lain manapun.
+  setMasterTabToko = () => {
+    this.setMasterTab('toko');
+    this.setState({ tokoSaved: false, tokoFormError: '' });
+    api('GET', 'toko.php').then((data) => {
+      this.setState({ tokoForm: { nama: data.nama, alamat: data.alamat, noHp: data.no_hp } });
+    }).catch((e) => this.setState({ tokoFormError: e.message }));
+  };
+  setTokoFormField = (field) => (e) => this.setState((s) => ({ tokoForm: { ...s.tokoForm, [field]: e.target.value }, tokoSaved: false }));
+  saveTokoProfil = () => {
+    const f = this.state.tokoForm;
+    if (!f.nama.trim()) { this.setState({ tokoFormError: 'Nama toko wajib diisi.' }); return; }
+    this.setState({ busy: true, tokoFormError: '' });
+    api('PUT', 'toko.php', { nama: f.nama.trim(), alamat: f.alamat.trim(), noHp: f.noHp.trim() }).then(() => {
+      this.setState({ busy: false, tokoSaved: true });
+    }).catch((e) => this.setState({ busy: false, tokoFormError: e.message }));
+  };
 
   openMasterAdd = (type) => this.setState({
     masterModalOpen: true, masterModalType: type, masterEditKey: null, masterFormError: '',
@@ -3829,12 +3880,18 @@ class Component extends DCLogic {
       isModMaster: s.activeModule === 'master',
       masterTabIsSuplier: s.masterTab === 'suplier', masterTabIsPelanggan: s.masterTab === 'pelanggan',
       masterTabIsKategori: s.masterTab === 'kategori', masterTabIsUser: s.masterTab === 'user',
+      masterTabIsToko: s.masterTab === 'toko',
       setMasterTabSuplier: () => this.setMasterTab('suplier'), setMasterTabPelanggan: () => this.setMasterTab('pelanggan'),
       setMasterTabKategori: () => this.setMasterTab('kategori'), setMasterTabUser: () => this.setMasterTab('user'),
+      setMasterTabToko: this.setMasterTabToko,
       masterTabSuplier_class: s.masterTab === 'suplier' ? 'btn-primary' : 'btn-secondary',
       masterTabPelanggan_class: s.masterTab === 'pelanggan' ? 'btn-primary' : 'btn-secondary',
       masterTabKategori_class: s.masterTab === 'kategori' ? 'btn-primary' : 'btn-secondary',
       masterTabUser_class: s.masterTab === 'user' ? 'btn-primary' : 'btn-secondary',
+      masterTabToko_class: s.masterTab === 'toko' ? 'btn-primary' : 'btn-secondary',
+      tokoForm: s.tokoForm, tokoFormError: s.tokoFormError, tokoSaved: s.tokoSaved,
+      setTokoNama: this.setTokoFormField('nama'), setTokoAlamat: this.setTokoFormField('alamat'), setTokoNoHp: this.setTokoFormField('noHp'),
+      saveTokoProfil: this.saveTokoProfil,
 
       suplierRows: s.suplierList.map((x) => ({ ...x, editHandler: () => this.openMasterEdit('suplier', x.kode), deleteHandler: () => this.requestDeleteMaster('suplier', x.kode) })),
       pelangganRows: s.pelangganList.map((x) => ({ ...x, editHandler: () => this.openMasterEdit('pelanggan', x.kode), deleteHandler: () => this.requestDeleteMaster('pelanggan', x.kode) })),
