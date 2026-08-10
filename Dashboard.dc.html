@@ -1109,7 +1109,7 @@
                     <tbody>
                       <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="4">
                         <tr>
-                          <td>{{ h.noFaktur }}</td>
+                          <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" title="Detail transaksi" onClick="{{ h.detailHandler }}">{{ h.noFaktur }}</button></td>
                           <td>{{ h.tanggalPendek }}</td>
                           <td>{{ h.supplier }}</td>
                           <td>{{ h.isiLabel }}</td>
@@ -1352,47 +1352,6 @@
                 </tbody>
               </table>
             </div>
-
-            <sc-if value="{{ laporanPembelianDetailOpen }}" hint-placeholder-val="{{ false }}">
-              <div class="dialog-backdrop">
-                <div class="dialog" style="width:min(640px,100%);">
-                  <div class="dialog-title">Detail Pembelian</div>
-                  <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
-                    <sc-if value="{{ laporanPembelianDetailLoading }}" hint-placeholder-val="{{ false }}">
-                      <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
-                    </sc-if>
-                    <sc-if value="{{ laporanPembelianDetailError }}" hint-placeholder-val="{{ false }}">
-                      <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ laporanPembelianDetailError }}</p>
-                    </sc-if>
-                    <sc-if value="{{ laporanPembelianDetail }}" hint-placeholder-val="{{ false }}">
-                      <div>
-                        <h3 style="margin:0;">{{ laporanPembelianDetail.noFaktur }}</h3>
-                        <div style="font-size:13px;opacity:0.7;margin-top:2px;">{{ laporanPembelianDetail.tanggal }} · {{ laporanPembelianDetail.supplier }} · {{ laporanPembelianDetail.paymentLabel }}</div>
-                      </div>
-                      <div style="max-height:320px;overflow-y:auto;">
-                        <table class="table">
-                          <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist</th><th>Subtotal</th></tr></thead>
-                          <tbody>
-                            <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
-                              <tr>
-                                <td>{{ it.kode }}</td><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td>
-                                <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistLabel }}</td><td>{{ it.subtotalLabel }}</td>
-                              </tr>
-                            </sc-for>
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
-                        <span>Total</span><span>{{ laporanPembelianDetail.totalBiayaLabel }}</span>
-                      </div>
-                    </sc-if>
-                  </div>
-                  <div class="dialog-actions">
-                    <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPembelianDetail }}">Tutup</button>
-                  </div>
-                </div>
-              </div>
-            </sc-if>
           </sc-if>
 
           <sc-if value="{{ lapTabIsPenjualan }}" hint-placeholder-val="{{ false }}">
@@ -1944,6 +1903,52 @@
         <div class="dialog-actions">
           <button type="button" class="btn btn-secondary" onClick="{{ cancelDeleteTransaksi }}">Batal</button>
           <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ confirmDeleteTransaksi }}">Hapus</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Detail Pembelian — dipicu dari No. Faktur di Riwayat Pembelian (Input
+       Pembelian) MAUPUN dari Laporan Lengkap, keduanya Owner-only jadi tidak
+       perlu penyaringan role kayak Detail Penjualan (harga beli/modal di
+       sini memang boleh Owner lihat di mana pun). Sibling #app-shell
+       supaya bisa dipicu dari dua modul yang berbeda. -->
+  <sc-if value="{{ laporanPembelianDetailOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog" style="width:min(640px,100%);">
+        <div class="dialog-title">Detail Pembelian</div>
+        <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+          <sc-if value="{{ laporanPembelianDetailLoading }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:14px;opacity:0.6;">Memuat...</p>
+          </sc-if>
+          <sc-if value="{{ laporanPembelianDetailError }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ laporanPembelianDetailError }}</p>
+          </sc-if>
+          <sc-if value="{{ laporanPembelianDetail }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <h3 style="margin:0;">{{ laporanPembelianDetail.noFaktur }}</h3>
+              <div style="font-size:13px;opacity:0.7;margin-top:2px;">{{ laporanPembelianDetail.tanggal }} · {{ laporanPembelianDetail.supplier }} · {{ laporanPembelianDetail.paymentLabel }}</div>
+            </div>
+            <div style="max-height:320px;overflow-y:auto;">
+              <table class="table">
+                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist</th><th>Subtotal</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
+                    <tr>
+                      <td>{{ it.kode }}</td><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td>
+                      <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
+              <span>Total</span><span>{{ laporanPembelianDetail.totalBiayaLabel }}</span>
+            </div>
+          </sc-if>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPembelianDetail }}">Tutup</button>
         </div>
       </div>
     </div>
@@ -3690,6 +3695,7 @@ class Component extends DCLogic {
       pembelianHistoryView: s.pembelianHistory.map((h) => ({
         ...h,
         deleteHandler: () => this.requestDeleteTransaksi('pembelian', h.id, h.noFaktur),
+        detailHandler: () => this.openLaporanPembelianDetail(h.id),
         totalBiayaLabel: formatRp(h.totalBiaya),
         tanggalPendek: formatTanggalPendek(h.tanggalISO),
         isiLabel: `${h.totalItems} jenis · ${h.totalQty} pcs`,
