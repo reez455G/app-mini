@@ -48,6 +48,11 @@
     a { color: var(--color-accent); }
     a:hover { color: var(--color-accent-700); }
     .input-invalid { border-color: var(--color-accent-2-500) !important; }
+    /* Padding default .table (10px semua sisi) kerasa lega banget di tabel
+       yang barisnya banyak & sempit kayak Riwayat Penjualan — dipadatkan di
+       sini, scoped ke .table-compact saja supaya tabel lain (Data Barang,
+       Laporan, dst) tidak ikut berubah. */
+    .table-compact td, .table-compact th { padding: 6px 10px; }
 
     /* Batas tinggi dialog + form yang bisa di-scroll sendiri. Aturan yang sama
        ada di styles.css, TAPI sengaja diulang di sini: styles.css itu file
@@ -528,7 +533,7 @@
                     <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada penjualan tersimpan.</p>
                   </sc-if>
                   <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
-                    <table class="table" style="min-width:800px;white-space:nowrap;">
+                    <table class="table table-compact" style="min-width:800px;white-space:nowrap;">
                       <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th><th></th></tr></thead>
                       <tbody>
                         <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
