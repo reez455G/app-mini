@@ -606,6 +606,20 @@
           <sc-if value="{{ penjCompletedFlag }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex;justify-content:center;">
               <div class="card elev-md" style="width:100%;max-width:520px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
+                <!-- Kop struk: nama/alamat/no. telp toko, dari Master Data >
+                     Toko. Ikut kecetak karena tombol "Cetak" di bawah cuma
+                     window.print() atas kartu ini apa adanya. -->
+                <sc-if value="{{ tokoNama }}" hint-placeholder-val="{{ false }}">
+                  <div style="text-align:center;border-bottom:1px solid var(--color-border);padding-bottom:14px;">
+                    <div style="font-family:var(--font-heading);font-weight:700;font-size:18px;">{{ tokoNama }}</div>
+                    <sc-if value="{{ tokoAlamat }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:12px;opacity:0.7;margin-top:2px;">{{ tokoAlamat }}</div>
+                    </sc-if>
+                    <sc-if value="{{ tokoNoHp }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:12px;opacity:0.7;">{{ tokoNoHp }}</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
                 <div>
                   <div class="card-kicker">Transaksi Berhasil</div>
                   <h3 style="margin:6px 0 0;">{{ penjLastInvoiceView.invoiceNo }}</h3>
@@ -2314,6 +2328,7 @@ class Component extends DCLogic {
     masterFormError: '', masterDeleteTarget: null,
     tokoForm: { nama: '', alamat: '', noHp: '' },
     tokoFormError: '', tokoSaved: false,
+    tokoProfil: null,
   };
 
   componentDidMount() {
@@ -2343,6 +2358,9 @@ class Component extends DCLogic {
     }).catch((e) => this.setState({ globalError: e.message }));
     api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
     api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.setState({ globalError: e.message }));
+    // Dipakai kop struk di Transaksi Penjualan — dimuat untuk semua role
+    // (bukan cuma di setMasterTabToko) karena Karyawan juga bertransaksi.
+    api('GET', 'toko.php').then((data) => this.setState({ tokoProfil: data })).catch((e) => this.setState({ globalError: e.message }));
     if (this.state.role === 'owner') {
       api('GET', 'users.php').then((rows) => this.setState({ userList: rows.map(normalizeUser) })).catch((e) => this.setState({ globalError: e.message }));
     }
@@ -2649,8 +2667,10 @@ class Component extends DCLogic {
     const f = this.state.tokoForm;
     if (!f.nama.trim()) { this.setState({ tokoFormError: 'Nama toko wajib diisi.' }); return; }
     this.setState({ busy: true, tokoFormError: '' });
-    api('PUT', 'toko.php', { nama: f.nama.trim(), alamat: f.alamat.trim(), noHp: f.noHp.trim() }).then(() => {
-      this.setState({ busy: false, tokoSaved: true });
+    api('PUT', 'toko.php', { nama: f.nama.trim(), alamat: f.alamat.trim(), noHp: f.noHp.trim() }).then((data) => {
+      // Ikut update tokoProfil (dipakai kop struk penjualan) supaya transaksi
+      // berikutnya di sesi yang sama langsung pakai data baru tanpa reload.
+      this.setState({ busy: false, tokoSaved: true, tokoProfil: { nama: data.nama, alamat: data.alamat, no_hp: data.noHp } });
     }).catch((e) => this.setState({ busy: false, tokoFormError: e.message }));
   };
 
@@ -3396,6 +3416,9 @@ class Component extends DCLogic {
         items: li.items.map((i, idx) => ({ ...i, no: idx + 1, subtotalLabel: formatRp(i.subtotal) })),
       };
     }
+    // Kop struk — s.tokoProfil dimuat sekali di loadCoreData(), dipakai
+    // bareng di sini alih-alih fetch ulang tiap transaksi selesai.
+    const toko = s.tokoProfil;
 
     const penjComboOptionsRaw = this.penjComboOptions(s);
     const penjComboOptionsView = penjComboOptionsRaw.map((opt, i) => ({
@@ -3427,6 +3450,7 @@ class Component extends DCLogic {
       penjCannotComplete: !penjCanComplete, completeTransaction: this.completeTransaction, penjNote,
       penjNotCompleted: !s.penjCompleted, penjCompletedFlag: s.penjCompleted,
       penjLastInvoiceView, newTransaction: this.newTransaction,
+      tokoNama: toko ? toko.nama : '', tokoAlamat: toko ? toko.alamat : '', tokoNoHp: toko ? toko.no_hp : '',
       penjHistoryEmpty: s.penjHistory.length === 0,
       penjHistoryView: s.penjHistory.map((h) => ({
         ...h,
