@@ -608,9 +608,11 @@
               <div class="card elev-md" style="width:100%;max-width:520px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
                 <!-- Kop struk: nama/alamat/no. telp toko, dari Master Data >
                      Toko. Ikut kecetak karena tombol "Cetak" di bawah cuma
-                     window.print() atas kartu ini apa adanya. -->
+                     window.print() atas kartu ini apa adanya. Logo monokrom
+                     kecil di pojok kanan atas, teks tetap rata tengah. -->
                 <sc-if value="{{ tokoNama }}" hint-placeholder-val="{{ false }}">
-                  <div style="text-align:center;border-bottom:1px solid var(--color-border);padding-bottom:14px;">
+                  <div style="position:relative;text-align:center;border-bottom:1px solid var(--color-border);padding-bottom:14px;">
+                    <img src="assets/logo-mono.png" alt="" style="position:absolute;top:0;right:0;width:76px;height:auto;" />
                     <div style="font-family:var(--font-heading);font-weight:700;font-size:18px;">{{ tokoNama }}</div>
                     <sc-if value="{{ tokoAlamat }}" hint-placeholder-val="{{ false }}">
                       <div style="font-size:12px;opacity:0.7;margin-top:2px;">{{ tokoAlamat }}</div>
