@@ -2369,6 +2369,16 @@ class Component extends DCLogic {
       if (user) this.afterLogin(user);
       else this.setState({ booting: false });
     }).catch(() => this.setState({ booting: false }));
+    // Poll data di belakang layar biar barang yang terjual/dibeli kasir lain
+    // langsung kelihatan tanpa refresh manual — cukup setState, bukan reload
+    // halaman, jadi tidak flicker. Discan tiap 10 detik, cuma saat sudah
+    // login & tab sedang aktif dilihat (hemat request kalau tab di-minimize).
+    setInterval(() => {
+      if (this.state.screen === 'app' && document.visibilityState === 'visible') {
+        this.refreshBarang();
+        this.loadModuleData(this.state.activeModule);
+      }
+    }, 10000);
   }
 
   componentDidUpdate() {
