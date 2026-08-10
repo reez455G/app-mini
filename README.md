@@ -25,6 +25,9 @@ app-mini/
 ├── backend/                  # PHP + MySQL — API yang dipanggil Dashboard.dc.html
 │   └── ...                    # lihat docs/BACKEND.md
 └── docs/
+    ├── FAQ.md                  # FAQ untuk pemakai toko & Owner (lihat § FAQ)
+    ├── FAQ.pdf                 # FAQ versi cetak, dibuat dari FAQ.md
+    ├── build-faq-pdf.py        # bikin ulang FAQ.pdf sesudah FAQ.md diubah
     ├── BACKEND.md              # dokumentasi schema database + referensi API lengkap
     ├── Sistem Stok - Complete Business Flow.md
     └── Sistem Stok - Main Process Flow (Excalidraw Guide).md
@@ -64,6 +67,21 @@ jangan dobel klik file-nya langsung (`file:///...`): `support.js` melakukan
 `file://`.
 
 Detail schema database + referensi API lengkap ada di **`docs/BACKEND.md`**.
+
+## FAQ untuk pemakai toko
+
+**`docs/FAQ.md`** (dan versi cetaknya, `docs/FAQ.pdf`) menjawab pertanyaan
+sehari-hari kasir & Owner: cara transaksi, tingkat harga otomatis, retur,
+laporan, barcode, arti tiap pesan error, plus bab teknis untuk yang memasang
+(instalasi XAMPP, akses dari kasir lain, backup, troubleshooting).
+
+Sesudah mengubah `docs/FAQ.md`, buat ulang PDF-nya dengan:
+
+```
+python3 docs/build-faq-pdf.py
+```
+
+Skripnya cuma butuh modul Python `markdown` + `chromium` (tanpa pandoc/LaTeX).
 
 ### Mau data yang lebih banyak buat testing?
 
