@@ -534,12 +534,12 @@
                   </sc-if>
                   <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
                     <table class="table table-compact" style="min-width:800px;white-space:nowrap;">
-                      <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th><th></th></tr></thead>
+                      <thead><tr><th>Tanggal</th><th>No. Invoice</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th><th></th></tr></thead>
                       <tbody>
                         <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
                           <tr>
-                            <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" title="Detail transaksi" onClick="{{ h.detailHandler }}">{{ h.invoiceNo }}</button></td>
                             <td>{{ h.tanggalPendek }}</td>
+                            <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" title="Detail transaksi" onClick="{{ h.detailHandler }}">{{ h.invoiceNo }}</button></td>
                             <td>{{ h.custName }}</td>
                             <td>{{ h.totalQty }} pcs</td>
                             <td>{{ h.grandTotalLabel }}</td>
