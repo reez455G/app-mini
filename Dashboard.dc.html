@@ -369,11 +369,20 @@
                 <div class="card-meta">Margin kotor {{ dashLabaBulanIniMarginLabel }}</div>
               </div>
             </sc-if>
-            <div class="card elev-sm">
-              <div class="card-kicker">Stok Menipis</div>
-              <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashStokMenipisCount }} produk</div>
-              <div class="card-meta">Perlu pembelian ulang</div>
-            </div>
+            <sc-if value="{{ isOwner }}">
+              <div class="card elev-sm">
+                <div class="card-kicker">Stok Menipis</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashStokMenipisCount }} produk</div>
+                <div class="card-meta">Perlu pembelian ulang</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isKaryawan }}">
+              <div class="card elev-sm">
+                <div class="card-kicker">Total Stok Global</div>
+                <div style="font-family:var(--font-heading);font-weight:600;font-size:32px;">{{ dashTotalStokGlobalLabel }}</div>
+                <div class="card-meta">Pcs tersedia di semua kategori</div>
+              </div>
+            </sc-if>
           </div>
 
           <sc-if value="{{ isOwner }}">
@@ -4085,6 +4094,7 @@ class Component extends DCLogic {
       dashLabaBulanIniLabel: formatRp(dLaba.gross_profit),
       dashLabaBulanIniMarginLabel: (dLaba.margin_pct || 0).toFixed(0) + '%',
       dashStokMenipisCount: lowStockRaw.length,
+      dashTotalStokGlobalLabel: stokByKategori.reduce((a, k) => a + k.totalStok, 0).toLocaleString('id-ID') + ' pcs',
       stokByKategori, stokByKategoriEmpty: stokByKategori.length === 0,
 
       todayLabel: formatTanggal(new Date().toISOString().slice(0, 10)),
