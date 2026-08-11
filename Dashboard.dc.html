@@ -894,7 +894,6 @@
               </div>
             </div>
           </sc-if>
-          <sc-if value="{{ pembelianNotCompleted }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex;flex-direction:column;gap:20px;">
               <div class="card elev-sm">
                 <div class="card-kicker">Data Pembelian</div>
@@ -1083,7 +1082,7 @@
                     <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;margin-top:2px;">{{ pembelianTotalBiayaLabel }}</div>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;flex:1;min-width:220px;max-width:320px;">
-                    <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" disabled="{{ pembelianCannotComplete }}" onClick="{{ completeSPembelian }}">Simpan Pembelian</button>
+                    <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" disabled="{{ pembelianCannotComplete }}" onClick="{{ finalizePembelian }}">Simpan Pembelian</button>
                     <sc-if value="{{ pembelianNote }}">
                       <p style="margin:0;font-size:12px;opacity:0.6;text-align:center;">{{ pembelianNote }}</p>
                     </sc-if>
@@ -1125,43 +1124,6 @@
                 </div>
               </div>
           </div>
-          </sc-if>
-
-          <sc-if value="{{ pembelianCompletedFlag }}" hint-placeholder-val="{{ false }}">
-            <div style="display:flex;justify-content:center;">
-              <div class="card elev-md" style="width:100%;max-width:560px;padding:32px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;">
-                <div>
-                  <div class="card-kicker">Pembelian Siap Disimpan</div>
-                  <h3 style="margin:6px 0 0;">{{ pembelianPreviewView.noFaktur }}</h3>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Suplier</span><span>{{ pembelianPreviewView.supplier }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Tanggal Faktur</span><span>{{ pembelianPreviewView.tanggal }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Jatuh Tempo</span><span>{{ pembelianPreviewView.jatuhTempoLabel }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Payment</span><span>{{ pembelianPreviewView.paymentLabel }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Kategori</span><span>{{ pembelianPreviewView.kategori }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Pricelist</span><span>{{ pembelianPreviewView.pricelist }}</span></div>
-                </div>
-                <table class="table">
-                  <thead><tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga Beli</th><th>Subtotal</th></tr></thead>
-                  <tbody>
-                    <sc-for list="{{ pembelianPreviewView.itemsView }}" as="item" hint-placeholder-count="3">
-                      <tr><td>{{ item.kode }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.hargaBeliLabel }} ({{ item.hargaBasisLabel }})</td><td>{{ item.subtotalLabel }}</td></tr>
-                    </sc-for>
-                  </tbody>
-                </table>
-                <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:20px;">
-                  <span>Total</span><span>{{ pembelianPreviewView.totalBiayaLabel }}</span>
-                </div>
-                <button type="button" class="btn btn-primary btn-block" style="min-height:50px;font-size:16px;" disabled="{{ busy }}" onClick="{{ finalizePembelian }}">Simpan &amp; Masuk Riwayat</button>
-                <sc-if value="{{ pembelianNote }}">
-                  <p style="margin:0;font-size:12px;text-align:center;color:var(--color-accent-2-700);">{{ pembelianNote }}</p>
-                </sc-if>
-                <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ printPage }}">Cetak</button>
-                <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ editPembelianPreview }}">Kembali / Edit</button>
-              </div>
-            </div>
-          </sc-if>
         </sc-if>
 
         <sc-if value="{{ isModLaporan }}" hint-placeholder-val="{{ false }}">
@@ -2345,8 +2307,6 @@ class Component extends DCLogic {
     returPbInvoiceChecked: false, returPbChecking: false, returPbCheckError: '',
     returPbInvoiceItems: [], returPbItemQty: {}, returPbItemReason: {},
     returPbHistory: [],
-    pembelianCompleted: false,
-    pembelianPreview: null,
     pembelianJustAddedNew: [],
     pembelianLastSuccess: null,
     suplierList: [],
@@ -3317,49 +3277,32 @@ class Component extends DCLogic {
 
   removeFromPembelianCart = (idx) => this.setState((s) => ({ pembelianCart: s.pembelianCart.filter((_, i) => i !== idx) }));
 
-  completeSPembelian = () => {
-    const s = this.state;
-    const supplierName = this.resolvePembelianSupplier(s);
-    if (!supplierName || !s.pembelianNoFaktur.trim() || s.pembelianCart.length === 0) return;
-    const totalQty = s.pembelianCart.reduce((a, i) => a + i.qty, 0);
-    const totalBiaya = s.pembelianCart.reduce((a, i) => a + i.subtotal, 0);
-    this.setState({
-      pembelianCompleted: true,
-      pembelianPreview: {
-        noFaktur: s.pembelianNoFaktur.trim(),
-        supplier: supplierName, tanggal: formatTanggal(new Date().toISOString().slice(0, 10)),
-        jatuhTempo: s.pembelianJatuhTempo, payment: s.pembelianPayment,
-        kategori: s.pembelianKategoriFilter === 'ALL' ? [...new Set(s.pembelianCart.map((i) => i.kategori))].join(', ') : s.pembelianKategoriFilter,
-        pricelist: s.pembelianCart.map((i) => formatRp(i.pricelist || 0)).join(', '),
-        items: s.pembelianCart, totalItems: s.pembelianCart.length, totalQty, totalBiaya,
-      },
-    });
-  };
-
-  editPembelianPreview = () => this.setState({ pembelianCompleted: false });
-
   dismissPembelianJustAddedNew = () => this.setState({ pembelianJustAddedNew: [] });
   dismissPembelianLastSuccess = () => this.setState({ pembelianLastSuccess: null });
 
+  // Langsung simpan begitu "Simpan Pembelian" diklik — tidak ada layar
+  // pratinjau "invoice" lagi, karena No. Faktur di sini memang faktur fisik
+  // dari suplier, bukan invoice yang perlu dicetak toko.
   finalizePembelian = () => {
     const s = this.state;
-    const preview = s.pembelianPreview;
-    if (!preview) return;
-    const items = preview.items.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
-    const justAddedNew = preview.items.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
+    const supplierName = this.resolvePembelianSupplier(s);
+    const noFaktur = s.pembelianNoFaktur.trim();
+    if (!supplierName || !noFaktur || s.pembelianCart.length === 0) return;
+    const items = s.pembelianCart.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
+    const justAddedNew = s.pembelianCart.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
-    api('POST', 'pembelian.php', { suplier: preview.supplier, no_faktur: preview.noFaktur, payment_type: preview.payment, jatuh_tempo: preview.jatuhTempo || null, items }).then((res) => {
+    api('POST', 'pembelian.php', { suplier: supplierName, no_faktur: noFaktur, payment_type: s.pembelianPayment, jatuh_tempo: s.pembelianJatuhTempo || null, items }).then((res) => {
       clearPembelianDraft();
       this.setState({
         busy: false,
         pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
-        pembelianCompleted: false, pembelianPreview: null, pembelianJustAddedNew: justAddedNew,
+        pembelianJustAddedNew: justAddedNew,
         pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
       this.refreshBarang();
       this.refreshPembelianHistory();
       this.refreshSuplier();
-    }).catch((e) => this.setState({ busy: false, pembelianCompleted: false, pembelianSubmitError: e.message }));
+    }).catch((e) => this.setState({ busy: false, pembelianSubmitError: e.message }));
   };
 
   doLogin = () => {
@@ -3698,7 +3641,7 @@ class Component extends DCLogic {
       pembelianCartView,
       pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
       pembelianNoFaktur: s.pembelianNoFaktur, setPembelianNoFaktur: this.setPembelianNoFaktur,
-      pembelianCannotComplete: !canComplete, completeSPembelian: this.completeSPembelian, pembelianNote,
+      pembelianCannotComplete: !canComplete, pembelianNote,
       // Label riwayat dirakit di sini (bukan di template) supaya barisnya tetap
       // dua baris ringkas tanpa sc-if bercabang di dalam tabel.
       pembelianHistoryEmpty: s.pembelianHistory.length === 0, goLaporanPembelian: this.goLaporanPembelian,
@@ -3714,26 +3657,13 @@ class Component extends DCLogic {
           : 'Cash',
         paymentTagClass: h.paymentType === 'TOP' ? 'tag-accent' : 'tag-neutral',
       })),
-      pembelianNotCompleted: !s.pembelianCompleted, pembelianCompletedFlag: s.pembelianCompleted,
-      editPembelianPreview: this.editPembelianPreview, finalizePembelian: this.finalizePembelian,
+      finalizePembelian: this.finalizePembelian,
       pembelianLastSuccess: s.pembelianLastSuccess, dismissPembelianLastSuccess: this.dismissPembelianLastSuccess,
       pembelianHasJustAddedNew: s.pembelianJustAddedNew.length > 0,
       dismissPembelianJustAddedNew: this.dismissPembelianJustAddedNew,
       pembelianJustAddedNewView: s.pembelianJustAddedNew.map((item) => ({
         ...item, printHandler: () => this.openStokPrint(item.kode, item.nama),
       })),
-      pembelianPreviewView: s.pembelianPreview ? {
-        ...s.pembelianPreview,
-        paymentLabel: s.pembelianPreview.payment === 'CASH' ? 'Cash' : 'TOP',
-        jatuhTempoLabel: s.pembelianPreview.jatuhTempo || '-',
-        totalBiayaLabel: formatRp(s.pembelianPreview.totalBiaya),
-        itemsView: s.pembelianPreview.items.map((i) => ({
-          ...i,
-          hargaBeliLabel: formatRp(i.hargaBasis === 'FAKTUR' ? i.hargaFaktur : i.hargaNetto),
-          hargaBasisLabel: i.hargaBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
-          subtotalLabel: formatRp(i.subtotal),
-        })),
-      } : null,
     };
   }
 
