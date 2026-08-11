@@ -199,7 +199,24 @@ if ($method === 'PUT') {
 }
 
 if ($method === 'DELETE') {
-    delete_row($pdo, 'barang', $id, 'Barang');
+    // barang_lot dihapus duluan: batch hasil koreksi stok manual punya
+    // pembelian_item_id NULL, jadi tidak ikut ON DELETE CASCADE waktu
+    // pembeliannya dihapus. Sisa batch itu bikin barang tidak bisa dihapus
+    // padahal semua transaksinya sudah dihapus. Batch yang masih tercatat
+    // terjual tetap ditahan FK penjualan_item_lot → rollback, pesan "masih
+    // dipakai" seperti biasa.
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('DELETE FROM barang_lot WHERE barang_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM barang WHERE id = ?')->execute([$id]);
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        if ($e->getCode() === '23000') {
+            json_error('Barang ini masih dipakai di data transaksi yang tersimpan, jadi tidak bisa dihapus.', 409);
+        }
+        throw $e;
+    }
     json_ok(['deleted' => $id]);
 }
 
