@@ -422,6 +422,25 @@
                 </sc-for>
               </div>
             </div>
+
+            <div class="card elev-sm">
+              <div class="card-kicker">Total Stok per Kategori</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Kategori</th><th>Jumlah Produk</th><th>Total Stok</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ stokByKategori }}" as="k" hint-placeholder-count="4">
+                    <tr>
+                      <td><span class="tag tag-neutral">{{ k.kategori }}</span></td>
+                      <td>{{ k.jumlahProduk }}</td>
+                      <td>{{ k.totalStok }} pcs</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <sc-if value="{{ stokByKategoriEmpty }}" hint-placeholder-val="{{ false }}">
+                <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada data barang.</p>
+              </sc-if>
+            </div>
           </sc-if>
 
           <div class="card elev-sm">
@@ -3954,6 +3973,16 @@ class Component extends DCLogic {
     const topProductsRaw = s.dashboardTopProducts || [];
     const maxQty = Math.max(1, ...topProductsRaw.map((p) => p.qty));
     const lowStockRaw = s.stokProducts.filter((p) => !p.pendingSetup && (p.status === 'Kritis' || p.status === 'Menipis'));
+    // Total stok per kategori — supaya Karyawan bisa lihat gambaran stok
+    // semua kategori dari dashboard, bukan cuma yang sudah menipis/kritis.
+    const stokByKategoriMap = new Map();
+    for (const p of s.stokProducts) {
+      const row = stokByKategoriMap.get(p.kategori) || { kategori: p.kategori, jumlahProduk: 0, totalStok: 0 };
+      row.jumlahProduk += 1;
+      row.totalStok += p.stok;
+      stokByKategoriMap.set(p.kategori, row);
+    }
+    const stokByKategori = [...stokByKategoriMap.values()].sort((a, b) => b.totalStok - a.totalStok);
     const dToday = s.dashboardToday || { total_revenue: 0, tx_count: 0 };
     const dPembelian = s.dashboardPembelianBulanIni || { total_biaya: 0, rows: [] };
     const dLaba = s.dashboardLabaBulanIni || { gross_profit: 0, margin_pct: 0 };
@@ -4056,6 +4085,7 @@ class Component extends DCLogic {
       dashLabaBulanIniLabel: formatRp(dLaba.gross_profit),
       dashLabaBulanIniMarginLabel: (dLaba.margin_pct || 0).toFixed(0) + '%',
       dashStokMenipisCount: lowStockRaw.length,
+      stokByKategori, stokByKategoriEmpty: stokByKategori.length === 0,
 
       todayLabel: formatTanggal(new Date().toISOString().slice(0, 10)),
     };
