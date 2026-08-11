@@ -10,6 +10,7 @@ memvalidasi password sungguhan, role Owner/Karyawan ditegakkan di server.
 
 ```
 app-mini/
+├── deploy-windows.bat       # pasang/update aplikasi ke XAMPP di Windows (lihat § Cara cepat)
 ├── index.html              # redirect ke Dashboard.dc.html (biar bisa akses via folder root)
 ├── Dashboard.dc.html        # halaman utama: markup + logika (React, di dalam <script>)
 ├── support.js               # runtime yang membaca Dashboard.dc.html dan merender React-nya
@@ -58,6 +59,17 @@ sekarang datanya beneran tersimpan di database.
 
    ⚠️ Ganti password akun-akun ini (lewat Master Data → Pengguna) sebelum
    dipakai sungguhan.
+
+### Cara cepat: `deploy-windows.bat`
+
+Semua langkah di atas sudah dibungkus jadi satu file. Taruh folder ini di mana
+saja di komputer Windows-nya (hasil unzip atau `git clone`), nyalakan MySQL di
+XAMPP Control Panel, lalu klik dua kali **`deploy-windows.bat`**. Kalau XAMPP
+bukan di `C:\xampp`, jalankan lewat cmd: `deploy-windows.bat D:\xampp`.
+
+Script-nya menyalin aplikasi ke `htdocs\app-mini` dan mengimport
+`backend/schema.sql` **hanya kalau database `app_mini` belum ada** — jadi aman
+dijalankan ulang tiap kali ada update aplikasi, data toko tidak akan tertimpa.
 
 Tidak perlu langkah install/build tambahan (tidak ada `npm install`) — cukup
 Apache + MySQL bawaan XAMPP. Selalu akses lewat `http://localhost/...`,
