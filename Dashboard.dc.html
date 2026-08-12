@@ -116,6 +116,23 @@
          lebih lebar dari kartunya sendiri, jadi kolom Subtotal kepotong di
          tepi kertas. Dibatalkan khusus untuk tabel di kartu invoice ini. */
       #penj-invoice-print table.table { min-width: 0 !important; }
+      /* Printer struk 80mm: kartu invoice dipersempit ke lebar kertasnya
+         (sedikit sisa jarak aman dari 80mm), padding & semua font
+         diperkecil biar muat, logo dikecilkan supaya tidak numpuk sama kop
+         teks. Lebar halaman diset 80mm lewat @page yang disisipkan
+         printPage() — tingginya dibuat lebih dari cukup (297mm) karena
+         "size: 80mm auto" bukan sintaks @page yang valid; printer struk
+         yang di-set sebagai kertas roll/continuous di driver Windows akan
+         motong sendiri sesuai panjang isi, sisa halaman kosong tidak
+         ikut tercetak. */
+      #penj-invoice-print {
+        max-width: 76mm !important; width: 76mm !important; padding: 3mm !important;
+        gap: 6px !important; box-shadow: none !important; border-radius: 0 !important;
+      }
+      #penj-invoice-print img { width: 40px !important; }
+      #penj-invoice-print * { font-size: 11px !important; }
+      #penj-invoice-print h3 { font-size: 14px !important; }
+      #penj-invoice-print table.table th, #penj-invoice-print table.table td { padding: 3px 4px !important; }
     }
 
     /* ── Responsif: tablet & Android ─────────────────────────────────
@@ -3351,7 +3368,20 @@ tr { page-break-inside: avoid; }
     document.body.appendChild(frame);
   };
 
-  printPage = () => window.print();
+  // @page tidak bisa disyaratkan lewat body:has() seperti aturan lain di
+  // bawah (lihat komentar setStokPrintPageSize) — makanya ukuran kertas
+  // struk 80mm disisipkan sendiri di sini sekali (idempotent lewat id),
+  // aman karena printPage cuma dipakai tombol Cetak invoice ini.
+  printPage = () => {
+    const id = 'penj-invoice-page-style';
+    if (!document.getElementById(id)) {
+      const el = document.createElement('style');
+      el.id = id;
+      el.textContent = '@media print { @page { size: 80mm 297mm; margin: 0; } }';
+      document.head.appendChild(el);
+    }
+    window.print();
+  };
 
   laporanFilteredRows = (s) => {
     const search = s.laporanSearch.trim().toLowerCase();
