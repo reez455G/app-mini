@@ -193,6 +193,19 @@ lengkap dengan logo di pojok kanan atas. Datanya diambil dari **Master Data →
 Toko** — kalau ada yang perlu diubah (misal pindah alamat atau ganti nomor
 WA), ubah di sana dan struk berikutnya langsung ikut berubah.
 
+### Ukuran kertas apa yang cocok untuk cetak struk?
+
+Tombol **Cetak** di layar "Transaksi Berhasil" hanya mencetak kartu struknya
+saja (kop toko, rincian barang, total) — sidebar, header aplikasi, dan
+tombol-tombol di layar itu tidak ikut tercetak.
+
+- **Printer biasa (A4/Letter)**: langsung pakai, tidak perlu setelan apa pun.
+- **Printer struk kecil (thermal 80mm)**: juga didukung otomatis — tata
+  letak struk menyesuaikan ke lebar 80mm begitu tombol Cetak diklik. Di
+  sisi Windows, pastikan printer struknya di-set sebagai kertas
+  roll/continuous di driver-nya supaya kertas terpotong pas sesuai
+  panjang struk, bukan ikut ukuran kertas standar.
+
 ### Bagaimana melihat detail transaksi yang sudah lewat?
 
 Di tabel **Riwayat Penjualan** (di bawah layar Transaksi Penjualan), **klik
@@ -345,8 +358,10 @@ otomatis dilewati.
    pilih barangnya (atau **+ Barang Baru** kalau belum terdaftar), pilih
    **Basis Harga**, isi **Harga Beli**, **Jumlah**, dan **Pricelist**, lalu
    **+ Tambah ke Daftar**.
-4. Ulangi untuk barang lain, lalu klik **Simpan Pembelian** dan konfirmasi
-   dengan **Simpan & Masuk Riwayat**.
+4. Ulangi untuk barang lain, lalu klik **Simpan Pembelian** — data langsung
+   tersimpan ke Riwayat Pembelian dengan notifikasi sukses, **tidak ada layar
+   pratinjau/invoice lagi** (No. Faktur di langkah 2 memang sudah jadi bukti
+   fisik dari suplier, jadi tidak perlu invoice tambahan dari sistem).
 
 Kalau input pembelian terpotong (browser tertutup, listrik mati), isian yang
 belum disimpan otomatis dipulihkan saat Anda membuka menu itu lagi.
@@ -644,7 +659,20 @@ Pesan ditulis persis seperti yang tampil di layar supaya mudah dicari.
 XAMPP dengan **Apache** dan **MySQL**. Tidak ada langkah build, tidak perlu
 `npm install`, tidak perlu internet.
 
-### Langkah pemasangan
+### Cara cepat: `deploy-windows.bat`
+
+Di Windows, semua langkah di bawah sudah dibungkus jadi satu file. Taruh
+folder aplikasi ini di mana saja (hasil unzip/`git clone`), nyalakan MySQL di
+XAMPP Control Panel, lalu klik dua kali **`deploy-windows.bat`** di folder
+paling atas. Kalau XAMPP bukan di `C:\xampp`, jalankan lewat cmd:
+`deploy-windows.bat D:\xampp`.
+
+Script-nya menyalin aplikasi ke `htdocs\app-mini` dan mengimport
+`backend/schema.sql` **hanya kalau database `app_mini` belum ada** — jadi aman
+dijalankan ulang tiap kali ada update aplikasi, data toko yang sudah ada tidak
+akan tertimpa.
+
+### Langkah pemasangan (manual)
 
 1. **Copy** seluruh folder `app-mini` (termasuk folder `backend/`) ke folder
    `htdocs`:
