@@ -2468,10 +2468,10 @@ class Component extends DCLogic {
     if (this.state.role === 'owner') {
       // Riwayat Aktivitas — pakai daftar transaksi yang sudah ada endpoint-nya
       // (dan sudah punya normalizer + state-nya sendiri), bukan tabel log baru.
-      // ponytail: retur belum ikut di feed ini; tambah refreshReturPj/Pb di
-      // sini kalau memang perlu kelihatan juga.
       this.refreshPenjHistory();
       this.refreshPembelianHistory();
+      this.refreshReturPj();
+      this.refreshReturPb();
       api('GET', 'laporan/tren_penjualan.php?days=14').then((rows) => this.setState({ dashboardTrend: rows })).catch((e) => this.setState({ globalError: e.message }));
       api('GET', 'laporan/pembelian.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardPembelianBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
       api('GET', 'laporan/laba.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardLabaBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
@@ -4109,9 +4109,19 @@ tr { page-break-inside: avoid; }
         keterangan: h.custName + ' · ' + h.totalQty + ' pcs', nilaiLabel: formatRp(h.grandTotal),
       })),
       ...s.pembelianHistory.map((h) => ({
-        sortKey: h.tanggalISO, id: h.id, jenis: 'Pembelian', tagClass: 'tag-outline',
+        sortKey: h.tanggalISO, id: h.id + 1000000, jenis: 'Pembelian', tagClass: 'tag-outline',
         tanggalLabel: formatTanggalPendek(h.tanggalISO), nomor: h.noFaktur,
         keterangan: h.supplier + ' · ' + h.totalQty + ' pcs', nilaiLabel: formatRp(h.totalBiaya),
+      })),
+      ...s.returPjHistory.map((h) => ({
+        sortKey: h.tanggalISO, id: h.id + 2000000, jenis: 'Retur Penjualan', tagClass: 'tag-accent-2',
+        tanggalLabel: formatTanggalPendek(h.tanggalISO), nomor: h.noRetur,
+        keterangan: h.customer + ' · ' + h.totalQty + ' pcs', nilaiLabel: formatRp(0),
+      })),
+      ...s.returPbHistory.map((h) => ({
+        sortKey: h.tanggalISO, id: h.id + 3000000, jenis: 'Retur Pembelian', tagClass: 'tag-neutral',
+        tanggalLabel: formatTanggalPendek(h.tanggalISO), nomor: h.noRetur,
+        keterangan: h.supplier + ' · ' + h.totalQty + ' pcs', nilaiLabel: formatRp(0),
       })),
     ].sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)) || b.id - a.id).slice(0, 10);
 
