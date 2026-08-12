@@ -421,6 +421,34 @@
             </div>
           </sc-if>
 
+          <!-- Riwayat Aktivitas (Owner): gabungan transaksi penjualan &
+               pembelian yang BENAR-BENAR tercatat (penjualan.php +
+               pembelian.php, sumber yang sama dengan tabel riwayat di
+               modulnya masing-masing), diurut terbaru dulu. Bukan log
+               terpisah — tidak ada data baru yang dibikin di sini. -->
+          <sc-if value="{{ isOwner }}">
+            <div class="card elev-sm">
+              <div class="card-kicker">Riwayat Aktivitas</div>
+              <table class="table" style="margin-top:8px;">
+                <thead><tr><th>Tanggal</th><th>Aktivitas</th><th>Nomor</th><th>Keterangan</th><th>Nilai</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ dashActivity }}" as="a" hint-placeholder-count="6">
+                    <tr>
+                      <td>{{ a.tanggalLabel }}</td>
+                      <td><span class="tag {{ a.tagClass }}" style="white-space:nowrap;">{{ a.jenis }}</span></td>
+                      <td>{{ a.nomor }}</td>
+                      <td>{{ a.keterangan }}</td>
+                      <td>{{ a.nilaiLabel }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <sc-if value="{{ dashActivityEmpty }}" hint-placeholder-val="{{ false }}">
+                <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada aktivitas tercatat.</p>
+              </sc-if>
+            </div>
+          </sc-if>
+
           <sc-if value="{{ isKaryawan }}">
             <div class="card elev-sm">
               <div class="card-kicker">Produk Terlaris</div>
@@ -1268,10 +1296,15 @@
           </div>
 
           <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
-            <div class="field" style="width:220px;">
-              <label for="lap-search">Cari</label>
-              <input class="input" id="lap-search" style="min-height:44px;font-size:15px;" placeholder="Nama, kode, suplier, invoice..." value="{{ laporanLengkapSearch }}" onChange="{{ setLaporanLengkapSearch }}" />
-            </div>
+            <!-- Tab Global cuma berisi kartu KPI (angka rekap), tidak ada baris
+                 yang bisa dicari — kotak "Cari"-nya dulu tetap tampil tapi tidak
+                 melakukan apa-apa di sana, jadi disembunyikan khusus tab itu. -->
+            <sc-if value="{{ lapTabNotGlobal }}" hint-placeholder-val="{{ false }}">
+              <div class="field" style="width:220px;">
+                <label for="lap-search">Cari</label>
+                <input class="input" id="lap-search" style="min-height:44px;font-size:15px;" placeholder="Nama, kode, suplier, invoice..." value="{{ laporanLengkapSearch }}" onChange="{{ setLaporanLengkapSearch }}" />
+              </div>
+            </sc-if>
             <div class="field" style="width:190px;">
               <label for="lap-dari">Periode Dari</label>
               <input class="input" id="lap-dari" type="date" style="min-height:44px;font-size:15px;" value="{{ laporanDari }}" onChange="{{ setLaporanDari }}" />
@@ -2129,6 +2162,10 @@ const RETUR_REASONS = ['Rusak', 'Cacat', 'Salah Kirim', 'Lainnya'];
 
 function formatRp(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
 
+// Dipakai saat merakit HTML sendiri (export Excel & cetak laporan) — nama
+// barang/suplier boleh mengandung & atau < yang bisa merusak tabelnya.
+function escHtml(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
 function formatTanggal(iso) {
   if (!iso) return '-';
   return new Date(iso + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -2429,6 +2466,12 @@ class Component extends DCLogic {
     api('GET', 'laporan/penjualan.php?from=' + today + '&to=' + today).then((data) => this.setState({ dashboardToday: data })).catch((e) => this.setState({ globalError: e.message }));
 
     if (this.state.role === 'owner') {
+      // Riwayat Aktivitas — pakai daftar transaksi yang sudah ada endpoint-nya
+      // (dan sudah punya normalizer + state-nya sendiri), bukan tabel log baru.
+      // ponytail: retur belum ikut di feed ini; tambah refreshReturPj/Pb di
+      // sini kalau memang perlu kelihatan juga.
+      this.refreshPenjHistory();
+      this.refreshPembelianHistory();
       api('GET', 'laporan/tren_penjualan.php?days=14').then((rows) => this.setState({ dashboardTrend: rows })).catch((e) => this.setState({ globalError: e.message }));
       api('GET', 'laporan/pembelian.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardPembelianBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
       api('GET', 'laporan/laba.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardLabaBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
@@ -3234,12 +3277,7 @@ class Component extends DCLogic {
   // library tambahan.
   exportLaporanXlsx = () => {
     this.closeLaporanExportMenu();
-    const rows = this.laporanFilteredRows(this.state);
-    const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
-    const headHtml = '<tr>' + header.map((h) => `<th>${esc(h)}</th>`).join('') + '</tr>';
-    const bodyHtml = rows.map((p) => '<tr>' + [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status].map((v) => `<td>${esc(v)}</td>`).join('') + '</tr>').join('');
-    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${headHtml}${bodyHtml}</table></body></html>`;
+    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${this.laporanTableHtml()}</table></body></html>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3247,7 +3285,65 @@ class Component extends DCLogic {
     URL.revokeObjectURL(url);
   };
 
-  exportLaporanPdf = () => { this.closeLaporanExportMenu(); window.print(); };
+  // Isi tabel laporan stok (thead + tbody) dari baris yang LAGI TAMPIL sesudah
+  // filter — satu sumber untuk export Excel dan cetak/PDF, biar dua-duanya
+  // tidak pernah beda isi.
+  laporanTableHtml = () => {
+    const rows = this.laporanFilteredRows(this.state);
+    const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
+    const headHtml = '<thead><tr>' + header.map((h) => `<th>${escHtml(h)}</th>`).join('') + '</tr></thead>';
+    const bodyHtml = '<tbody>' + rows.map((p) => '<tr>' + [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status].map((v) => `<td>${escHtml(v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+    return headHtml + bodyHtml;
+  };
+
+  // window.print() mencetak HALAMAN yang lagi kebuka apa adanya, jadi hasilnya
+  // ikut apa pun yang masih dirender aplikasi + aturan @media print yang lagi
+  // aktif (kartu invoice transaksi terakhir, sidebar, dialog) — itu sebabnya
+  // "Export PDF" di Laporan Stok bisa keluar halaman invoice, bukan datanya.
+  // Sekarang laporannya dicetak dari dokumen sendiri di dalam iframe
+  // tersembunyi: yang kecetak PASTI tabel laporan stok, tidak peduli layar
+  // aplikasi lagi menampilkan apa. Simpan sebagai PDF = pilih "Save as PDF" di
+  // dialog cetak browser (tidak perlu library PDF sama sekali).
+  exportLaporanPdf = () => {
+    this.closeLaporanExportMenu();
+    const s = this.state;
+    const rows = this.laporanFilteredRows(s);
+    const judul = (s.tokoProfil && s.tokoProfil.nama) || this.props.storeName || 'App-mini';
+    // Yang dicetak adalah hasil filter, jadi filternya ikut ditulis di kop —
+    // tanpa ini kertasnya tidak bisa dibedakan dari laporan seluruh stok.
+    const filterLabel = [
+      s.laporanSearch.trim() ? 'Cari: "' + s.laporanSearch.trim() + '"' : '',
+      s.laporanKategoriFilter === 'ALL' ? 'Semua Kategori' : 'Kategori: ' + s.laporanKategoriFilter,
+      s.laporanSupplierFilter === 'ALL' ? 'Semua Suplier' : 'Suplier: ' + s.laporanSupplierFilter,
+      s.laporanStatusFilter === 'ALL' ? 'Semua Status' : 'Status: ' + s.laporanStatusFilter,
+    ].filter(Boolean).join(' · ');
+    const totalStok = rows.reduce((a, p) => a + p.stok, 0);
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Laporan Stok</title><style>
+@page { size: A4 landscape; margin: 12mm; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0; }
+h1 { font-size: 16px; margin: 0 0 2px; }
+p { margin: 0 0 4px; }
+table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; }
+thead { background: #eee; display: table-header-group; }
+tr { page-break-inside: avoid; }
+</style></head><body>
+<h1>${escHtml(judul)}</h1>
+<p>Laporan Stok — dicetak ${escHtml(formatTanggal(new Date().toISOString().slice(0, 10)))}</p>
+<p>${escHtml(filterLabel)}</p>
+<p>${rows.length} jenis barang · total ${totalStok} pcs</p>
+<table>${this.laporanTableHtml()}</table>
+</body></html>`;
+    const frame = document.createElement('iframe');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    frame.onload = () => {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      setTimeout(() => frame.remove(), 1000);
+    };
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  };
 
   printPage = () => window.print();
 
@@ -3808,7 +3904,8 @@ class Component extends DCLogic {
       laporanSampai: s.laporanSampai, setLaporanSampai: this.setLaporanSampai,
       laporanLengkapSearch: s.laporanLengkapSearch, setLaporanLengkapSearch: this.setLaporanLengkapSearch,
       laporanLengkapTabs: tabsView,
-      lapTabIsGlobal: s.laporanLengkapTab === 'global', lapTabIsPembelian: s.laporanLengkapTab === 'pembelian',
+      lapTabIsGlobal: s.laporanLengkapTab === 'global', lapTabNotGlobal: s.laporanLengkapTab !== 'global',
+      lapTabIsPembelian: s.laporanLengkapTab === 'pembelian',
       lapTabIsPenjualan: s.laporanLengkapTab === 'penjualan', lapTabIsLaba: s.laporanLengkapTab === 'laba',
       lapTabIsLaris: s.laporanLengkapTab === 'laris', lapTabIsRetur: s.laporanLengkapTab === 'retur',
 
@@ -4001,6 +4098,23 @@ class Component extends DCLogic {
       stokByKategoriMap.set(p.kategori, row);
     }
     const stokByKategori = [...stokByKategoriMap.values()].sort((a, b) => b.totalStok - a.totalStok);
+    // Riwayat Aktivitas Owner — penjualan + pembelian yang sudah tersimpan,
+    // digabung lalu diurut terbaru dulu (tanggal, lalu id sebagai pemecah
+    // seri karena tanggal di DB cuma tanggal tanpa jam). Ambil 10 teratas
+    // saja supaya dashboard tidak berubah jadi tabel panjang.
+    const dashActivity = [
+      ...s.penjHistory.map((h) => ({
+        sortKey: h.tanggalISO, id: h.id, jenis: 'Penjualan', tagClass: 'tag-accent',
+        tanggalLabel: formatTanggalPendek(h.tanggalISO), nomor: h.invoiceNo,
+        keterangan: h.custName + ' · ' + h.totalQty + ' pcs', nilaiLabel: formatRp(h.grandTotal),
+      })),
+      ...s.pembelianHistory.map((h) => ({
+        sortKey: h.tanggalISO, id: h.id, jenis: 'Pembelian', tagClass: 'tag-outline',
+        tanggalLabel: formatTanggalPendek(h.tanggalISO), nomor: h.noFaktur,
+        keterangan: h.supplier + ' · ' + h.totalQty + ' pcs', nilaiLabel: formatRp(h.totalBiaya),
+      })),
+    ].sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)) || b.id - a.id).slice(0, 10);
+
     const dToday = s.dashboardToday || { total_revenue: 0, tx_count: 0 };
     const dPembelian = s.dashboardPembelianBulanIni || { total_biaya: 0, rows: [] };
     const dLaba = s.dashboardLabaBulanIni || { gross_profit: 0, margin_pct: 0 };
@@ -4103,6 +4217,7 @@ class Component extends DCLogic {
       dashLabaBulanIniLabel: formatRp(dLaba.gross_profit),
       dashLabaBulanIniMarginLabel: (dLaba.margin_pct || 0).toFixed(0) + '%',
       dashStokMenipisCount: lowStockRaw.length,
+      dashActivity, dashActivityEmpty: dashActivity.length === 0,
       dashTotalStokGlobalLabel: stokByKategori.reduce((a, k) => a + k.totalStok, 0).toLocaleString('id-ID') + ' pcs',
       stokByKategori, stokByKategoriEmpty: stokByKategori.length === 0,
 
