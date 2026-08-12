@@ -110,6 +110,12 @@
       body:has(#penj-invoice-print) #app-sidebar,
       body:has(#penj-invoice-print) header,
       body:has(#penj-invoice-print) .no-print { display: none !important; }
+      /* Lebar kertas cetak (di bawah 900px CSS px) juga memicu aturan
+         "table.table { min-width: 640px }" yang aslinya untuk tampilan HP —
+         di dalam kartu invoice yang cuma 520px lebar, itu bikin tabelnya
+         lebih lebar dari kartunya sendiri, jadi kolom Subtotal kepotong di
+         tepi kertas. Dibatalkan khusus untuk tabel di kartu invoice ini. */
+      #penj-invoice-print table.table { min-width: 0 !important; }
     }
 
     /* ── Responsif: tablet & Android ─────────────────────────────────
