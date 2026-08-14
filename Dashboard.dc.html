@@ -868,7 +868,7 @@
                   <div class="field">
                     <label for="stok-f-supplier">Suplier</label>
                     <select class="input" id="stok-f-supplier" style="min-height:44px;font-size:15px;" value="{{ stokForm.supplier }}" onChange="{{ setStokSupplier }}">
-                      <sc-for list="{{ supplierOptions }}" as="sup" hint-placeholder-count="4">
+                      <sc-for list="{{ stokSupplierOptions }}" as="sup" hint-placeholder-count="4">
                         <option value="{{ sup }}">{{ sup }}</option>
                       </sc-for>
                     </select>
@@ -2338,6 +2338,7 @@ class Component extends DCLogic {
     stokKategoriFilter: 'ALL',
     stokModalOpen: false,
     stokEditKode: null,
+    stokFormSupplierOptions: [],
     stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
     stokFormError: '',
     stokDeleteTarget: null,
@@ -3016,16 +3017,30 @@ class Component extends DCLogic {
   openStokEdit = (kode) => {
     const p = this.state.stokProducts.find((x) => x.kode === kode);
     if (!p) return;
-    this.setState((s) => ({
+    this.setState({
       stokModalOpen: true, stokEditKode: kode, stokFormError: '',
+      stokFormSupplierOptions: p.supplier ? [p.supplier] : [],
       stokForm: {
-        kode: p.kode, nama: p.nama, kategori: p.kategori, supplier: p.supplier || (s.suplierList[0] || {}).nama || '',
+        kode: p.kode, nama: p.nama, kategori: p.kategori, supplier: p.supplier || '',
         hargaFaktur: p.hargaFaktur ? String(p.hargaFaktur) : '', hargaNetto: p.hargaNetto ? String(p.hargaNetto) : '',
         priceListBasis: p.priceListBasis || 'NETTO',
         ecer: p.ecer ? String(p.ecer) : '', bengkel: p.bengkel ? String(p.bengkel) : '', grosir: p.grosir ? String(p.grosir) : '',
         stok: String(p.stok), minStok: String(p.minStok),
       },
-    }));
+    });
+    // Dropdown Suplier di form ini cuma boleh berisi suplier yang memang
+    // pernah mengirim barang ini (dari riwayat Input Pembelian yang sudah
+    // tersimpan) -- sebelumnya menampilkan SEMUA suplier di Master Data,
+    // jadi suplier yang tidak ada hubungannya ikut muncul di pilihan.
+    // Baris pertama hasil query ini (urut tanggal terbaru) jadi suplier
+    // yang otomatis terpilih kalau barang belum ada suplier tertaut.
+    api('GET', 'barang.php?id=' + p.id + '&history=1').then((rows) => {
+      const options = [...new Set(rows.map((r) => r.suplier))];
+      this.setState((s) => (s.stokEditKode !== kode ? {} : {
+        stokFormSupplierOptions: options.length ? options : (p.supplier ? [p.supplier] : []),
+        stokForm: { ...s.stokForm, supplier: s.stokForm.supplier || options[0] || '' },
+      }));
+    }).catch(() => {});
   };
 
   closeStokModal = () => this.setState({ stokModalOpen: false, stokEditKode: null, stokFormError: '' });
@@ -3700,7 +3715,7 @@ tr { page-break-inside: avoid; }
       stokIsEdit: !!s.stokEditKode,
       stokCanPrintFromForm: s.stokForm.kode.trim() !== '',
       stokForm: s.stokForm,
-      supplierOptions: s.suplierList.map((x) => x.nama),
+      stokSupplierOptions: s.stokFormSupplierOptions,
       setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
       setStokKategori: this.setStokFormField('kategori'), setStokSupplier: this.setStokFormField('supplier'), setStokEcer: this.setStokFormField('ecer'),
       setStokBengkel: this.setStokFormField('bengkel'), setStokGrosir: this.setStokFormField('grosir'),
