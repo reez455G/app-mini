@@ -139,6 +139,24 @@ CREATE TABLE barang_lot (
   FOREIGN KEY (suplier_id) REFERENCES suplier(id)
 ) ENGINE=InnoDB;
 
+-- Harga jual (Ecer/Bengkel/Grosir) per suplier untuk satu barang -- barang
+-- yang sama bisa dibeli dari beberapa suplier dengan harga beli berbeda,
+-- jadi harga jualnya pun dibedakan per suplier, bukan satu harga default di
+-- barang.harga_ecer/bengkel/grosir (kolom itu tetap ada, dipakai fallback
+-- untuk stok hasil koreksi manual yang tidak terkait suplier mana pun).
+CREATE TABLE barang_suplier_harga (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  barang_id INT NOT NULL,
+  suplier_id INT NOT NULL,
+  harga_ecer DECIMAL(14,2) NOT NULL,
+  harga_bengkel DECIMAL(14,2) NOT NULL,
+  harga_grosir DECIMAL(14,2) NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY barang_suplier (barang_id, suplier_id),
+  FOREIGN KEY (barang_id) REFERENCES barang(id) ON DELETE CASCADE,
+  FOREIGN KEY (suplier_id) REFERENCES suplier(id)
+) ENGINE=InnoDB;
+
 -- ── Penjualan (Owner & Karyawan) ──────────────────────────────────────
 CREATE TABLE penjualan (
   id INT AUTO_INCREMENT PRIMARY KEY,

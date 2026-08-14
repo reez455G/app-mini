@@ -109,22 +109,74 @@ try {
         $b->execute([$kode]);
         $barang = $b->fetch();
         if (!$barang) throw new RuntimeException("Barang \"$kode\" tidak ditemukan.");
-        if ($qty > $barang['stok']) throw new RuntimeException("Stok {$barang['nama']} tidak mencukupi (tersisa {$barang['stok']} pcs).");
 
         $tier = tier_for_qty($qty);
-        $unitPrice = (float)$barang['harga_' . $tier];
+
+        // suplier_id dari kasir: barang bisa punya batch dari beberapa suplier
+        // dengan harga jual sendiri-sendiri (barang_suplier_harga) -- kasir
+        // pilih mau jual dari suplier mana, bukan lagi auto-gabung FIFO lintas
+        // suplier. 3 mode, dibedakan dari ADA/TIDAKnya key "suplier_id" di
+        // body, bukan cuma nilainya (biar caller lama yang belum kirim field
+        // ini sama sekali tetap jalan persis seperti sebelumnya):
+        //   - key ada, isinya id suplier -> harga & stok discope ke suplier itu.
+        //   - key ada, isinya null -> "Tanpa Suplier": stok hasil koreksi
+        //     manual (barang_lot.suplier_id NULL), pakai harga default barang.
+        //   - key tidak dikirim sama sekali -> perilaku lama: pool semua
+        //     batch, harga default barang (dipakai test/skrip lama & caller
+        //     lain yang belum tahu soal suplier).
+        $hasSuplierKey = array_key_exists('suplier_id', $line);
+        $suplierId = ($hasSuplierKey && $line['suplier_id'] !== null) ? (int)$line['suplier_id'] : null;
+
+        if ($hasSuplierKey && $suplierId !== null) {
+            $hp = $pdo->prepare('SELECT harga_ecer, harga_bengkel, harga_grosir FROM barang_suplier_harga WHERE barang_id = ? AND suplier_id = ?');
+            $hp->execute([$barang['id'], $suplierId]);
+            $hargaSuplier = $hp->fetch();
+            if (!$hargaSuplier) {
+                $sName = $pdo->prepare('SELECT nama FROM suplier WHERE id = ?');
+                $sName->execute([$suplierId]);
+                $suplierNama = $sName->fetchColumn() ?: 'ini';
+                throw new RuntimeException("Suplier \"$suplierNama\" belum ada harga jual untuk barang {$barang['nama']}. Isi dulu di Ubah Barang.");
+            }
+            $unitPrice = (float)$hargaSuplier['harga_' . $tier];
+            $lotWhere = 'barang_id = ? AND suplier_id = ? AND qty_sisa > 0';
+            $lotParams = [$barang['id'], $suplierId];
+            $stokLabel = 'dari suplier ini';
+        } elseif ($hasSuplierKey) {
+            $unitPrice = (float)$barang['harga_' . $tier];
+            $lotWhere = 'barang_id = ? AND suplier_id IS NULL AND qty_sisa > 0';
+            $lotParams = [$barang['id']];
+            $stokLabel = '(tanpa suplier)';
+        } else {
+            $unitPrice = (float)$barang['harga_' . $tier];
+            $lotWhere = 'barang_id = ? AND qty_sisa > 0';
+            $lotParams = [$barang['id']];
+            $stokLabel = '';
+        }
+
+        if ($hasSuplierKey) {
+            // Discope ke suplier/tanpa-suplier: barang.stok tidak bisa dipakai
+            // langsung (itu total gabungan semua suplier), harus dihitung ulang.
+            $stokCek = $pdo->prepare("SELECT COALESCE(SUM(qty_sisa), 0) FROM barang_lot WHERE $lotWhere");
+            $stokCek->execute($lotParams);
+            $stokTersedia = (int)$stokCek->fetchColumn();
+            if ($qty > $stokTersedia) throw new RuntimeException("Stok {$barang['nama']} $stokLabel tidak mencukupi (tersisa $stokTersedia pcs).");
+        } else {
+            if ($qty > $barang['stok']) throw new RuntimeException("Stok {$barang['nama']} tidak mencukupi (tersisa {$barang['stok']} pcs).");
+        }
+
         $subtotal = $unitPrice * $qty;
         $totalQty += $qty;
         $grandTotal += $subtotal;
 
         $pdo->prepare('UPDATE barang SET stok = stok - ? WHERE id = ?')->execute([$qty, $barang['id']]);
 
-        // FIFO: tarik dari batch TERLAMA dulu supaya modal yang dicatat di
-        // penjualan_item_lot (dipakai Laporan Laba) benar-benar harga beli
-        // batch yang terjual, bukan harga_netto/harga_faktur TERKINI di barang
-        // (yang bisa saja sudah berubah sejak batch lama itu dibeli).
-        $fifoLots = $pdo->prepare('SELECT id, qty_sisa, harga_beli FROM barang_lot WHERE barang_id = ? AND qty_sisa > 0 ORDER BY tanggal ASC, id ASC FOR UPDATE');
-        $fifoLots->execute([$barang['id']]);
+        // FIFO: tarik dari batch TERLAMA dulu (discope ke suplier yang dipilih
+        // kasir kalau ada) supaya modal yang dicatat di penjualan_item_lot
+        // (dipakai Laporan Laba) benar-benar harga beli batch yang terjual,
+        // bukan harga_netto/harga_faktur TERKINI di barang (yang bisa saja
+        // sudah berubah sejak batch lama itu dibeli).
+        $fifoLots = $pdo->prepare("SELECT id, qty_sisa, harga_beli FROM barang_lot WHERE $lotWhere ORDER BY tanggal ASC, id ASC FOR UPDATE");
+        $fifoLots->execute($lotParams);
         $remaining = $qty;
         $allocation = [];
         foreach ($fifoLots->fetchAll() as $lotRow) {
