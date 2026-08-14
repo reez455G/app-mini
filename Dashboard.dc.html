@@ -245,12 +245,12 @@
 
         <div class="field">
           <label for="login-user">Nama Pengguna</label>
-          <input class="input" id="login-user" style="min-height:46px;font-size:15px;" placeholder="Contoh: Budi" value="{{ username }}" onChange="{{ setUsername }}" />
+          <input class="input" id="login-user" style="min-height:46px;font-size:15px;" placeholder="Contoh: Budi" value="{{ username }}" onChange="{{ setUsername }}" onKeyDown="{{ handleLoginKeyDown }}" />
         </div>
 
         <div class="field">
           <label for="login-pass">Kata Sandi</label>
-          <input class="input" id="login-pass" type="password" style="min-height:46px;font-size:15px;" placeholder="Kata sandi" value="{{ password }}" onChange="{{ setPassword }}" />
+          <input class="input" id="login-pass" type="password" style="min-height:46px;font-size:15px;" placeholder="Kata sandi" value="{{ password }}" onChange="{{ setPassword }}" onKeyDown="{{ handleLoginKeyDown }}" />
         </div>
 
         <sc-if value="{{ loginError }}">
@@ -3485,6 +3485,10 @@ tr { page-break-inside: avoid; }
     }).catch((e) => this.setState({ busy: false, loginError: e.message }));
   };
 
+  handleLoginKeyDown = (e) => {
+    if (e.key === 'Enter' && !this.state.busy) { e.preventDefault(); this.doLogin(); }
+  };
+
   doLogout = () => {
     api('POST', 'auth/logout.php').catch(() => {});
     this.setState({
@@ -4199,7 +4203,7 @@ tr { page-break-inside: avoid; }
       storeName, assetV: ASSET_V,
       username: s.username, password: s.password, loginError: s.loginError,
       setUsername: this.setUsername, setPassword: this.setPassword,
-      doLogin: this.doLogin, doLogout: this.doLogout,
+      doLogin: this.doLogin, handleLoginKeyDown: this.handleLoginKeyDown, doLogout: this.doLogout,
       showForgot: s.showForgot, forgotSent: s.forgotSent, forgotNotSent: !s.forgotSent,
       forgotContact: s.forgotContact, forgotError: s.forgotError,
       openForgot: this.openForgot, closeForgot: this.closeForgot,
