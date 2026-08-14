@@ -133,19 +133,19 @@ yang dibeli. Kasir tidak memilih harga secara manual:
 
 | Jumlah dalam satu baris | Harga yang dipakai |
 |---|---|
-| 1 – 5 pcs | **ECER** |
-| 6 – 10 pcs | **BENGKEL** |
-| 11 pcs atau lebih | **GROSIR** |
+| 1 pcs | **ECER** |
+| 2 – 5 pcs | **BENGKEL** |
+| 6 pcs atau lebih | **GROSIR** |
 
 Tingkat harga yang sedang berlaku selalu terlihat sebagai badge (misalnya
 `BENGKEL · Rp 58.000/pcs`) sebelum barang ditambahkan, dan tercantum di kolom
 **Tier** di keranjang serta di struk.
 
 > ⚠️ **Hati-hati:** perhitungan ini dilakukan **per baris keranjang**, bukan
-> dari total belanja. Menambahkan **10 pcs sekaligus** akan mendapat harga
-> BENGKEL, tetapi menambahkan **5 pcs lalu 5 pcs lagi secara terpisah** akan
-> mendapat harga ECER dua kali. Kalau pelanggan membeli 10 pcs barang yang
-> sama, masukkan sebagai **satu baris berisi 10**, bukan dua baris berisi 5.
+> dari total belanja. Menambahkan **6 pcs sekaligus** akan mendapat harga
+> GROSIR, tetapi menambahkan **3 pcs lalu 3 pcs lagi secara terpisah** akan
+> mendapat harga BENGKEL dua kali. Kalau pelanggan membeli 6 pcs barang yang
+> sama, masukkan sebagai **satu baris berisi 6**, bukan dua baris berisi 3.
 
 ### Metode bayar apa saja yang tersedia?
 

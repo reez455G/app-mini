@@ -8,8 +8,8 @@ $pdo = db();
 
 // Auto-deteksi tier harga dari qty — sama seperti addToCart() di Dashboard.dc.html.
 function tier_for_qty(int $qty): string {
-    if ($qty >= 11) return 'grosir';
-    if ($qty >= 6) return 'bengkel';
+    if ($qty >= 6) return 'grosir';
+    if ($qty >= 2) return 'bengkel';
     return 'ecer';
 }
 

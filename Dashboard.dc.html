@@ -607,40 +607,6 @@
                     </table>
                   </sc-if>
                 </div>
-
-                <div class="card elev-sm">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <div class="card-kicker">Riwayat Penjualan</div>
-                    <sc-if value="{{ penjHistoryShowLaporanLink }}" hint-placeholder-val="{{ false }}">
-                      <button type="button" class="btn btn-ghost" style="min-height:36px;font-size:12px;" onClick="{{ goLaporanPenjualan }}">Detail &amp; Laporan &rarr;</button>
-                    </sc-if>
-                  </div>
-                  <sc-if value="{{ penjHistoryEmpty }}" hint-placeholder-val="{{ false }}">
-                    <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Belum ada penjualan tersimpan.</p>
-                  </sc-if>
-                  <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
-                    <table class="table table-compact" style="min-width:800px;white-space:nowrap;">
-                      <thead><tr><th>Tanggal</th><th>No. Invoice</th><th>Pelanggan</th><th>Qty</th><th>Total</th><th>Payment</th><th></th></tr></thead>
-                      <tbody>
-                        <sc-for list="{{ penjHistoryView }}" as="h" hint-placeholder-count="4">
-                          <tr>
-                            <td>{{ h.tanggalPendek }}</td>
-                            <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:auto;font-size:13px;text-decoration:underline;" title="Detail transaksi" onClick="{{ h.detailHandler }}">{{ h.invoiceNo }}</button></td>
-                            <td>{{ h.custName }}</td>
-                            <td>{{ h.totalQty }} pcs</td>
-                            <td>{{ h.grandTotalLabel }}</td>
-                            <td><span class="tag {{ h.paymentTagClass }}" style="font-size:11px;">{{ h.paymentLabel }}</span></td>
-                            <td>
-                              <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
-                                <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus transaksi" title="Hapus transaksi" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
-                              </sc-if>
-                            </td>
-                          </tr>
-                        </sc-for>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               </div>
 
               <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
@@ -1044,7 +1010,7 @@
               <div class="card elev-sm">
                 <div class="card-kicker">Tambah Barang</div>
                 <div class="field" style="margin-top:10px;">
-                  <label for="pb-scan-input">Scan / Kode Barang</label>
+                  <label for="pb-scan-input">Scan / Kode Barcode</label>
                   <div style="display:flex;gap:8px;">
                     <input class="input" id="pb-scan-input" style="min-height:44px;font-size:15px;flex:1;min-width:0;" placeholder="Sorot ke sini lalu scan, atau ketik kode + Enter" value="{{ pembelianScanInput }}" onChange="{{ setPembelianScanInput }}" onKeyDown="{{ handlePembelianScanKeyDown }}" />
                     <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Scan Barcode" title="Scan Barcode (alat scanner USB/Bluetooth)" tabindex="-1" onClick="{{ focusPembelianScanInput }}">
@@ -1070,7 +1036,7 @@
                     </select>
                   </div>
                   <div class="field" style="position:relative;">
-                    <label for="pb-product-combo">Kode &amp; Nama Barang</label>
+                    <label for="pb-product-combo">Kode Barcode &amp; Nama Barang</label>
                     <input
                       class="input" id="pb-product-combo" autocomplete="off"
                       style="min-height:46px;font-size:15px;"
@@ -1097,7 +1063,7 @@
                 <sc-if value="{{ pembelianIsNewItem }}" hint-placeholder-val="{{ false }}">
                   <div class="rg" style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px;">
                     <div class="field">
-                      <label for="pb-new-kode">Kode Barang Baru</label>
+                      <label for="pb-new-kode">Kode Barcode Baru</label>
                       <input class="input {{ pembelianNewKodeInvalidClass }}" id="pb-new-kode" style="min-height:46px;font-size:15px;" placeholder="Contoh: BAN-030" value="{{ pembelianNewKode }}" onChange="{{ setPembelianNewKode }}" />
                     </div>
                     <div class="field">
@@ -1230,15 +1196,17 @@
                   </sc-for>
                 </select>
               </div>
-              <div class="field" style="width:190px;">
-                <label for="lap-supplier">Suplier</label>
-                <select class="input" id="lap-supplier" style="min-height:44px;font-size:15px;" value="{{ laporanSupplierFilter }}" onChange="{{ setLaporanSupplierFilter }}">
-                  <option value="ALL">Semua Suplier</option>
-                  <sc-for list="{{ laporanSupplierOptions }}" as="sup" hint-placeholder-count="4">
-                    <option value="{{ sup }}">{{ sup }}</option>
-                  </sc-for>
-                </select>
-              </div>
+              <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+                <div class="field" style="width:190px;">
+                  <label for="lap-supplier">Suplier</label>
+                  <select class="input" id="lap-supplier" style="min-height:44px;font-size:15px;" value="{{ laporanSupplierFilter }}" onChange="{{ setLaporanSupplierFilter }}">
+                    <option value="ALL">Semua Suplier</option>
+                    <sc-for list="{{ laporanSupplierOptions }}" as="sup" hint-placeholder-count="4">
+                      <option value="{{ sup }}">{{ sup }}</option>
+                    </sc-for>
+                  </select>
+                </div>
+              </sc-if>
               <div class="field" style="width:170px;">
                 <label for="lap-status">Status Stok</label>
                 <select class="input" id="lap-status" style="min-height:44px;font-size:15px;" value="{{ laporanStatusFilter }}" onChange="{{ setLaporanStatusFilter }}">
@@ -1282,19 +1250,21 @@
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok dengan filter.</p>
             </sc-if>
             <table class="table" style="margin-top:8px;min-width:1000px;white-space:nowrap;">
-              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Stok</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Status</th></tr></thead>
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}"><th>Suplier</th></sc-if><th>Stok</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Status</th></tr></thead>
               <tbody>
                 <sc-for list="{{ laporanRows }}" as="item" hint-placeholder-count="8">
                   <tr>
                     <td>{{ item.kode }}</td>
                     <td>{{ item.nama }}</td>
                     <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
-                    <td>
-                      {{ item.supplier }}
-                      <sc-if value="{{ item.supplierExtraCount }}" hint-placeholder-val="{{ false }}">
-                        <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
-                      </sc-if>
-                    </td>
+                    <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
+                      <td>
+                        {{ item.supplier }}
+                        <sc-if value="{{ item.supplierExtraCount }}" hint-placeholder-val="{{ false }}">
+                          <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
+                        </sc-if>
+                      </td>
+                    </sc-if>
                     <td>{{ item.stok }} pcs</td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
@@ -1336,6 +1306,18 @@
               <label for="lap-sampai">Sampai</label>
               <input class="input" id="lap-sampai" type="date" style="min-height:44px;font-size:15px;" value="{{ laporanSampai }}" onChange="{{ setLaporanSampai }}" />
             </div>
+            <sc-if value="{{ lapTabHasExport }}" hint-placeholder-val="{{ false }}">
+              <div style="position:relative;flex:none;">
+                <button type="button" class="btn btn-primary" style="min-height:44px;white-space:nowrap;" onClick="{{ toggleLaporanLengkapExportMenu }}">Export &darr;</button>
+                <sc-if value="{{ laporanLengkapExportMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:fixed;inset:0;z-index:15;" onClick="{{ closeLaporanLengkapExportMenu }}"></div>
+                  <div style="position:absolute;top:100%;right:0;z-index:20;margin-top:4px;min-width:160px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);overflow:hidden;">
+                    <div style="padding:9px 12px;font-size:14px;cursor:pointer;" onClick="{{ exportLaporanLengkapXlsx }}">Excel (.xls)</div>
+                    <div style="padding:9px 12px;font-size:14px;cursor:pointer;" onClick="{{ exportLaporanLengkapPdf }}">Cetak / PDF</div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
           </div>
 
           <sc-if value="{{ lapTabIsGlobal }}" hint-placeholder-val="{{ true }}">
@@ -2288,7 +2270,7 @@ function normalizeBarang(r) {
   return {
     id: r.id, kode: r.kode, nama: r.nama, kategori: r.kategori, stok: r.stok,
     ecer: r.harga_ecer, bengkel: r.harga_bengkel, grosir: r.harga_grosir, status: r.status,
-    supplier: r.suplier || '', supplierCount: r.suplier_count || 0, hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
+    supplier: r.suplier || '', supplierKode: r.suplier_kode || '', supplierCount: r.suplier_count || 0, hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
     priceListBasis: r.price_list_basis || 'NETTO', minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
   };
 }
@@ -2380,6 +2362,7 @@ class Component extends DCLogic {
     laporanSupplierFilter: 'ALL',
     laporanStatusFilter: 'ALL',
     laporanExportMenuOpen: false,
+    laporanLengkapExportMenuOpen: false,
     laporanLengkapTab: 'global',
     laporanDari: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
     laporanSampai: new Date().toISOString().slice(0, 10),
@@ -2573,8 +2556,15 @@ class Component extends DCLogic {
   // sudah terdaftar).
   penjComboOptions = (s) => {
     const list = this.filterPembelianProducts(s.stokProducts, 'ALL', s.penjProductComboQuery);
-    return list.map((p) => ({ kode: p.kode, label: p.kode + ' — ' + p.nama }));
+    return list.map((p) => ({ kode: p.kode, label: this.penjComboLabel(p) }));
   };
+  // Format "KATEGORI-KODE SUPLIER-NAMA" cuma dipakai di combobox pencarian
+  // Transaksi Penjualan (biar kasir gampang cocokkan barang ke suplier
+  // aslinya) -- baris keranjang & struk tetap nama barang saja, supaya
+  // struk yang dicetak ke pelanggan tidak berantakan kode internal.
+  // Barang yang belum pernah ada riwayat pembelian (belum ada suplier
+  // tertaut) balik ke format lama "kode — nama".
+  penjComboLabel = (p) => p.supplierKode ? (p.kategori + '-' + p.supplierKode + '-' + p.nama) : (p.kode + ' — ' + p.nama);
   openPenjCombo = () => {
     if (this.state.penjProductComboOpen) return;
     this.setState({ penjProductComboOpen: true, penjProductComboQuery: '', penjProductComboHighlight: 0 });
@@ -2618,7 +2608,7 @@ class Component extends DCLogic {
     const qty = parseInt(this.state.penjQty) || 0;
     const product = this.state.stokProducts.find((p) => p.kode === this.state.penjSelectedKode);
     if (!product || qty < 1) return;
-    const tier = qty >= 11 ? 'grosir' : qty >= 6 ? 'bengkel' : 'ecer';
+    const tier = qty >= 6 ? 'grosir' : qty >= 2 ? 'bengkel' : 'ecer';
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : 'ECER';
     const existingQty = this.state.penjCart.filter((i) => i.kode === product.kode).reduce((a, i) => a + i.qty, 0);
     if (qty > product.stok - existingQty) return;
@@ -3267,7 +3257,7 @@ class Component extends DCLogic {
   // barang itu di dropdown. Tidak cocok: pindah ke mode "Barang Baru" dengan
   // kode sudah terisi, tinggal isi nama & harga (barang baru cuma boleh
   // masuk lewat sini, bukan dari Data Barang). Dipakai dari field
-  // "Scan/Kode Barang" pas alat scanner USB/Bluetooth mengetik kode ke situ
+  // "Scan/Kode Barcode" pas alat scanner USB/Bluetooth mengetik kode ke situ
   // lalu Enter.
   resolvePembelianScan = (text) => {
     const code = String(text || '').trim();
@@ -3398,6 +3388,117 @@ tr { page-break-inside: avoid; }
     document.body.appendChild(frame);
   };
 
+  // Export Excel/PDF untuk menu Laporan (tab Pembelian/Penjualan/Laba/Retur)
+  // -- pola & helper yang sama dengan Laporan Stok di atas (Blob .xls +
+  // iframe tersembunyi buat "Save as PDF"), tapi nama state/fungsi SENGAJA
+  // dibedakan (Laporan-LENGKAP, bukan sekadar Laporan) -- pernah ada bug
+  // nyata di sesi ini gara-gara dua bagian kode pakai key objek yang sama
+  // lalu yang belakangan diam-diam menimpa yang duluan.
+  toggleLaporanLengkapExportMenu = () => this.setState((s) => ({ laporanLengkapExportMenuOpen: !s.laporanLengkapExportMenuOpen }));
+  closeLaporanLengkapExportMenu = () => this.setState({ laporanLengkapExportMenuOpen: false });
+
+  // Satu tabel dari [header, ...rows] -- dipakai laporanLengkapTableHtml,
+  // tab Retur pakai dua kali (Retur Penjualan + Retur Pembelian) digabung
+  // satu file dengan judul di antaranya.
+  laporanLengkapOneTable = (header, rows, border) => {
+    const attr = border ? ' border="1"' : '';
+    const headHtml = '<thead><tr>' + header.map((h) => `<th>${escHtml(h)}</th>`).join('') + '</tr></thead>';
+    const bodyHtml = '<tbody>' + rows.map((cells) => '<tr>' + cells.map((v) => `<td>${escHtml(v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+    return `<table${attr}>${headHtml}${bodyHtml}</table>`;
+  };
+
+  // Sumber baris SAMA PERSIS dengan yang lagi tampil di layar tab itu (sudah
+  // difilter & disortir) -- panggil ulang laporanLengkapVals, bukan re-derive
+  // dari state mentah, biar export tidak pernah beda isi dari yang terlihat.
+  laporanLengkapTableHtml = (tab, border) => {
+    const v = this.laporanLengkapVals(this.state);
+    if (tab === 'pembelian') {
+      return this.laporanLengkapOneTable(
+        ['Waktu', 'Suplier', 'No. Faktur', 'Qty', 'Total'],
+        v.pembelianRowsView.map((r) => [r.waktuLabel, r.supplier, r.noFaktur, r.totalQty, r.totalBiayaLabel]),
+        border,
+      );
+    }
+    if (tab === 'penjualan') {
+      return this.laporanLengkapOneTable(
+        ['Waktu', 'No. Invoice', 'Pelanggan', 'Payment', 'Qty', 'Total'],
+        v.penjualanRowsView.map((r) => [r.waktuLabel, r.invoiceNo, r.custName, r.paymentLabel, r.totalQty, r.grandTotalLabel]),
+        border,
+      );
+    }
+    if (tab === 'laba') {
+      return this.laporanLengkapOneTable(
+        ['Waktu', 'No. Invoice', 'Pelanggan', 'Laba', 'Margin'],
+        v.labaRows.map((r) => [r.waktuLabel, r.invoiceNo, r.custName, r.profitLabel, r.marginLabel]),
+        border,
+      );
+    }
+    if (tab === 'retur') {
+      const pj = this.laporanLengkapOneTable(
+        ['No. Retur', 'Pelanggan', 'Invoice Asal', 'Waktu', 'Barang', 'Qty', 'Alasan'],
+        v.returPjLaporanRows.map((r) => [r.noRetur, r.customer, r.invoice, r.waktuLabel, r.nama, r.qty, r.reason]),
+        border,
+      );
+      const pb = this.laporanLengkapOneTable(
+        ['No. Retur', 'Suplier', 'Invoice Asal', 'Waktu', 'Barang', 'Qty', 'Alasan'],
+        v.returPbLaporanRows.map((r) => [r.noRetur, r.supplier, r.invoice, r.waktuLabel, r.nama, r.qty, r.reason]),
+        border,
+      );
+      return '<h3>Retur Penjualan</h3>' + pj + '<h3>Retur Pembelian</h3>' + pb;
+    }
+    return '';
+  };
+
+  laporanLengkapTabLabel = (tab) => ({ pembelian: 'Pembelian', penjualan: 'Penjualan', laba: 'Laba', retur: 'Retur' }[tab] || tab);
+
+  exportLaporanLengkapXlsx = () => {
+    this.closeLaporanLengkapExportMenu();
+    const tab = this.state.laporanLengkapTab;
+    const html = `<html><head><meta charset="utf-8"></head><body>${this.laporanLengkapTableHtml(tab, true)}</body></html>`;
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'laporan-' + tab + '.xls'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  exportLaporanLengkapPdf = () => {
+    this.closeLaporanLengkapExportMenu();
+    const s = this.state;
+    const tab = s.laporanLengkapTab;
+    const tabLabel = this.laporanLengkapTabLabel(tab);
+    const judul = (s.tokoProfil && s.tokoProfil.nama) || this.props.storeName || 'App-mini';
+    const filterLabel = [
+      s.laporanLengkapSearch.trim() ? 'Cari: "' + s.laporanLengkapSearch.trim() + '"' : '',
+      'Periode: ' + formatTanggal(s.laporanDari) + ' – ' + formatTanggal(s.laporanSampai),
+    ].filter(Boolean).join(' · ');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Laporan ${escHtml(tabLabel)}</title><style>
+@page { size: A4 landscape; margin: 12mm; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0; }
+h1 { font-size: 16px; margin: 0 0 2px; }
+h3 { font-size: 13px; margin: 14px 0 4px; }
+p { margin: 0 0 4px; }
+table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; }
+thead { background: #eee; display: table-header-group; }
+tr { page-break-inside: avoid; }
+</style></head><body>
+<h1>${escHtml(judul)}</h1>
+<p>Laporan ${escHtml(tabLabel)} — dicetak ${escHtml(formatTanggal(new Date().toISOString().slice(0, 10)))}</p>
+<p>${escHtml(filterLabel)}</p>
+${this.laporanLengkapTableHtml(tab, false)}
+</body></html>`;
+    const frame = document.createElement('iframe');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    frame.onload = () => {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      setTimeout(() => frame.remove(), 1000);
+    };
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  };
+
   // @page tidak bisa disyaratkan lewat body:has() seperti aturan lain di
   // bawah (lihat komentar setStokPrintPageSize) — makanya ukuran kertas
   // struk 80mm disisipkan sendiri di sini sekali (idempotent lewat id),
@@ -3442,7 +3543,7 @@ tr { page-break-inside: avoid; }
     // ke default 'BAN' tanpa sepengetahuan pengguna. Sekarang wajib pilih
     // kategori asli dulu.
     if (isNewItem && s.pembelianKategoriFilter === 'ALL') { missing.push('Kategori'); missingKeys.push('kategori'); }
-    if (isNewItem && !s.pembelianNewKode.trim()) { missing.push('Kode Barang Baru'); missingKeys.push('newKode'); }
+    if (isNewItem && !s.pembelianNewKode.trim()) { missing.push('Kode Barcode Baru'); missingKeys.push('newKode'); }
     if (isNewItem && !s.pembelianNewNama.trim()) { missing.push('Nama Barang Baru'); missingKeys.push('newNama'); }
     if (!qty) { missing.push('Jumlah'); missingKeys.push('qty'); }
     if (!hargaBeli) { missing.push('Harga Beli'); missingKeys.push('hargaBeli'); }
@@ -3570,7 +3671,7 @@ tr { page-break-inside: avoid; }
   penjualanVals(s) {
     const selectedProduct = s.stokProducts.find((p) => p.kode === s.penjSelectedKode) || s.stokProducts[0] || { kode: '', stok: 0, ecer: 0, bengkel: 0, grosir: 0 };
     const qtyNum = parseInt(s.penjQty) || 0;
-    const tier = qtyNum >= 11 ? 'grosir' : qtyNum >= 6 ? 'bengkel' : qtyNum >= 1 ? 'ecer' : null;
+    const tier = qtyNum >= 6 ? 'grosir' : qtyNum >= 2 ? 'bengkel' : qtyNum >= 1 ? 'ecer' : null;
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : tier === 'ecer' ? 'ECER' : '';
     const unitPrice = tier ? selectedProduct[tier] : 0;
     const cartQtyForSelected = s.penjCart.filter((i) => i.kode === selectedProduct.kode).reduce((a, i) => a + i.qty, 0);
@@ -3616,7 +3717,7 @@ tr { page-break-inside: avoid; }
       clickHandler: () => this.selectPenjCombo(opt.kode),
       mouseDownHandler: this.handlePenjComboOptionMouseDown,
     }));
-    const penjComboSelectedLabel = selectedProduct.kode ? selectedProduct.kode + ' — ' + selectedProduct.nama : '';
+    const penjComboSelectedLabel = selectedProduct.kode ? this.penjComboLabel(selectedProduct) : '';
 
     return {
       penjSelectedKode: s.penjSelectedKode,
@@ -3978,6 +4079,11 @@ tr { page-break-inside: avoid; }
       lapTabIsPembelian: s.laporanLengkapTab === 'pembelian',
       lapTabIsPenjualan: s.laporanLengkapTab === 'penjualan', lapTabIsLaba: s.laporanLengkapTab === 'laba',
       lapTabIsLaris: s.laporanLengkapTab === 'laris', lapTabIsRetur: s.laporanLengkapTab === 'retur',
+      lapTabHasExport: ['pembelian', 'penjualan', 'laba', 'retur'].includes(s.laporanLengkapTab),
+      laporanLengkapExportMenuOpen: s.laporanLengkapExportMenuOpen,
+      toggleLaporanLengkapExportMenu: this.toggleLaporanLengkapExportMenu,
+      closeLaporanLengkapExportMenu: this.closeLaporanLengkapExportMenu,
+      exportLaporanLengkapXlsx: this.exportLaporanLengkapXlsx, exportLaporanLengkapPdf: this.exportLaporanLengkapPdf,
 
       pembelianRowsView: byCreatedAt(pb.rows, s.lapSort.pembelian).map((r) => ({
         supplier: r.suplier, noFaktur: r.no_faktur, totalQty: r.total_qty, totalBiayaLabel: formatRp(r.total_biaya),
