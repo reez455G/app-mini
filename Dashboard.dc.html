@@ -2563,8 +2563,17 @@ class Component extends DCLogic {
   // aslinya) -- baris keranjang & struk tetap nama barang saja, supaya
   // struk yang dicetak ke pelanggan tidak berantakan kode internal.
   // Barang yang belum pernah ada riwayat pembelian (belum ada suplier
-  // tertaut) balik ke format lama "kode — nama".
-  penjComboLabel = (p) => p.supplierKode ? (p.kategori + '-' + p.supplierKode + '-' + p.nama) : (p.kode + ' — ' + p.nama);
+  // tertaut) balik ke format lama "kode — nama". Suplier yang ditampilkan
+  // cuma yang PALING TERAKHIR dipakai beli barang itu (barang.suplier_id
+  // selalu ketimpa tiap ada pembelian baru, lihat pembelian.php) -- kalau
+  // barang ini juga pernah dibeli dari suplier lain (supplierCount > 1,
+  // field yang sama dipakai badge "+N" di Data Barang/Laporan Stok),
+  // ditambahkan penanda "+N suplier lain" supaya kasir tahu barang ini
+  // multi-suplier, bukan cuma diam-diam nunjukkin satu suplier terkini.
+  penjComboLabel = (p) => {
+    const base = p.supplierKode ? (p.kategori + '-' + p.supplierKode + '-' + p.nama) : (p.kode + ' — ' + p.nama);
+    return p.supplierCount > 1 ? base + ` (+${p.supplierCount - 1} suplier lain)` : base;
+  };
   openPenjCombo = () => {
     if (this.state.penjProductComboOpen) return;
     this.setState({ penjProductComboOpen: true, penjProductComboQuery: '', penjProductComboHighlight: 0 });
