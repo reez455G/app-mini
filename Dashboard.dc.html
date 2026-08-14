@@ -3315,7 +3315,7 @@ class Component extends DCLogic {
   // library tambahan.
   exportLaporanXlsx = () => {
     this.closeLaporanExportMenu();
-    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${this.laporanTableHtml()}</table></body></html>`;
+    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${this.laporanTableHtml(this.state.role === 'owner')}</table></body></html>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3325,12 +3325,27 @@ class Component extends DCLogic {
 
   // Isi tabel laporan stok (thead + tbody) dari baris yang LAGI TAMPIL sesudah
   // filter — satu sumber untuk export Excel dan cetak/PDF, biar dua-duanya
-  // tidak pernah beda isi.
-  laporanTableHtml = () => {
+  // tidak pernah beda isi. includeOwnerCols nambah kolom Multi Suplier +
+  // Harga Beli (data finansial, Owner-only) -- cuma dipakai export Excel,
+  // Cetak/PDF tetap kolom lama supaya tetap muat rapi & tidak bocor ke
+  // siapa pun yang kebetulan buka file PDF-nya.
+  laporanTableHtml = (includeOwnerCols) => {
     const rows = this.laporanFilteredRows(this.state);
     const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
+    if (includeOwnerCols) header.push('Multi Suplier', 'Harga Beli', 'Basis Harga Beli');
     const headHtml = '<thead><tr>' + header.map((h) => `<th>${escHtml(h)}</th>`).join('') + '</tr></thead>';
-    const bodyHtml = '<tbody>' + rows.map((p) => '<tr>' + [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status].map((v) => `<td>${escHtml(v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+    const bodyHtml = '<tbody>' + rows.map((p) => {
+      const cells = [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status];
+      if (includeOwnerCols) {
+        const hargaBeli = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
+        cells.push(
+          p.supplierCount > 1 ? `Ya (${p.supplierCount} suplier)` : 'Tidak',
+          hargaBeli || 0,
+          hargaBeli ? (p.hargaNetto > 0 ? 'Netto' : 'Faktur') : '',
+        );
+      }
+      return '<tr>' + cells.map((v) => `<td>${escHtml(v)}</td>`).join('') + '</tr>';
+    }).join('') + '</tbody>';
     return headHtml + bodyHtml;
   };
 
