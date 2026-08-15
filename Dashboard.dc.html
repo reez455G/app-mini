@@ -542,47 +542,29 @@
               <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
                 <div class="card elev-sm">
                   <div class="card-kicker">Tambah Barang</div>
-                  <div class="field" style="position:relative;margin-top:10px;">
-                    <label for="penj-product-combo">Cari Barang</label>
-                    <input
-                      class="input" id="penj-product-combo" autocomplete="off"
-                      style="min-height:46px;font-size:15px;"
-                      placeholder="Pilih kode atau nama barang"
-                      value="{{ penjComboDisplayValue }}"
-                      onChange="{{ setPenjComboQuery }}"
-                      onFocus="{{ openPenjCombo }}"
-                      onClick="{{ openPenjCombo }}"
-                      onKeyDown="{{ handlePenjComboKeyDown }}"
-                      onBlur="{{ handlePenjComboBlur }}"
-                    />
-                    <sc-if value="{{ penjProductComboOpen }}" hint-placeholder-val="{{ false }}">
-                      <div style="position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;max-height:260px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);">
-                        <sc-if value="{{ penjComboOptionsEmpty }}" hint-placeholder-val="{{ false }}">
-                          <div style="padding:10px 12px;font-size:13px;opacity:0.6;">Tidak ada yang cocok.</div>
-                        </sc-if>
-                        <sc-for list="{{ penjComboOptionsView }}" as="opt" hint-placeholder-count="6">
-                          <div style="{{ opt.rowStyle }}" onMouseDown="{{ opt.mouseDownHandler }}" onClick="{{ opt.clickHandler }}">{{ opt.label }}</div>
-                        </sc-for>
-                      </div>
-                    </sc-if>
-                  </div>
-                  <div class="rg" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px;">
-                    <div class="field">
-                      <label for="penj-suplier">Suplier</label>
-                      <select class="input" id="penj-suplier" style="min-height:46px;font-size:15px;" value="{{ penjSelectedSuplierId }}" onChange="{{ setPenjSelectedSuplier }}">
-                        <option value="">Pilih suplier...</option>
-                        <sc-for list="{{ penjSupplierOptionsView }}" as="opt" hint-placeholder-count="2">
-                          <option value="{{ opt.suplierId }}">{{ opt.label }}</option>
-                        </sc-for>
-                      </select>
-                      <sc-if value="{{ penjSupplierOptionsLoading }}" hint-placeholder-val="{{ false }}">
-                        <p style="margin:4px 0 0;font-size:12px;opacity:0.6;">Memuat suplier...</p>
-                      </sc-if>
-                      <sc-if value="{{ penjSupplierOptionsEmpty }}" hint-placeholder-val="{{ false }}">
-                        <p style="margin:4px 0 0;font-size:12px;color:var(--color-accent-2-700);">Stok habis di semua suplier.</p>
-                      </sc-if>
-                      <sc-if value="{{ supplierPriceMissing }}" hint-placeholder-val="{{ false }}">
-                        <p style="margin:4px 0 0;font-size:12px;color:var(--color-accent-2-700);">Suplier ini belum ada harga jual — isi dulu di Ubah Barang.</p>
+                  <div class="rg" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:10px;">
+                    <div class="field" style="position:relative;">
+                      <label for="penj-product-combo">Cari Barang</label>
+                      <input
+                        class="input" id="penj-product-combo" autocomplete="off"
+                        style="min-height:46px;font-size:15px;"
+                        placeholder="Pilih kode atau nama barang"
+                        value="{{ penjComboDisplayValue }}"
+                        onChange="{{ setPenjComboQuery }}"
+                        onFocus="{{ openPenjCombo }}"
+                        onClick="{{ openPenjCombo }}"
+                        onKeyDown="{{ handlePenjComboKeyDown }}"
+                        onBlur="{{ handlePenjComboBlur }}"
+                      />
+                      <sc-if value="{{ penjProductComboOpen }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;max-height:260px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);">
+                          <sc-if value="{{ penjComboOptionsEmpty }}" hint-placeholder-val="{{ false }}">
+                            <div style="padding:10px 12px;font-size:13px;opacity:0.6;">Tidak ada yang cocok.</div>
+                          </sc-if>
+                          <sc-for list="{{ penjComboOptionsView }}" as="opt" hint-placeholder-count="6">
+                            <div style="{{ opt.rowStyle }}" onMouseDown="{{ opt.mouseDownHandler }}" onClick="{{ opt.clickHandler }}">{{ opt.label }}</div>
+                          </sc-for>
+                        </div>
                       </sc-if>
                     </div>
                     <div class="field">
@@ -2361,10 +2343,8 @@ class Component extends DCLogic {
     penjCustName: '',
     penjPaymentMethod: 'TUNAI',
     penjAmountPaid: '',
-    penjSelectedKode: '',
-    penjSelectedSuplierId: '',
-    penjSupplierOptions: [],
-    penjSupplierOptionsLoading: false,
+    penjSelectedOptId: '',
+    penjSellableOptions: [],
     penjProductComboOpen: false,
     penjProductComboQuery: '',
     penjProductComboHighlight: 0,
@@ -2511,23 +2491,54 @@ class Component extends DCLogic {
   refreshBarang = () => api('GET', 'barang.php').then((rows) => {
     const list = rows.map(normalizeBarang);
     const s = this.state;
-    const nextPenjKode = list.some((p) => p.kode === s.penjSelectedKode) ? s.penjSelectedKode : (list[0] ? list[0].kode : '');
-    const penjKodeChanged = nextPenjKode !== s.penjSelectedKode;
     this.setState({
       stokProducts: list,
-      penjSelectedKode: nextPenjKode,
       pembelianSelectedKode: (s.pembelianSelectedKode === '__NEW__' || list.some((p) => p.kode === s.pembelianSelectedKode)) ? s.pembelianSelectedKode : '',
     });
-    // Barang yang otomatis kepilih (login awal, atau barang yang lagi
-    // dipilih hilang dari daftar) butuh suplier options-nya juga ditarik --
-    // dibatasi cuma saat kode-nya benar-benar berubah, supaya polling 10
-    // detik yang rutin tidak diam-diam mereset pilihan suplier kasir yang
-    // lagi di tengah transaksi.
-    if (penjKodeChanged && nextPenjKode) {
-      const product = list.find((p) => p.kode === nextPenjKode);
-      if (product) this.fetchPenjSupplierOptions(product);
-    }
+    this.refreshPenjSellableOptions(list);
   }).catch((e) => this.setState({ globalError: e.message }));
+
+  // Combobox "Cari Barang" di Transaksi Penjualan menampilkan SATU baris per
+  // (barang, suplier) yang masih ada stok & harganya -- bukan 1 baris per
+  // barang + dropdown suplier terpisah, jadi kasir cukup 1 langkah buat
+  // pilih barang SEKALIGUS suplier sumbernya. Suplier yang belum diisi
+  // harga jual (lihat "Harga Jual per Suplier" di Ubah Barang) sengaja
+  // TIDAK muncul di sini sama sekali -- daripada kasir pilih lalu ditolak,
+  // opsinya baru muncul begitu Owner mengisi harganya. Ditarik ulang tiap
+  // refreshBarang, tapi pilihan kasir yang lagi di tengah transaksi TIDAK
+  // direset kalau opsi itu masih valid di daftar baru -- biar polling 10
+  // detik yang rutin tidak diam-diam mengganggu transaksi yang lagi jalan.
+  refreshPenjSellableOptions = (list) => {
+    Promise.all(list.map((p) => api('GET', 'barang_suplier_harga.php?barang_id=' + p.id).then((res) => ({ p, res })).catch(() => null)))
+      .then((results) => {
+        const options = [];
+        results.forEach((r) => {
+          if (!r) return;
+          const { p, res } = r;
+          res.suppliers.filter((sup) => sup.stok_sisa > 0 && sup.harga_ecer != null).forEach((sup) => {
+            const suplierId = String(sup.suplier_id);
+            options.push({
+              optId: p.kode + '::' + suplierId, kode: p.kode, nama: p.nama,
+              label: p.kategori + '-' + sup.suplier_kode + '-' + p.nama,
+              suplierId, suplier: sup.suplier,
+              stokSisa: sup.stok_sisa, ecer: sup.harga_ecer, bengkel: sup.harga_bengkel, grosir: sup.harga_grosir,
+            });
+          });
+          if (res.stok_tanpa_suplier > 0) {
+            options.push({
+              optId: p.kode + '::__NONE__', kode: p.kode, nama: p.nama,
+              label: p.kode + ' — ' + p.nama + ' (tanpa suplier)',
+              suplierId: '__NONE__', suplier: 'Tanpa Suplier (koreksi stok manual)',
+              stokSisa: res.stok_tanpa_suplier, ecer: p.ecer, bengkel: p.bengkel, grosir: p.grosir,
+            });
+          }
+        });
+        this.setState((s) => ({
+          penjSellableOptions: options,
+          penjSelectedOptId: options.some((o) => o.optId === s.penjSelectedOptId) ? s.penjSelectedOptId : (options[0] ? options[0].optId : ''),
+        }));
+      });
+  };
 
   refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.setState({ globalError: e.message }));
   refreshPenjHistory = () => api('GET', 'penjualan.php').then((rows) => this.setState({ penjHistory: rows.map(normalizePenjualan) })).catch((e) => this.setState({ globalError: e.message }));
@@ -2621,29 +2632,14 @@ class Component extends DCLogic {
   };
 
   setPenjCustName = (e) => this.setState({ penjCustName: e.target.value });
-  // Combobox custom buat "Cari Barang" — sama persis polanya dengan combobox
-  // "Kode & Nama Barang" di Input Pembelian, cuma tanpa filter kategori dan
-  // tanpa opsi "+ Barang Baru" (di Penjualan cuma bisa jual barang yang
-  // sudah terdaftar).
+  // Combobox custom buat "Cari Barang" — satu baris per (barang, suplier)
+  // yang masih ada stok & harganya (penjSellableOptions, dibangun di
+  // refreshPenjSellableOptions), bukan 1 baris per barang. Filter kode/nama
+  // sama polanya dengan combobox Input Pembelian, cuma sumber datanya beda.
   penjComboOptions = (s) => {
-    const list = this.filterPembelianProducts(s.stokProducts, 'ALL', s.penjProductComboQuery);
-    return list.map((p) => ({ kode: p.kode, label: this.penjComboLabel(p) }));
-  };
-  // Format "KATEGORI-KODE SUPLIER-NAMA" cuma dipakai di combobox pencarian
-  // Transaksi Penjualan (biar kasir gampang cocokkan barang ke suplier
-  // aslinya) -- baris keranjang & struk tetap nama barang saja, supaya
-  // struk yang dicetak ke pelanggan tidak berantakan kode internal.
-  // Barang yang belum pernah ada riwayat pembelian (belum ada suplier
-  // tertaut) balik ke format lama "kode — nama". Suplier yang ditampilkan
-  // cuma yang PALING TERAKHIR dipakai beli barang itu (barang.suplier_id
-  // selalu ketimpa tiap ada pembelian baru, lihat pembelian.php) -- kalau
-  // barang ini juga pernah dibeli dari suplier lain (supplierCount > 1,
-  // field yang sama dipakai badge "+N" di Data Barang/Laporan Stok),
-  // ditambahkan penanda "+N suplier lain" supaya kasir tahu barang ini
-  // multi-suplier, bukan cuma diam-diam nunjukkin satu suplier terkini.
-  penjComboLabel = (p) => {
-    const base = p.supplierKode ? (p.kategori + '-' + p.supplierKode + '-' + p.nama) : (p.kode + ' — ' + p.nama);
-    return p.supplierCount > 1 ? base + ` (+${p.supplierCount - 1} suplier lain)` : base;
+    const q = s.penjProductComboQuery.trim().toLowerCase();
+    const list = q ? s.penjSellableOptions.filter((o) => o.kode.toLowerCase().includes(q) || o.nama.toLowerCase().includes(q)) : s.penjSellableOptions;
+    return list.map((o) => ({ optId: o.optId, label: o.label }));
   };
   openPenjCombo = () => {
     if (this.state.penjProductComboOpen) return;
@@ -2651,40 +2647,7 @@ class Component extends DCLogic {
   };
   closePenjCombo = () => this.setState({ penjProductComboOpen: false });
   setPenjComboQuery = (e) => this.setState({ penjProductComboQuery: e.target.value, penjProductComboHighlight: 0, penjProductComboOpen: true });
-  // Barang bisa punya batch dari beberapa suplier dengan harga jual sendiri-
-  // sendiri (barang_suplier_harga) -- begitu barang kepilih (lewat combobox
-  // ATAU auto-terpilih pertama kali di refreshBarang), tarik daftar suplier
-  // yang masih ada stoknya + harganya, supaya kasir bisa (dan wajib) pilih
-  // mau jual dari suplier mana sebelum "+ Tambah ke Keranjang" bisa diklik.
-  // Kalau cuma ada 1 pilihan, otomatis kepilih (tidak nambah langkah buat
-  // barang bersuplier tunggal). Terima objek `product` langsung (bukan
-  // cari ulang dari this.state.stokProducts) supaya aman dipanggil dari
-  // refreshBarang tepat sesudah daftar barang baru saja diperbarui.
-  fetchPenjSupplierOptions = (product) => {
-    const kode = product.kode;
-    this.setState({ penjSelectedSuplierId: '', penjSupplierOptions: [], penjSupplierOptionsLoading: true });
-    api('GET', 'barang_suplier_harga.php?barang_id=' + product.id).then((res) => {
-      const options = res.suppliers.filter((r) => r.stok_sisa > 0).map((r) => ({
-        suplierId: String(r.suplier_id), suplier: r.suplier, stokSisa: r.stok_sisa,
-        ecer: r.harga_ecer, bengkel: r.harga_bengkel, grosir: r.harga_grosir,
-      }));
-      // Stok hasil koreksi manual (tidak tertaut suplier) -- pakai harga
-      // default barang, sama seperti fallback di penjualan.php.
-      if (res.stok_tanpa_suplier > 0) {
-        options.push({ suplierId: '__NONE__', suplier: 'Tanpa Suplier (koreksi stok manual)', stokSisa: res.stok_tanpa_suplier, ecer: product.ecer, bengkel: product.bengkel, grosir: product.grosir });
-      }
-      this.setState((s) => (s.penjSelectedKode !== kode ? {} : {
-        penjSupplierOptions: options, penjSupplierOptionsLoading: false,
-        penjSelectedSuplierId: options.length === 1 ? options[0].suplierId : '',
-      }));
-    }).catch(() => this.setState({ penjSupplierOptionsLoading: false }));
-  };
-  selectPenjCombo = (kode) => {
-    const product = this.state.stokProducts.find((p) => p.kode === kode);
-    this.setState({ penjSelectedKode: kode, penjProductComboOpen: false, penjProductComboQuery: '' });
-    if (product) this.fetchPenjSupplierOptions(product);
-  };
-  setPenjSelectedSuplier = (e) => this.setState({ penjSelectedSuplierId: e.target.value });
+  selectPenjCombo = (optId) => this.setState({ penjSelectedOptId: optId, penjProductComboOpen: false, penjProductComboQuery: '' });
   handlePenjComboKeyDown = (e) => {
     const s = this.state;
     if (!s.penjProductComboOpen) {
@@ -2701,7 +2664,7 @@ class Component extends DCLogic {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const opt = options[s.penjProductComboHighlight];
-      if (opt) this.selectPenjCombo(opt.kode);
+      if (opt) this.selectPenjCombo(opt.optId);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       this.closePenjCombo();
@@ -2720,24 +2683,21 @@ class Component extends DCLogic {
   addToCart = () => {
     const s = this.state;
     const qty = parseInt(s.penjQty) || 0;
-    const product = s.stokProducts.find((p) => p.kode === s.penjSelectedKode);
-    const supplierOpt = s.penjSupplierOptions.find((o) => o.suplierId === s.penjSelectedSuplierId);
-    if (!product || !supplierOpt || qty < 1) return;
+    const opt = s.penjSellableOptions.find((o) => o.optId === s.penjSelectedOptId);
+    if (!opt || qty < 1) return;
     const tier = qty >= 6 ? 'grosir' : qty >= 2 ? 'bengkel' : 'ecer';
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : 'ECER';
-    // "sisa" dihitung per suplier yang dipilih, bukan stok pool gabungan --
-    // dua baris keranjang barang yang sama dari suplier BEDA masing-masing
-    // punya batasnya sendiri.
-    const existingQty = s.penjCart
-      .filter((i) => i.kode === product.kode && i.suplierIdRaw === supplierOpt.suplierId)
-      .reduce((a, i) => a + i.qty, 0);
-    if (qty > supplierOpt.stokSisa - existingQty) return;
-    const unitPrice = supplierOpt[tier];
-    const suplierId = supplierOpt.suplierId === '__NONE__' ? null : parseInt(supplierOpt.suplierId);
+    // "sisa" dihitung per opsi (barang+suplier) yang dipilih, bukan stok pool
+    // gabungan -- dua baris keranjang barang yang sama dari suplier BEDA
+    // masing-masing punya batasnya sendiri.
+    const existingQty = s.penjCart.filter((i) => i.optId === opt.optId).reduce((a, i) => a + i.qty, 0);
+    if (qty > opt.stokSisa - existingQty) return;
+    const unitPrice = opt[tier];
+    const suplierId = opt.suplierId === '__NONE__' ? null : parseInt(opt.suplierId);
     this.setState((s2) => ({
       penjCart: [...s2.penjCart, {
-        kode: product.kode, nama: product.nama, tier, tierLabel, qty, unitPrice, subtotal: unitPrice * qty,
-        suplierId, suplierLabel: supplierOpt.suplier, suplierIdRaw: supplierOpt.suplierId,
+        kode: opt.kode, nama: opt.nama, tier, tierLabel, qty, unitPrice, subtotal: unitPrice * qty,
+        suplierId, suplierLabel: opt.suplier, optId: opt.optId,
       }],
       penjQty: 1,
     }));
@@ -2999,7 +2959,7 @@ class Component extends DCLogic {
 
   newTransaction = () => this.setState((s) => ({
     penjCart: [], penjCustName: '', penjAmountPaid: '', penjPaymentMethod: 'TUNAI',
-    penjSelectedKode: (s.stokProducts[0] || {}).kode || '', penjQty: 1, penjCompleted: false, penjLastInvoice: null, penjSubmitError: '',
+    penjSelectedOptId: (s.penjSellableOptions[0] || {}).optId || '', penjQty: 1, penjCompleted: false, penjLastInvoice: null, penjSubmitError: '',
   }));
 
   setStokSearch = (e) => this.setState({ stokSearch: e.target.value });
@@ -3835,34 +3795,21 @@ ${this.laporanLengkapTableHtml(tab, false)}
   }
 
   penjualanVals(s) {
-    const selectedProduct = s.stokProducts.find((p) => p.kode === s.penjSelectedKode) || s.stokProducts[0] || { kode: '', stok: 0, ecer: 0, bengkel: 0, grosir: 0 };
     const qtyNum = parseInt(s.penjQty) || 0;
     const tier = qtyNum >= 6 ? 'grosir' : qtyNum >= 2 ? 'bengkel' : qtyNum >= 1 ? 'ecer' : null;
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : tier === 'ecer' ? 'ECER' : '';
-    // Harga & sisa stok sekarang ikut suplier yang dipilih kasir (barang
-    // bisa punya batch dari beberapa suplier dengan harga jual sendiri-
-    // sendiri, lihat fetchPenjSupplierOptions) -- bukan lagi langsung dari
-    // selectedProduct[tier]/selectedProduct.stok yang masih pool gabungan.
-    const selectedSupplierOpt = s.penjSupplierOptions.find((o) => o.suplierId === s.penjSelectedSuplierId) || null;
-    const hasSuplierChosen = !!selectedSupplierOpt;
-    // Suplier sudah pernah kirim barang ini tapi Owner belum sempat isi
-    // harga jualnya (lihat "Harga Jual per Suplier" di Ubah Barang) --
-    // backend akan tolak transaksi ini juga, tapi dicegah lebih awal di
-    // sini biar kasir tidak lihat "Rp 0" yang menyesatkan lalu baru gagal
-    // pas klik Selesaikan Transaksi.
-    const supplierPriceMissing = hasSuplierChosen && selectedSupplierOpt.ecer == null;
-    const unitPrice = tier && selectedSupplierOpt && !supplierPriceMissing ? selectedSupplierOpt[tier] : 0;
-    const cartQtyForSelected = s.penjCart
-      .filter((i) => i.kode === selectedProduct.kode && i.suplierIdRaw === s.penjSelectedSuplierId)
-      .reduce((a, i) => a + i.qty, 0);
-    const availableStok = selectedSupplierOpt ? selectedSupplierOpt.stokSisa - cartQtyForSelected : 0;
+    // Combobox "Cari Barang" sekarang satu baris per (barang, suplier) --
+    // pilih satu opsi sudah langsung menentukan barang SEKALIGUS suplier &
+    // harganya, tidak ada dropdown suplier terpisah lagi. Opsi yang
+    // suplier-nya belum ada harga jual sudah TIDAK ikut muncul sama sekali
+    // (lihat refreshPenjSellableOptions), jadi di sini tidak perlu lagi
+    // jaga-jaga kasus "harga belum diisi".
+    const selectedOpt = s.penjSellableOptions.find((o) => o.optId === s.penjSelectedOptId) || null;
+    const unitPrice = tier && selectedOpt ? selectedOpt[tier] : 0;
+    const cartQtyForSelected = s.penjCart.filter((i) => i.optId === s.penjSelectedOptId).reduce((a, i) => a + i.qty, 0);
+    const availableStok = selectedOpt ? selectedOpt.stokSisa - cartQtyForSelected : 0;
     const qtyExceedsStock = qtyNum > 0 && qtyNum > availableStok;
-    const canAdd = qtyNum > 0 && !qtyExceedsStock && hasSuplierChosen && !supplierPriceMissing;
-    const penjSupplierOptionsView = s.penjSupplierOptions.map((o) => ({
-      suplierId: o.suplierId,
-      label: o.suplier + ' — ' + o.stokSisa + ' pcs' + (o.ecer == null ? ' (belum ada harga)' : ' (Ecer ' + formatRp(o.ecer) + ')'),
-    }));
-    const penjSupplierOptionsEmpty = !s.penjSupplierOptionsLoading && s.penjSelectedKode !== '' && s.penjSupplierOptions.length === 0;
+    const canAdd = qtyNum > 0 && !qtyExceedsStock && !!selectedOpt;
 
     const penjCartView = s.penjCart.map((item, idx) => ({
       ...item, unitPriceLabel: formatRp(item.unitPrice), subtotalLabel: formatRp(item.subtotal),
@@ -3899,24 +3846,19 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const penjComboOptionsView = penjComboOptionsRaw.map((opt, i) => ({
       ...opt,
       rowStyle: 'padding:9px 12px;font-size:14px;cursor:pointer;' + (i === s.penjProductComboHighlight ? 'background:var(--color-accent-100);' : ''),
-      clickHandler: () => this.selectPenjCombo(opt.kode),
+      clickHandler: () => this.selectPenjCombo(opt.optId),
       mouseDownHandler: this.handlePenjComboOptionMouseDown,
     }));
-    const penjComboSelectedLabel = selectedProduct.kode ? this.penjComboLabel(selectedProduct) : '';
+    const penjComboSelectedLabel = selectedOpt ? selectedOpt.label : '';
 
     return {
-      penjSelectedKode: s.penjSelectedKode,
       penjComboOptionsView, penjComboOptionsEmpty: penjComboOptionsView.length === 0,
       penjComboDisplayValue: s.penjProductComboOpen ? s.penjProductComboQuery : penjComboSelectedLabel,
       penjProductComboOpen: s.penjProductComboOpen,
       openPenjCombo: this.openPenjCombo, setPenjComboQuery: this.setPenjComboQuery,
       handlePenjComboKeyDown: this.handlePenjComboKeyDown, handlePenjComboBlur: this.handlePenjComboBlur,
       penjQty: s.penjQty, setPenjQty: this.setPenjQty,
-      penjSupplierOptionsView, penjSupplierOptionsEmpty,
-      penjSupplierOptionsLoading: s.penjSupplierOptionsLoading,
-      penjSelectedSuplierId: s.penjSelectedSuplierId, setPenjSelectedSuplier: this.setPenjSelectedSuplier,
-      hasSuplierChosen, supplierPriceMissing,
-      availableStokLabel: String(availableStok), hasTier: !!(tier && hasSuplierChosen && !supplierPriceMissing), tierLabel, unitPriceLabel: formatRp(unitPrice),
+      availableStokLabel: String(availableStok), hasTier: !!(tier && selectedOpt), tierLabel, unitPriceLabel: formatRp(unitPrice),
       qtyExceedsStock, cannotAdd: !canAdd, addToCart: this.addToCart,
       cartEmpty: s.penjCart.length === 0, cartNotEmpty: s.penjCart.length > 0, penjCartView,
       penjCustName: s.penjCustName, setPenjCustName: this.setPenjCustName,
