@@ -2234,13 +2234,14 @@ function formatWaktu(datetime) {
     + ', ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Tanggal cetak di invoice Transaksi Penjualan -- bulan disingkat 3 huruf
-// (beda dari todayLabel yang dipakai di tempat lain, mis. preview sebelum
-// transaksi & Input Pembelian, yang sengaja tidak diubah/tetap format
-// panjang) dan ditambah jam:menit:detik dari waktu transaksi selesai.
+// Tanggal cetak di invoice Transaksi Penjualan -- format numerik pendek
+// "DD/MM/YYYY HH:MM:SS" gaya struk kasir minimarket (beda dari todayLabel
+// yang dipakai di tempat lain, mis. preview sebelum transaksi & Input
+// Pembelian, yang sengaja tidak diubah/tetap format panjang).
 function formatWaktuInvoice(d) {
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-    + ', ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const pad = (n) => String(n).padStart(2, '0');
+  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear()
+    + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
 }
 
 // ponytail: draft disimpan di localStorage, bukan server — cukup buat jaga-jaga
