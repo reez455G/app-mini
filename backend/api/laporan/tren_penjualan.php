@@ -15,6 +15,18 @@ $stmt->execute([$days - 1]);
 $byDate = [];
 foreach ($stmt->fetchAll() as $r) $byDate[$r['tanggal']] = (float)$r['total'];
 
+// Retur dikurangkan pada tanggal returnya, konsisten dengan laporan lain —
+// grafik tren yang tidak dipotong retur akan menunjukkan puncak penjualan
+// yang sebenarnya sebagian sudah dikembalikan.
+$returStmt = $pdo->prepare(
+    'SELECT r.tanggal, SUM(r.nilai_omzet) AS total FROM (' . sql_retur_penjualan_nilai() . ') r
+     WHERE r.tanggal >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY r.tanggal'
+);
+$returStmt->execute([$days - 1]);
+foreach ($returStmt->fetchAll() as $r) {
+    $byDate[$r['tanggal']] = ($byDate[$r['tanggal']] ?? 0.0) - (float)$r['total'];
+}
+
 // Zero-fill setiap hari (termasuk yang tidak ada penjualan sama sekali), supaya
 // chart selalu punya $days titik berurutan — bukan cuma hari yang ada transaksi.
 $rows = [];

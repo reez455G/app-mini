@@ -83,6 +83,45 @@ function lot_sync_stok(PDO $pdo, int $barangId, int $stokLama, int $stokBaru, fl
     }
 }
 
+// ── Nilai retur ───────────────────────────────────────────────────────
+// Retur penjualan mengembalikan barang ke stok, tapi dulu omzet & laba di
+// semua laporan tetap dihitung penuh — barang yang sama terhitung dua kali
+// (sebagai penjualan DAN sebagai stok yang kembali ada di rak). Dua fragmen
+// SQL di bawah dipakai bersama oleh laporan/laba, global, penjualan,
+// top_produk, tren_penjualan & retur supaya aturannya cuma ditulis sekali.
+//
+// unit_price diambil dari rata-rata tertimbang per (penjualan, barang), BUKAN
+// join langsung ke penjualan_item: satu barang bisa muncul di lebih dari satu
+// baris nota (mis. 1 pcs harga ecer + 6 pcs harga grosir), dan join biasa akan
+// menggandakan barisnya.
+//
+// nilai_modal diambil dari batch yang DIBUAT oleh retur itu (barang fisik
+// kembali jadi batch baru, lihat retur_penjualan.php) — modal itu harus ikut
+// dibatalkan dari HPP, kalau tidak labanya jadi terlalu kecil. Retur lama
+// sebelum fitur batch ada tidak punya barang_lot_id, modalnya dianggap 0.
+function sql_retur_penjualan_nilai(): string {
+    return 'SELECT rp.tanggal, rp.original_invoice_no, pj.id AS penjualan_id, ri.barang_id, ri.qty,
+                   ri.qty * pia.unit_price AS nilai_omzet,
+                   ri.qty * COALESCE(bl.harga_beli, 0) AS nilai_modal
+            FROM retur_penjualan rp
+            JOIN retur_penjualan_item ri ON ri.retur_id = rp.id
+            JOIN penjualan pj ON pj.invoice_no = rp.original_invoice_no
+            JOIN (SELECT penjualan_id, barang_id, SUM(subtotal) / NULLIF(SUM(qty), 0) AS unit_price
+                  FROM penjualan_item GROUP BY penjualan_id, barang_id) pia
+              ON pia.penjualan_id = pj.id AND pia.barang_id = ri.barang_id
+            LEFT JOIN barang_lot bl ON bl.id = ri.barang_lot_id';
+}
+
+// Retur pembelian: barang keluar lagi ke suplier, jadi belanja yang benar-benar
+// terjadi berkurang. Nilainya dari batch ASAL yang dipotong retur itu.
+function sql_retur_pembelian_nilai(): string {
+    return 'SELECT rb.tanggal, rb.suplier_id, ri.barang_id, ri.qty,
+                   ri.qty * COALESCE(bl.harga_beli, 0) AS nilai_biaya
+            FROM retur_pembelian rb
+            JOIN retur_pembelian_item ri ON ri.retur_id = rb.id
+            LEFT JOIN barang_lot bl ON bl.id = ri.barang_lot_id';
+}
+
 // Kode berurutan sederhana untuk master data (SUP-0001, CUST-0001, dst).
 // ponytail: MAX(angka di belakang)+1, bukan tabel sequence tersendiri — cukup
 // untuk satu toko, satu admin. Naikkan ke sequence/lock kalau nanti ada input

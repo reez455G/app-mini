@@ -18,7 +18,7 @@ $limit = min(50, max(1, (int)($_GET['limit'] ?? 5)));
 // pi.subtotal, sedangkan satu penjualan_item bisa pecah ke >1 batch — join
 // akan menggandakan barisnya dan ikut menggandakan revenue-nya.
 $stmt = $pdo->prepare(
-    "SELECT b.kode, b.nama, SUM(pi.qty) AS qty, SUM(pi.subtotal) AS revenue,
+    "SELECT b.id AS barang_id, b.kode, b.nama, SUM(pi.qty) AS qty, SUM(pi.subtotal) AS revenue,
             SUM(pi.subtotal) - COALESCE(SUM(
                 (SELECT SUM(pil.qty * pil.harga_beli) FROM penjualan_item_lot pil
                  WHERE pil.penjualan_item_id = pi.id)
@@ -31,6 +31,29 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([$from, $to]);
 $agg = $stmt->fetchAll();
+
+// Barang yang banyak diretur jangan sampai kelihatan sebagai barang terlaris:
+// qty, omzet, dan modalnya ikut dibatalkan (dihitung pada tanggal retur, sama
+// seperti laporan lain).
+$returStmt = $pdo->prepare(
+    'SELECT barang_id, SUM(qty) AS qty, SUM(nilai_omzet) AS omzet, SUM(nilai_modal) AS modal
+     FROM (' . sql_retur_penjualan_nilai() . ') r WHERE r.tanggal BETWEEN ? AND ? GROUP BY barang_id'
+);
+$returStmt->execute([$from, $to]);
+$returPerBarang = [];
+foreach ($returStmt->fetchAll() as $r) $returPerBarang[(int)$r['barang_id']] = $r;
+
+$agg = array_map(function ($r) use ($returPerBarang) {
+    $ret = $returPerBarang[(int)$r['barang_id']] ?? null;
+    if ($ret) {
+        $r['qty'] = (int)$r['qty'] - (int)$ret['qty'];
+        $r['revenue'] = (float)$r['revenue'] - (float)$ret['omzet'];
+        $r['profit'] = (float)$r['profit'] - (float)$ret['omzet'] + (float)$ret['modal'];
+    }
+    unset($r['barang_id']);
+    return $r;
+}, $agg);
+
 if (!$isOwner) {
     $agg = array_map(fn($r) => ['kode' => $r['kode'], 'nama' => $r['nama'], 'qty' => $r['qty'], 'revenue' => $r['revenue']], $agg);
 }

@@ -27,11 +27,34 @@ $costStmt = $pdo->prepare(
 $costStmt->execute([$from, $to]);
 $hpp = (float)$costStmt->fetchColumn();
 
-$revenue = (float)$pj['revenue'];
+// Barang yang diretur pelanggan kembali ke rak, jadi omzet DAN modalnya harus
+// dibatalkan — tanpa ini barang yang sama terhitung dua kali (sebagai
+// penjualan sekaligus sebagai stok). Sama untuk retur ke suplier terhadap
+// belanja. Keduanya dihitung pada tanggal retur.
+$returPj = $pdo->prepare(
+    'SELECT COALESCE(SUM(nilai_omzet), 0) AS omzet, COALESCE(SUM(nilai_modal), 0) AS modal
+     FROM (' . sql_retur_penjualan_nilai() . ') r WHERE r.tanggal BETWEEN ? AND ?'
+);
+$returPj->execute([$from, $to]);
+$rj = $returPj->fetch();
+
+$returPb = $pdo->prepare(
+    'SELECT COALESCE(SUM(nilai_biaya), 0) FROM (' . sql_retur_pembelian_nilai() . ') r WHERE r.tanggal BETWEEN ? AND ?'
+);
+$returPb->execute([$from, $to]);
+$returBelanja = (float)$returPb->fetchColumn();
+
+$grossRevenue = (float)$pj['revenue'];
+$returOmzet = (float)$rj['omzet'];
+$revenue = $grossRevenue - $returOmzet;
+$hpp -= (float)$rj['modal'];
+$belanja = (float)$pb['cost'] - $returBelanja;
 $netProfit = $revenue - $hpp;
 
 json_ok([
-    'total_revenue' => $revenue,
+    'gross_revenue' => $grossRevenue,
+    'total_retur' => $returOmzet,
+    'total_revenue' => $revenue,   // omzet BERSIH (sesudah retur)
     'total_cost' => $hpp,
     'net_profit' => $netProfit,
     'margin_pct' => $revenue ? $netProfit / $revenue * 100 : 0,
@@ -41,6 +64,8 @@ json_ok([
     'customers_served' => (int)$pj['customers'],
     'items_sold' => (int)$pj['items'],
     'purchase_tx' => (int)$pb['tx_count'],
+    'total_belanja' => $belanja,
+    'retur_belanja' => $returBelanja,
     'suppliers_used' => (int)$pb['suppliers'],
-    'avg_purchase' => $pb['tx_count'] ? (float)$pb['cost'] / $pb['tx_count'] : 0,
+    'avg_purchase' => $pb['tx_count'] ? $belanja / $pb['tx_count'] : 0,
 ]);

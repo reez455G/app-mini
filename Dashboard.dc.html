@@ -1357,8 +1357,9 @@
           <sc-if value="{{ lapTabIsGlobal }}" hint-placeholder-val="{{ true }}">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
               <div class="card elev-sm">
-                <div class="card-kicker">Total Pendapatan</div>
+                <div class="card-kicker">Omzet Bersih</div>
                 <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiTotalRevenueLabel }}</div>
+                <sc-if value="{{ kpiAdaRetur }}"><div class="card-meta">Kotor {{ kpiGrossRevenueLabel }} − retur {{ kpiReturLabel }}</div></sc-if>
               </div>
               <div class="card elev-sm">
                 <div class="card-kicker">Total Modal</div>
@@ -1367,7 +1368,7 @@
               <div class="card elev-sm">
                 <div class="card-kicker">Laba Bersih</div>
                 <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ kpiNetProfitLabel }}</div>
-                <div class="card-meta">Margin {{ kpiMarginLabel }} · ROI {{ kpiRoiLabel }}</div>
+                <div class="card-meta">Margin {{ kpiMarginLabel }} · ROI {{ kpiRoiLabel }} · belum dipotong biaya operasional</div>
               </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
@@ -1427,7 +1428,7 @@
 
           <sc-if value="{{ lapTabIsPenjualan }}" hint-placeholder-val="{{ false }}">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
-              <div class="card elev-sm"><div class="card-kicker">Total Penjualan</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalPenjualanLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Omzet Bersih</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalPenjualanLabel }}</div><sc-if value="{{ adaReturPenjualan }}"><div class="card-meta">Kotor {{ grossPenjualanLabel }} − retur {{ returPenjualanLabel }}</div></sc-if></div>
               <div class="card elev-sm"><div class="card-kicker">Total Item Terjual</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalItemsTerjual }} pcs</div></div>
               <div class="card elev-sm"><div class="card-kicker">Rata-rata / Transaksi</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ avgSaleLabel }}</div><div class="card-meta">{{ penjualanTxCount }} transaksi</div></div>
             </div>
@@ -1450,17 +1451,20 @@
 
           <sc-if value="{{ lapTabIsLaba }}" hint-placeholder-val="{{ false }}">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
-              <div class="card elev-sm"><div class="card-kicker">Total Pendapatan</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalRevenueLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Omzet Kotor</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalRevenueLabel }}</div><div class="card-meta">Sebelum dikurangi retur</div></div>
+              <sc-if value="{{ adaReturLaba }}">
+                <div class="card elev-sm"><div class="card-kicker">Dikurangi Retur</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">−{{ labaReturLabel }}</div><div class="card-meta">Omzet bersih {{ labaNetRevenueLabel }}</div></div>
+              </sc-if>
               <div class="card elev-sm"><div class="card-kicker">Total Modal</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ totalCostLabel }}</div></div>
-              <div class="card elev-sm"><div class="card-kicker">Laba Kotor</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ grossProfitLabel }}</div><div class="card-meta">Margin {{ marginPctLabel }}</div></div>
+              <div class="card elev-sm"><div class="card-kicker">Laba Kotor</div><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;">{{ grossProfitLabel }}</div><div class="card-meta">Margin {{ marginPctLabel }} · belum dipotong biaya operasional</div></div>
             </div>
             <div class="card elev-sm">
               <div class="card-kicker">Laba per Transaksi</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortLabaHandler }}">Waktu {{ sortLabaArrow }}</th><th>No. Invoice</th><th>Pelanggan</th><th>Laba</th><th>Margin</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortLabaHandler }}">Waktu {{ sortLabaArrow }}</th><th>No. Invoice</th><th>Pelanggan</th><th>Retur</th><th>Laba</th><th>Margin</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ labaRows }}" as="r" hint-placeholder-count="3">
-                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.profitLabel }}</td><td>{{ r.marginLabel }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.invoiceNo }}</td><td>{{ r.custName }}</td><td>{{ r.returLabel }}</td><td>{{ r.profitLabel }}</td><td>{{ r.marginLabel }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
@@ -1502,22 +1506,24 @@
             </sc-if>
             <div class="card elev-sm">
               <div class="card-kicker">Retur Penjualan</div>
+              <div style="font-size:13px;opacity:0.7;margin-top:4px;">Total {{ returTotalQtyPj }} pcs · omzet yang dibatalkan {{ returTotalNilaiPjLabel }}</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortReturPjHandler }}">Waktu {{ sortReturPjArrow }}</th><th>No. Retur</th><th>Pelanggan</th><th>Invoice Asal</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortReturPjHandler }}">Waktu {{ sortReturPjArrow }}</th><th>No. Retur</th><th>Pelanggan</th><th>Invoice Asal</th><th>Barang</th><th>Qty</th><th>Nilai</th><th>Alasan</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ returPjLaporanRows }}" as="r" hint-placeholder-count="2">
-                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.noRetur }}</td><td>{{ r.customer }}</td><td>{{ r.invoice }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.noRetur }}</td><td>{{ r.customer }}</td><td>{{ r.invoice }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.nilaiLabel }}</td><td>{{ r.reason }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
             </div>
             <div class="card elev-sm">
               <div class="card-kicker">Retur Pembelian</div>
+              <div style="font-size:13px;opacity:0.7;margin-top:4px;">Total {{ returTotalQtyPb }} pcs · belanja yang dibatalkan {{ returTotalNilaiPbLabel }}</div>
               <table class="table" style="margin-top:8px;">
-                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortReturPbHandler }}">Waktu {{ sortReturPbArrow }}</th><th>No. Retur</th><th>Suplier</th><th>Faktur Asal</th><th>Barang</th><th>Qty</th><th>Alasan</th></tr></thead>
+                <thead><tr><th style="cursor:pointer;user-select:none;white-space:nowrap;" onClick="{{ sortReturPbHandler }}">Waktu {{ sortReturPbArrow }}</th><th>No. Retur</th><th>Suplier</th><th>Faktur Asal</th><th>Barang</th><th>Qty</th><th>Nilai</th><th>Alasan</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ returPbLaporanRows }}" as="r" hint-placeholder-count="2">
-                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.noRetur }}</td><td>{{ r.supplier }}</td><td>{{ r.invoice }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.reason }}</td></tr>
+                    <tr><td>{{ r.waktuLabel }}</td><td>{{ r.noRetur }}</td><td>{{ r.supplier }}</td><td>{{ r.invoice }}</td><td>{{ r.nama }}</td><td>{{ r.qty }} pcs</td><td>{{ r.nilaiLabel }}</td><td>{{ r.reason }}</td></tr>
                   </sc-for>
                 </tbody>
               </table>
@@ -3618,20 +3624,20 @@ tr { page-break-inside: avoid; }
     }
     if (tab === 'laba') {
       return this.laporanLengkapOneTable(
-        ['Waktu', 'No. Invoice', 'Pelanggan', 'Laba', 'Margin'],
-        v.labaRows.map((r) => [r.waktuLabel, r.invoiceNo, r.custName, r.profitLabel, r.marginLabel]),
+        ['Waktu', 'No. Invoice', 'Pelanggan', 'Retur', 'Laba', 'Margin'],
+        v.labaRows.map((r) => [r.waktuLabel, r.invoiceNo, r.custName, r.returLabel, r.profitLabel, r.marginLabel]),
         border,
       );
     }
     if (tab === 'retur') {
       const pj = this.laporanLengkapOneTable(
-        ['No. Retur', 'Pelanggan', 'Invoice Asal', 'Waktu', 'Barang', 'Qty', 'Alasan'],
-        v.returPjLaporanRows.map((r) => [r.noRetur, r.customer, r.invoice, r.waktuLabel, r.nama, r.qty, r.reason]),
+        ['No. Retur', 'Pelanggan', 'Invoice Asal', 'Waktu', 'Barang', 'Qty', 'Nilai', 'Alasan'],
+        v.returPjLaporanRows.map((r) => [r.noRetur, r.customer, r.invoice, r.waktuLabel, r.nama, r.qty, r.nilaiLabel, r.reason]),
         border,
       );
       const pb = this.laporanLengkapOneTable(
-        ['No. Retur', 'Suplier', 'Invoice Asal', 'Waktu', 'Barang', 'Qty', 'Alasan'],
-        v.returPbLaporanRows.map((r) => [r.noRetur, r.supplier, r.invoice, r.waktuLabel, r.nama, r.qty, r.reason]),
+        ['No. Retur', 'Suplier', 'Invoice Asal', 'Waktu', 'Barang', 'Qty', 'Nilai', 'Alasan'],
+        v.returPbLaporanRows.map((r) => [r.noRetur, r.supplier, r.invoice, r.waktuLabel, r.nama, r.qty, r.nilaiLabel, r.reason]),
         border,
       );
       return '<h3>Retur Penjualan</h3>' + pj + '<h3>Retur Pembelian</h3>' + pb;
@@ -4336,25 +4342,38 @@ ${this.laporanLengkapTableHtml(tab, false)}
         totalQty: r.total_qty, grandTotalLabel: formatRp(r.grand_total), waktuLabel: formatWaktu(r.created_at),
         detailHandler: () => this.openLaporanPenjualanDetail(r.id),
       })).filter((r) => matches(r.invoiceNo, r.custName)),
-      totalPenjualanLabel: formatRp(pj.total_revenue || 0), totalItemsTerjual: pj.total_items || 0,
+      // total_revenue dari server sudah BERSIH (sesudah retur); omzet kotor
+      // & nilai returnya ikut ditampilkan supaya selisihnya tidak misterius.
+      totalPenjualanLabel: formatRp(pj.total_revenue || 0),
+      grossPenjualanLabel: formatRp(pj.gross_revenue || 0),
+      returPenjualanLabel: formatRp(pj.total_retur || 0),
+      adaReturPenjualan: (pj.total_retur || 0) > 0,
+      totalItemsTerjual: pj.total_items || 0,
       avgSaleLabel: formatRp(pj.avg_sale || 0), penjualanTxCount: pj.tx_count || 0,
       sortPenjualanHandler: () => this.toggleLapSort('penjualan'), sortPenjualanArrow: sortArrow(s.lapSort.penjualan),
 
-      labaRows: byCreatedAt(laba.rows, s.lapSort.laba).map((r) => ({ invoiceNo: r.invoice_no, custName: r.cust_name, waktuLabel: formatWaktu(r.created_at), profitLabel: formatRp(r.profit), marginLabel: r.margin_pct.toFixed(1) + '%' })).filter((r) => matches(r.invoiceNo, r.custName)),
+      labaRows: byCreatedAt(laba.rows, s.lapSort.laba).map((r) => ({ invoiceNo: r.invoice_no, custName: r.cust_name, waktuLabel: formatWaktu(r.created_at), returLabel: r.retur > 0 ? '-' + formatRp(r.retur) : '—', profitLabel: formatRp(r.profit), marginLabel: r.margin_pct.toFixed(1) + '%' })).filter((r) => matches(r.invoiceNo, r.custName)),
       totalRevenueLabel: formatRp(laba.total_revenue || 0), totalCostLabel: formatRp(laba.total_cost || 0),
+      labaReturLabel: formatRp(laba.total_retur || 0), labaNetRevenueLabel: formatRp(laba.net_revenue || 0),
+      adaReturLaba: (laba.total_retur || 0) > 0,
       grossProfitLabel: formatRp(laba.gross_profit || 0), marginPctLabel: (laba.margin_pct || 0).toFixed(1) + '%',
       sortLabaHandler: () => this.toggleLapSort('laba'), sortLabaArrow: sortArrow(s.lapSort.laba),
 
       byQty: top.by_qty.map((it) => ({ nama: it.nama, kode: it.kode, qty: it.qty })).filter((it) => matches(it.nama, it.kode)),
       byRevenue: top.by_revenue.map((it) => ({ nama: it.nama, kode: it.kode, revenueLabel: formatRp(it.revenue) })).filter((it) => matches(it.nama, it.kode)),
 
-      returPjLaporanRows: byCreatedAt(retur.retur_penjualan, s.lapSort.returPj).map((r) => ({ noRetur: r.no_retur, customer: r.customer_name, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.customer, r.nama)),
-      returPbLaporanRows: byCreatedAt(retur.retur_pembelian, s.lapSort.returPb).map((r) => ({ noRetur: r.no_retur, supplier: r.suplier, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason })).filter((r) => matches(r.noRetur, r.supplier, r.nama)),
+      returPjLaporanRows: byCreatedAt(retur.retur_penjualan, s.lapSort.returPj).map((r) => ({ noRetur: r.no_retur, customer: r.customer_name, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason, nilaiLabel: formatRp(r.nilai || 0) })).filter((r) => matches(r.noRetur, r.customer, r.nama)),
+      returPbLaporanRows: byCreatedAt(retur.retur_pembelian, s.lapSort.returPb).map((r) => ({ noRetur: r.no_retur, supplier: r.suplier, invoice: r.original_invoice_no, waktuLabel: formatWaktu(r.created_at), nama: r.nama, qty: r.qty, reason: r.reason, nilaiLabel: formatRp(r.nilai || 0) })).filter((r) => matches(r.noRetur, r.supplier, r.nama)),
       returLaporanEmpty: retur.retur_penjualan.length === 0 && retur.retur_pembelian.length === 0,
+      returTotalNilaiPjLabel: formatRp(retur.total_nilai_penjualan || 0),
+      returTotalNilaiPbLabel: formatRp(retur.total_nilai_pembelian || 0),
+      returTotalQtyPj: retur.total_qty_penjualan || 0, returTotalQtyPb: retur.total_qty_pembelian || 0,
       sortReturPjHandler: () => this.toggleLapSort('returPj'), sortReturPjArrow: sortArrow(s.lapSort.returPj),
       sortReturPbHandler: () => this.toggleLapSort('returPb'), sortReturPbArrow: sortArrow(s.lapSort.returPb),
 
       kpiTotalRevenueLabel: formatRp(g.total_revenue || 0), kpiTotalCostLabel: formatRp(g.total_cost || 0),
+      kpiGrossRevenueLabel: formatRp(g.gross_revenue || 0), kpiReturLabel: formatRp(g.total_retur || 0),
+      kpiAdaRetur: (g.total_retur || 0) > 0,
       kpiNetProfitLabel: formatRp(g.net_profit || 0), kpiMarginLabel: (g.margin_pct || 0).toFixed(1) + '%', kpiRoiLabel: (g.roi_pct || 0).toFixed(1) + '%',
       kpiTxCount: g.tx_count || 0, kpiAvgSaleLabel: formatRp(g.avg_sale || 0), kpiCustomersServed: g.customers_served || 0,
       kpiItemsSold: g.items_sold || 0, kpiPurchaseTx: g.purchase_tx || 0, kpiSuppliersUsed: g.suppliers_used || 0,

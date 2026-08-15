@@ -25,21 +25,57 @@ $stmt = $pdo->prepare(
 $stmt->execute([$from, $to]);
 $data = $stmt->fetchAll();
 
-$totalRevenue = 0.0; $totalCost = 0.0;
-$perTx = array_map(function ($r) use (&$totalRevenue, &$totalCost) {
-    $profit = (float)$r['grand_total'] - (float)$r['cost'];
-    $margin = $r['grand_total'] > 0 ? $profit / $r['grand_total'] * 100 : 0;
+// Retur penjualan membatalkan omzet DAN modal barang yang kembali. Dihitung
+// pada tanggal RETUR-nya (bukan tanggal nota aslinya), supaya ringkasan di
+// bawah selalu sama dengan penjumlahan baris-barisnya. Nota lama yang diretur
+// di periode ini karena itu tetap ikut terkoreksi di periode ini.
+$returStmt = $pdo->prepare(
+    'SELECT penjualan_id, SUM(nilai_omzet) AS omzet, SUM(nilai_modal) AS modal
+     FROM (' . sql_retur_penjualan_nilai() . ') r
+     WHERE r.tanggal BETWEEN ? AND ? GROUP BY penjualan_id'
+);
+$returStmt->execute([$from, $to]);
+$returPerNota = [];
+foreach ($returStmt->fetchAll() as $r) {
+    $returPerNota[(int)$r['penjualan_id']] = ['omzet' => (float)$r['omzet'], 'modal' => (float)$r['modal']];
+}
+
+$totalRevenue = 0.0; $totalCost = 0.0; $totalRetur = 0.0;
+$perTx = array_map(function ($r) use (&$totalRevenue, &$totalCost, &$totalRetur, $returPerNota) {
+    $retur = $returPerNota[(int)$r['id']] ?? ['omzet' => 0.0, 'modal' => 0.0];
+    $revenue = (float)$r['grand_total'] - $retur['omzet'];
+    $cost = (float)$r['cost'] - $retur['modal'];
+    $profit = $revenue - $cost;
+    $margin = $revenue > 0 ? $profit / $revenue * 100 : 0;
     $totalRevenue += (float)$r['grand_total'];
-    $totalCost += (float)$r['cost'];
-    return ['invoice_no' => $r['invoice_no'], 'cust_name' => $r['cust_name'], 'created_at' => $r['created_at'], 'profit' => $profit, 'margin_pct' => $margin];
+    $totalCost += $cost;
+    $totalRetur += $retur['omzet'];
+    return [
+        'invoice_no' => $r['invoice_no'], 'cust_name' => $r['cust_name'], 'created_at' => $r['created_at'],
+        'retur' => $retur['omzet'], 'profit' => $profit, 'margin_pct' => $margin,
+    ];
 }, $data);
 
-$grossProfit = $totalRevenue - $totalCost;
+// Retur atas nota yang notanya sendiri di LUAR rentang laporan tidak punya
+// baris di $perTx — nilainya tetap harus ikut dikurangkan dari ringkasan,
+// kalau tidak omzet bersihnya kelihatan lebih besar dari yang sebenarnya.
+$idDitampilkan = array_column($data, 'id');
+foreach ($returPerNota as $penjualanId => $r) {
+    if (!in_array($penjualanId, $idDitampilkan)) {
+        $totalRetur += $r['omzet'];
+        $totalCost -= $r['modal'];
+    }
+}
+
+$netRevenue = $totalRevenue - $totalRetur;
+$grossProfit = $netRevenue - $totalCost;
 json_ok([
     'rows' => $perTx,
-    'total_revenue' => $totalRevenue,
+    'total_revenue' => $totalRevenue,   // omzet kotor, sebelum retur
+    'total_retur' => $totalRetur,
+    'net_revenue' => $netRevenue,
     'total_cost' => $totalCost,
     'gross_profit' => $grossProfit,
-    'margin_pct' => $totalRevenue ? $grossProfit / $totalRevenue * 100 : 0,
+    'margin_pct' => $netRevenue ? $grossProfit / $netRevenue * 100 : 0,
     'roi_pct' => $totalCost ? $grossProfit / $totalCost * 100 : 0,
 ]);
