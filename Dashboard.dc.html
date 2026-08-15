@@ -267,26 +267,17 @@
     <div class="dialog-backdrop">
       <div class="dialog">
         <div class="dialog-title">Lupa Kata Sandi</div>
-        <sc-if value="{{ forgotNotSent }}" hint-placeholder-val="{{ true }}">
-          <div class="dialog-body">Masukkan email atau nomor HP Owner yang terdaftar. Permintaan reset akan dikirim ke Owner untuk verifikasi kata sandi baru.</div>
-          <div class="field">
-            <label for="forgot-contact">Email / No. HP Owner</label>
-            <input class="input" id="forgot-contact" style="min-height:46px;font-size:15px;" placeholder="owner@toko.com atau 08xxxxxxxxxx" value="{{ forgotContact }}" onChange="{{ setForgotContact }}" />
-          </div>
-          <sc-if value="{{ forgotError }}">
-            <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ forgotError }}</p>
-          </sc-if>
-          <div class="dialog-actions">
-            <button type="button" class="btn btn-ghost" onClick="{{ closeForgot }}">Batal</button>
-            <button type="button" class="btn btn-primary" onClick="{{ sendForgot }}">Kirim Permintaan</button>
-          </div>
-        </sc-if>
-        <sc-if value="{{ forgotSent }}" hint-placeholder-val="{{ false }}">
-          <div class="dialog-body">Permintaan reset kata sandi telah dikirim ke <strong>{{ forgotContact }}</strong>. Owner akan menghubungi Anda dengan kata sandi baru.</div>
-          <div class="dialog-actions">
-            <button type="button" class="btn btn-primary" onClick="{{ closeForgot }}">Tutup</button>
-          </div>
-        </sc-if>
+        <!-- Dulu di sini ada form "kirim permintaan reset" yang sebenarnya
+             tidak mengirim apa pun ke mana pun — layarnya cuma berganti jadi
+             "permintaan telah dikirim" sementara Owner tidak pernah tahu ada
+             yang meminta. Diganti petunjuk yang benar-benar bisa ditindaklanjuti. -->
+        <div class="dialog-body">
+          Kata sandi hanya bisa diganti oleh Owner lewat <strong>Master Data → Pengguna</strong>.
+          Hubungi Owner secara langsung untuk minta kata sandi baru.
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" onClick="{{ closeForgot }}">Mengerti</button>
+        </div>
       </div>
     </div>
   </sc-if>
@@ -581,6 +572,9 @@
                   <sc-if value="{{ qtyExceedsStock }}">
                     <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">Stok tidak mencukupi (tersisa {{ availableStokLabel }} pcs).</p>
                   </sc-if>
+                  <sc-if value="{{ hargaSuplierKosong }}">
+                    <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">Belum bisa dijual: harga jual dari suplier <strong>{{ hargaSuplierKosongNama }}</strong> belum diisi. Minta Owner mengisinya di Data Barang → Ubah Barang → Harga Jual per Suplier.</p>
+                  </sc-if>
                   <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" disabled="{{ cannotAdd }}" onClick="{{ addToCart }}">+ Tambah ke Keranjang</button>
                 </div>
 
@@ -790,6 +784,9 @@
                       <sc-if value="{{ item.statusIsKritis }}"><span class="tag tag-accent-2">Kritis</span></sc-if>
                       <sc-if value="{{ item.statusIsMenipis }}"><span class="tag tag-outline">Menipis</span></sc-if>
                       <sc-if value="{{ item.statusIsAman }}"><span class="tag tag-neutral">Aman</span></sc-if>
+                      <sc-if value="{{ item.hasSupplierTanpaHarga }}">
+                        <span class="tag tag-accent-2" style="margin-top:4px;display:inline-block;" title="Stok dari {{ item.supplierTanpaHargaLabel }} belum bisa dijual — isi Harga Jual per Suplier di Ubah Barang">Harga Suplier Kosong</span>
+                      </sc-if>
                     </td>
                     <td>
                       <div style="display:flex;gap:6px;">
@@ -836,18 +833,15 @@
                   </div>
                   <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div class="field">
-                      <label for="stok-f-supplier">Suplier</label>
-                      <select class="input" id="stok-f-supplier" style="min-height:42px;font-size:14px;" value="{{ stokForm.supplier }}" onChange="{{ setStokSupplier }}">
-                        <sc-for list="{{ stokSupplierOptions }}" as="sup" hint-placeholder-count="4">
-                          <option value="{{ sup }}">{{ sup }}</option>
-                        </sc-for>
-                      </select>
-                    </div>
-                    <div class="field">
                       <label for="stok-f-stok">Stok</label>
                       <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
                     </div>
+                    <div class="field">
+                      <label for="stok-f-minstok">Stok Minimum</label>
+                      <input class="input" id="stok-f-minstok" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="10" value="{{ stokForm.minStok }}" onChange="{{ setStokMinStok }}" />
+                    </div>
                   </div>
+                  <p style="margin:-4px 0 0;font-size:12px;opacity:0.65;">Stok Minimum menentukan kapan barang ini ditandai Menipis (stok ≤ minimum) dan Kritis (stok ≤ setengah minimum).</p>
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:8px 12px;">
                     <span style="opacity:0.65;">Harga Faktur / Netto</span>
                     <span style="font-weight:600;">{{ stokHargaSourceLabel }}</span>
@@ -1022,8 +1016,9 @@
                     <label for="pb-no-faktur" style="font-size:13px;opacity:0.65;">No. Faktur</label>
                     <input class="input" id="pb-no-faktur" style="min-height:40px;font-size:14px;" placeholder="Sesuai faktur fisik dari suplier" value="{{ pembelianNoFaktur }}" onChange="{{ setPembelianNoFaktur }}" />
                   </div>
-                  <div style="display:flex;flex-direction:column;gap:2px;font-size:13px;opacity:0.65;">
-                    <span>Tanggal Faktur</span><span style="font-weight:600;opacity:1;">{{ todayLabel }}</span>
+                  <div class="field" style="margin:0;">
+                    <label for="pb-tanggal" style="font-size:13px;opacity:0.65;">Tanggal Faktur</label>
+                    <input class="input" id="pb-tanggal" type="date" style="min-height:40px;font-size:14px;" value="{{ pembelianTanggal }}" onChange="{{ setPembelianTanggal }}" />
                   </div>
                   <div class="field" style="margin:0;">
                     <label for="pb-jatuhtempo" style="font-size:13px;opacity:0.65;">Tgl Jatuh Tempo</label>
@@ -1130,7 +1125,7 @@
                   </div>
                 </div>
                 <div class="field" style="margin-top:16px;">
-                  <label for="pb-pricelist">Pricelist</label>
+                  <label for="pb-pricelist">Pricelist (catatan)</label>
                   <input class="input {{ pembelianPricelistInvalidClass }}" id="pb-pricelist" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianPricelist }}" onChange="{{ setPembelianPricelist }}" />
                 </div>
                 <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addToPembelianCart }}">+ Tambah ke Daftar</button>
@@ -1146,7 +1141,7 @@
                 </sc-if>
                 <sc-if value="{{ pembelianCartNotEmpty }}" hint-placeholder-val="{{ true }}">
                   <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Beli</th><th>Price List</th><th>Subtotal</th><th></th></tr></thead>
+                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Beli</th><th>Pricelist (catatan)</th><th>Subtotal</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ pembelianCartView }}" as="item" hint-placeholder-count="3">
                         <tr>
@@ -1309,6 +1304,9 @@
                       <sc-if value="{{ item.statusIsKritis }}"><span class="tag tag-accent-2">Kritis</span></sc-if>
                       <sc-if value="{{ item.statusIsMenipis }}"><span class="tag tag-outline">Menipis</span></sc-if>
                       <sc-if value="{{ item.statusIsAman }}"><span class="tag tag-neutral">Aman</span></sc-if>
+                      <sc-if value="{{ item.hasSupplierTanpaHarga }}">
+                        <span class="tag tag-accent-2" style="margin-top:4px;display:inline-block;" title="Stok dari {{ item.supplierTanpaHargaLabel }} belum bisa dijual — harga jualnya belum diisi Owner">Harga Suplier Kosong</span>
+                      </sc-if>
                     </td>
                   </tr>
                 </sc-for>
@@ -2004,7 +2002,7 @@
             </div>
             <div style="max-height:320px;overflow-y:auto;">
               <table class="table">
-                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist</th><th>Subtotal</th></tr></thead>
+                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist (catatan)</th><th>Subtotal</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
                     <tr>
@@ -2066,6 +2064,10 @@
             <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
               <span>Total</span><span>{{ laporanPenjualanDetail.grandTotalLabel }}</span>
             </div>
+            <sc-if value="{{ laporanPenjualanDetail.isTunai }}">
+              <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:6px;"><span style="opacity:0.6;">Jumlah Bayar</span><span>{{ laporanPenjualanDetail.amountPaidLabel }}</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="opacity:0.6;">Kembalian</span><span>{{ laporanPenjualanDetail.kembalianLabel }}</span></div>
+            </sc-if>
           </sc-if>
         </div>
         <div class="dialog-actions">
@@ -2202,6 +2204,12 @@ const NAV_ACCESS = {
 const RETUR_REASONS = ['Rusak', 'Cacat', 'Salah Kirim', 'Lainnya'];
 
 function formatRp(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+// Harga jual bisa beda antar suplier untuk barang yang sama, jadi kolom harga
+// di Data Barang/Laporan Stok menampilkan rentangnya kalau memang beda —
+// satu angka saja akan menyembunyikan bahwa ada harga lain yang juga berlaku.
+function formatRpRange(min, max) {
+  return Math.round(min) === Math.round(max) ? formatRp(min) : formatRp(min) + ' – ' + formatRp(max);
+}
 
 // Dipakai saat merakit HTML sendiri (export Excel & cetak laporan) — nama
 // barang/suplier boleh mengandung & atau < yang bisa merusak tabelnya.
@@ -2251,7 +2259,7 @@ const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
 // diselamatkan; kalau ikut dipulihkan, field itu terasa "nyangkut" ke barang/
 // suplier lama tiap kali reload (termasuk setelah data di-cleanse).
 const PEMBELIAN_DRAFT_FIELDS = [
-  'pembelianNoFaktur', 'pembelianSupplierNew', 'pembelianJatuhTempo', 'pembelianPayment',
+  'pembelianNoFaktur', 'pembelianSupplierNew', 'pembelianTanggal', 'pembelianJatuhTempo', 'pembelianPayment',
   'pembelianKategoriFilter', 'pembelianNewKode', 'pembelianNewNama',
   'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianPricelist', 'pembelianQty',
   'pembelianCart',
@@ -2317,6 +2325,12 @@ function normalizeBarang(r) {
     id: r.id, kode: r.kode, nama: r.nama, kategori: r.kategori, stok: r.stok,
     ecer: r.harga_ecer, bengkel: r.harga_bengkel, grosir: r.harga_grosir, status: r.status,
     supplier: r.suplier || '', supplierKode: r.suplier_kode || '', supplierCount: r.suplier_count || 0, hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
+    // Diturunkan dari batch stok yang masih ada, bukan dari harga default barang.
+    supplierStokCount: r.suplier_stok_count || 0, supplierTanpaHarga: r.suplier_tanpa_harga || [],
+    nilaiJual: Number(r.nilai_jual || 0),
+    ecerMin: Number(r.ecer_min ?? r.harga_ecer), ecerMax: Number(r.ecer_max ?? r.harga_ecer),
+    bengkelMin: Number(r.bengkel_min ?? r.harga_bengkel), bengkelMax: Number(r.bengkel_max ?? r.harga_bengkel),
+    grosirMin: Number(r.grosir_min ?? r.harga_grosir), grosirMax: Number(r.grosir_max ?? r.harga_grosir),
     priceListBasis: r.price_list_basis || 'NETTO', minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
   };
 }
@@ -2345,9 +2359,6 @@ class Component extends DCLogic {
     activeModule: 'dashboard',
     navMobileOpen: false,
     showForgot: false,
-    forgotContact: '',
-    forgotSent: false,
-    forgotError: '',
     penjCart: [],
     penjCustName: '',
     penjPaymentMethod: 'TUNAI',
@@ -2367,9 +2378,8 @@ class Component extends DCLogic {
     stokKategoriFilter: 'ALL',
     stokModalOpen: false,
     stokEditKode: null,
-    stokFormSupplierOptions: [],
     stokSupplierPrices: [],
-    stokForm: { kode: '', nama: '', kategori: 'BAN', supplier: '', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
+    stokForm: { kode: '', nama: '', kategori: 'BAN', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
     stokFormError: '',
     stokDeleteTarget: null,
     stokSelectedKodes: [],
@@ -2398,6 +2408,10 @@ class Component extends DCLogic {
     pembelianHargaBasis: 'NETTO',
     pembelianHargaBeli: '',
     pembelianPricelist: '',
+    // Tanggal faktur fisik dari suplier -- bisa beda dari hari input (faktur
+    // kemarin baru sempat diinput hari ini). Default hari ini, tapi bisa
+    // diubah; ikut menentukan urutan batch FIFO di backend.
+    pembelianTanggal: new Date().toISOString().slice(0, 10),
     pembelianJatuhTempo: '',
     pembelianPayment: 'CASH',
     pembelianHistory: [],
@@ -2510,13 +2524,15 @@ class Component extends DCLogic {
   // Combobox "Cari Barang" di Transaksi Penjualan menampilkan SATU baris per
   // (barang, suplier) yang masih ada stok & harganya -- bukan 1 baris per
   // barang + dropdown suplier terpisah, jadi kasir cukup 1 langkah buat
-  // pilih barang SEKALIGUS suplier sumbernya. Suplier yang belum diisi
-  // harga jual (lihat "Harga Jual per Suplier" di Ubah Barang) sengaja
-  // TIDAK muncul di sini sama sekali -- daripada kasir pilih lalu ditolak,
-  // opsinya baru muncul begitu Owner mengisi harganya. Ditarik ulang tiap
-  // refreshBarang, tapi pilihan kasir yang lagi di tengah transaksi TIDAK
-  // direset kalau opsi itu masih valid di daftar baru -- biar polling 10
-  // detik yang rutin tidak diam-diam mengganggu transaksi yang lagi jalan.
+  // pilih barang SEKALIGUS suplier sumbernya. Suplier yang belum diisi harga
+  // jual (lihat "Harga Jual per Suplier" di Ubah Barang) TETAP dimunculkan
+  // tapi ditandai belumAdaHarga -- dulu disaring habis, akibatnya barangnya
+  // cuma "hilang" dari layar kasir tanpa satu pun penjelasan kenapa, padahal
+  // barangnya ada di rak. Sekarang kasir melihat barangnya, melihat alasannya,
+  // dan tahu harus lapor apa ke Owner. Ditarik ulang tiap refreshBarang, tapi
+  // pilihan kasir yang lagi di tengah transaksi TIDAK direset kalau opsi itu
+  // masih valid di daftar baru -- biar polling 10 detik yang rutin tidak
+  // diam-diam mengganggu transaksi yang lagi jalan.
   refreshPenjSellableOptions = (list) => {
     Promise.all(list.map((p) => api('GET', 'barang_suplier_harga.php?barang_id=' + p.id).then((res) => ({ p, res })).catch(() => null)))
       .then((results) => {
@@ -2524,12 +2540,13 @@ class Component extends DCLogic {
         results.forEach((r) => {
           if (!r) return;
           const { p, res } = r;
-          res.suppliers.filter((sup) => sup.stok_sisa > 0 && sup.harga_ecer != null).forEach((sup) => {
+          res.suppliers.filter((sup) => sup.stok_sisa > 0).forEach((sup) => {
             const suplierId = String(sup.suplier_id);
+            const belumAdaHarga = sup.harga_ecer == null;
             options.push({
               optId: p.kode + '::' + suplierId, kode: p.kode, nama: p.nama,
-              label: p.kategori + '-' + sup.suplier_kode + '-' + p.nama,
-              suplierId, suplier: sup.suplier,
+              label: p.kategori + '-' + sup.suplier_kode + '-' + p.nama + (belumAdaHarga ? ' (harga belum diisi)' : ''),
+              suplierId, suplier: sup.suplier, belumAdaHarga,
               stokSisa: sup.stok_sisa, ecer: sup.harga_ecer, bengkel: sup.harga_bengkel, grosir: sup.harga_grosir,
             });
           });
@@ -2537,14 +2554,18 @@ class Component extends DCLogic {
             options.push({
               optId: p.kode + '::__NONE__', kode: p.kode, nama: p.nama,
               label: p.kode + ' — ' + p.nama + ' (tanpa suplier)',
-              suplierId: '__NONE__', suplier: 'Tanpa Suplier (koreksi stok manual)',
+              suplierId: '__NONE__', suplier: 'Tanpa Suplier (koreksi stok manual)', belumAdaHarga: false,
               stokSisa: res.stok_tanpa_suplier, ecer: p.ecer, bengkel: p.bengkel, grosir: p.grosir,
             });
           }
         });
+        // Pilihan awal jatuh ke opsi yang memang bisa dijual — opsi "harga
+        // belum diisi" tidak pernah dipilihkan otomatis, cuma bisa dipilih
+        // sendiri oleh kasir yang mencarinya.
+        const firstSellable = options.find((o) => !o.belumAdaHarga) || options[0];
         this.setState((s) => ({
           penjSellableOptions: options,
-          penjSelectedOptId: options.some((o) => o.optId === s.penjSelectedOptId) ? s.penjSelectedOptId : (options[0] ? options[0].optId : ''),
+          penjSelectedOptId: options.some((o) => o.optId === s.penjSelectedOptId) ? s.penjSelectedOptId : (firstSellable ? firstSellable.optId : ''),
         }));
       });
   };
@@ -2632,13 +2653,8 @@ class Component extends DCLogic {
   setUsername = (e) => this.setState({ username: e.target.value, loginError: '' });
   setPassword = (e) => this.setState({ password: e.target.value, loginError: '' });
 
-  openForgot = () => this.setState({ showForgot: true, forgotSent: false, forgotContact: '', forgotError: '' });
-  closeForgot = () => this.setState({ showForgot: false, forgotSent: false, forgotContact: '', forgotError: '' });
-  setForgotContact = (e) => this.setState({ forgotContact: e.target.value, forgotError: '' });
-  sendForgot = () => {
-    if (!this.state.forgotContact.trim()) { this.setState({ forgotError: 'Isi email atau nomor HP Owner.' }); return; }
-    this.setState({ forgotSent: true });
-  };
+  openForgot = () => this.setState({ showForgot: true });
+  closeForgot = () => this.setState({ showForgot: false });
 
   setPenjCustName = (e) => this.setState({ penjCustName: e.target.value });
   // Combobox custom buat "Cari Barang" — satu baris per (barang, suplier)
@@ -2648,7 +2664,7 @@ class Component extends DCLogic {
   penjComboOptions = (s) => {
     const q = s.penjProductComboQuery.trim().toLowerCase();
     const list = q ? s.penjSellableOptions.filter((o) => o.kode.toLowerCase().includes(q) || o.nama.toLowerCase().includes(q)) : s.penjSellableOptions;
-    return list.map((o) => ({ optId: o.optId, label: o.label }));
+    return list.map((o) => ({ optId: o.optId, label: o.label, style: o.belumAdaHarga ? 'opacity:0.55;' : '' }));
   };
   openPenjCombo = () => {
     if (this.state.penjProductComboOpen) return;
@@ -2693,7 +2709,9 @@ class Component extends DCLogic {
     const s = this.state;
     const qty = parseInt(s.penjQty) || 0;
     const opt = s.penjSellableOptions.find((o) => o.optId === s.penjSelectedOptId);
-    if (!opt || qty < 1) return;
+    // belumAdaHarga: opsi ini sengaja tetap terlihat di daftar supaya kasir
+    // tahu barangnya ada, tapi memang belum bisa masuk keranjang.
+    if (!opt || opt.belumAdaHarga || qty < 1) return;
     const tier = qty >= 6 ? 'grosir' : qty >= 2 ? 'bengkel' : 'ecer';
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : 'ECER';
     // "sisa" dihitung per opsi (barang+suplier) yang dipilih, bukan stok pool
@@ -3102,28 +3120,20 @@ class Component extends DCLogic {
     if (!p) return;
     this.setState({
       stokModalOpen: true, stokEditKode: kode, stokFormError: '',
-      stokFormSupplierOptions: p.supplier ? [p.supplier] : [],
       stokForm: {
-        kode: p.kode, nama: p.nama, kategori: p.kategori, supplier: p.supplier || '',
+        kode: p.kode, nama: p.nama, kategori: p.kategori,
         hargaFaktur: p.hargaFaktur ? String(p.hargaFaktur) : '', hargaNetto: p.hargaNetto ? String(p.hargaNetto) : '',
         priceListBasis: p.priceListBasis || 'NETTO',
         ecer: p.ecer ? String(p.ecer) : '', bengkel: p.bengkel ? String(p.bengkel) : '', grosir: p.grosir ? String(p.grosir) : '',
         stok: String(p.stok), minStok: String(p.minStok),
       },
     });
-    // Dropdown Suplier di form ini cuma boleh berisi suplier yang memang
-    // pernah mengirim barang ini (dari riwayat Input Pembelian yang sudah
-    // tersimpan) -- sebelumnya menampilkan SEMUA suplier di Master Data,
-    // jadi suplier yang tidak ada hubungannya ikut muncul di pilihan.
-    // Baris pertama hasil query ini (urut tanggal terbaru) jadi suplier
-    // yang otomatis terpilih kalau barang belum ada suplier tertaut.
-    api('GET', 'barang.php?id=' + p.id + '&history=1').then((rows) => {
-      const options = [...new Set(rows.map((r) => r.suplier))];
-      this.setState((s) => (s.stokEditKode !== kode ? {} : {
-        stokFormSupplierOptions: options.length ? options : (p.supplier ? [p.supplier] : []),
-        stokForm: { ...s.stokForm, supplier: s.stokForm.supplier || options[0] || '' },
-      }));
-    }).catch(() => {});
+    // Tidak ada dropdown Suplier di form ini lagi: kolom suplier di barang
+    // selalu ditimpa otomatis oleh Input Pembelian berikutnya, jadi pilihan
+    // yang diisi di sini tidak pernah bertahan. Suplier yang ditampilkan di
+    // Data Barang/Laporan Stok sekarang diturunkan dari batch stok yang
+    // masih ada (lihat barang.php), dan harga per suplier diatur di tabel
+    // "Harga Jual per Suplier" di bawah.
     // Harga jual per suplier — kasir wajib pilih suplier saat menjual (lihat
     // penjualan.php), jadi tiap suplier yang pernah kirim barang ini butuh
     // harganya sendiri di sini, bukan cuma satu harga default di atas.
@@ -3162,8 +3172,10 @@ class Component extends DCLogic {
 
     const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
     if (!editingId) { this.setState({ stokFormError: 'Barang tidak ditemukan.' }); return; }
+    // suplier sengaja TIDAK dikirim: kolom itu ditentukan Input Pembelian,
+    // bukan form ini (barang.php membiarkannya apa adanya kalau tidak dikirim).
     const body = {
-      nama, kategori: f.kategori, suplier: f.supplier,
+      nama, kategori: f.kategori,
       harga_faktur: hargaFaktur, harga_netto: hargaNetto, price_list_basis: f.priceListBasis,
       harga_ecer: ecer, harga_bengkel: bengkel, harga_grosir: grosir, stok, min_stok: minStok,
     };
@@ -3423,6 +3435,7 @@ class Component extends DCLogic {
   setPembelianHargaBasisNetto = () => this.setState({ pembelianHargaBasis: 'NETTO', ...this.clearPembelianItemError() });
   setPembelianHargaBeli = (e) => this.setState({ pembelianHargaBeli: e.target.value, ...this.clearPembelianItemError() });
   setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianTanggal = (e) => this.setState({ pembelianTanggal: e.target.value });
   setPembelianJatuhTempo = (e) => this.setState({ pembelianJatuhTempo: e.target.value });
   setLaporanSearch = (e) => this.setState({ laporanSearch: e.target.value });
   setLaporanKategoriFilter = (e) => this.setState({ laporanKategoriFilter: e.target.value });
@@ -3498,7 +3511,11 @@ class Component extends DCLogic {
     if (includeOwnerCols) header.push('Multi Suplier', 'Harga Beli', 'Basis Harga Beli');
     const headHtml = '<thead><tr>' + header.map((h) => `<th>${escHtml(h)}</th>`).join('') + '</tr></thead>';
     const bodyHtml = '<tbody>' + rows.map((p) => {
-      const cells = [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status];
+      const cells = [
+        p.kode, p.nama, p.kategori, p.supplier || '', p.stok,
+        formatRpRange(p.ecerMin, p.ecerMax), formatRpRange(p.bengkelMin, p.bengkelMax), formatRpRange(p.grosirMin, p.grosirMax),
+        p.status,
+      ];
       if (includeOwnerCols) {
         const hargaBeli = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
         cells.push(
@@ -3764,11 +3781,11 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const items = s.pembelianCart.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
     const justAddedNew = s.pembelianCart.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
-    api('POST', 'pembelian.php', { suplier: supplierName, no_faktur: noFaktur, payment_type: s.pembelianPayment, jatuh_tempo: s.pembelianJatuhTempo || null, items }).then((res) => {
+    api('POST', 'pembelian.php', { suplier: supplierName, no_faktur: noFaktur, tanggal: s.pembelianTanggal, payment_type: s.pembelianPayment, jatuh_tempo: s.pembelianJatuhTempo || null, items }).then((res) => {
       clearPembelianDraft();
       this.setState({
         busy: false,
-        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
+        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianTanggal: new Date().toISOString().slice(0, 10), pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianJustAddedNew: justAddedNew,
         pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
@@ -3848,15 +3865,17 @@ ${this.laporanLengkapTableHtml(tab, false)}
     // Combobox "Cari Barang" sekarang satu baris per (barang, suplier) --
     // pilih satu opsi sudah langsung menentukan barang SEKALIGUS suplier &
     // harganya, tidak ada dropdown suplier terpisah lagi. Opsi yang
-    // suplier-nya belum ada harga jual sudah TIDAK ikut muncul sama sekali
-    // (lihat refreshPenjSellableOptions), jadi di sini tidak perlu lagi
-    // jaga-jaga kasus "harga belum diisi".
+    // suplier-nya belum ada harga jual tetap muncul (lihat
+    // refreshPenjSellableOptions) tapi tidak bisa ditambahkan ke keranjang —
+    // kasir perlu melihat barangnya ADA beserta alasannya kenapa belum bisa
+    // dijual, bukan barangnya lenyap begitu saja dari daftar.
     const selectedOpt = s.penjSellableOptions.find((o) => o.optId === s.penjSelectedOptId) || null;
-    const unitPrice = tier && selectedOpt ? selectedOpt[tier] : 0;
+    const hargaSuplierKosong = !!(selectedOpt && selectedOpt.belumAdaHarga);
+    const unitPrice = tier && selectedOpt && !hargaSuplierKosong ? selectedOpt[tier] : 0;
     const cartQtyForSelected = s.penjCart.filter((i) => i.optId === s.penjSelectedOptId).reduce((a, i) => a + i.qty, 0);
     const availableStok = selectedOpt ? selectedOpt.stokSisa - cartQtyForSelected : 0;
     const qtyExceedsStock = qtyNum > 0 && qtyNum > availableStok;
-    const canAdd = qtyNum > 0 && !qtyExceedsStock && !!selectedOpt;
+    const canAdd = qtyNum > 0 && !qtyExceedsStock && !!selectedOpt && !hargaSuplierKosong;
 
     const penjCartView = s.penjCart.map((item, idx) => ({
       ...item, unitPriceLabel: formatRp(item.unitPrice), subtotalLabel: formatRp(item.subtotal),
@@ -3893,7 +3912,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const penjComboOptionsRaw = this.penjComboOptions(s);
     const penjComboOptionsView = penjComboOptionsRaw.map((opt, i) => ({
       ...opt,
-      rowStyle: 'padding:9px 12px;font-size:14px;cursor:pointer;' + (i === s.penjProductComboHighlight ? 'background:var(--color-accent-100);' : ''),
+      rowStyle: 'padding:9px 12px;font-size:14px;cursor:pointer;' + opt.style + (i === s.penjProductComboHighlight ? 'background:var(--color-accent-100);' : ''),
       clickHandler: () => this.selectPenjCombo(opt.optId),
       mouseDownHandler: this.handlePenjComboOptionMouseDown,
     }));
@@ -3908,6 +3927,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       penjQty: s.penjQty, setPenjQty: this.setPenjQty,
       availableStokLabel: String(availableStok), hasTier: !!(tier && selectedOpt), tierLabel, unitPriceLabel: formatRp(unitPrice),
       qtyExceedsStock, cannotAdd: !canAdd, addToCart: this.addToCart,
+      hargaSuplierKosong, hargaSuplierKosongNama: hargaSuplierKosong ? selectedOpt.suplier : '',
       cartEmpty: s.penjCart.length === 0, cartNotEmpty: s.penjCart.length > 0, penjCartView,
       penjCustName: s.penjCustName, setPenjCustName: this.setPenjCustName,
       previewInvoiceNo: 'Dibuat otomatis saat disimpan',
@@ -3961,7 +3981,15 @@ ${this.laporanLengkapTableHtml(tab, false)}
       // Riwayat Pembelian/Suplier/Detail Pembelian di tempat lain.
       const hargaBeliValue = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
       return {
-        ...p, ecerLabel: p.pendingSetup ? '—' : formatRp(p.ecer), bengkelLabel: p.pendingSetup ? '—' : formatRp(p.bengkel), grosirLabel: p.pendingSetup ? '—' : formatRp(p.grosir),
+        ...p,
+        ecerLabel: p.pendingSetup ? '—' : formatRpRange(p.ecerMin, p.ecerMax),
+        bengkelLabel: p.pendingSetup ? '—' : formatRpRange(p.bengkelMin, p.bengkelMax),
+        grosirLabel: p.pendingSetup ? '—' : formatRpRange(p.grosirMin, p.grosirMax),
+        // Stok dari suplier yang harga jualnya belum diisi tidak bisa dijual
+        // sama sekali di kasir (penjualan.php menolaknya) — tanpa tanda ini
+        // barangnya cuma "hilang" dari daftar kasir tanpa penjelasan.
+        hasSupplierTanpaHarga: p.supplierTanpaHarga.length > 0,
+        supplierTanpaHargaLabel: p.supplierTanpaHarga.join(', '),
         priceListBasisLabel: p.priceListBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
         priceListValueLabel: priceListValue ? formatRp(priceListValue) : '—',
         hargaBasisLabel: p.hargaNetto > 0 ? 'Netto' : 'Faktur',
@@ -4010,7 +4038,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       stokIsEdit: !!s.stokEditKode,
       stokCanPrintFromForm: s.stokForm.kode.trim() !== '',
       stokForm: s.stokForm,
-      stokSupplierOptions: s.stokFormSupplierOptions,
       stokSupplierPricesView: s.stokSupplierPrices.map((r) => ({
         suplierId: r.suplierId, suplier: r.suplier,
         stokSisaLabel: r.stokSisa + ' pcs',
@@ -4022,14 +4049,14 @@ ${this.laporanLengkapTableHtml(tab, false)}
         saveHandler: () => this.saveStokSupplierPrice(r.suplierId),
       })),
       setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
-      setStokKategori: this.setStokFormField('kategori'), setStokSupplier: this.setStokFormField('supplier'), setStokEcer: this.setStokFormField('ecer'),
+      setStokKategori: this.setStokFormField('kategori'), setStokEcer: this.setStokFormField('ecer'),
       setStokBengkel: this.setStokFormField('bengkel'), setStokGrosir: this.setStokFormField('grosir'),
       stokHargaSourceLabel: (parseFloat(s.stokForm.hargaFaktur) || parseFloat(s.stokForm.hargaNetto))
         ? formatRp(parseFloat(s.stokForm.hargaFaktur) || 0) + ' / ' + formatRp(parseFloat(s.stokForm.hargaNetto) || 0)
         : 'Belum ada data pembelian',
       stokPriceIsFaktur: s.stokForm.priceListBasis === 'FAKTUR', stokPriceIsNetto: s.stokForm.priceListBasis !== 'FAKTUR',
       setStokPriceFaktur: this.setStokPriceFaktur, setStokPriceNetto: this.setStokPriceNetto,
-      setStokStok: this.setStokFormField('stok'),
+      setStokStok: this.setStokFormField('stok'), setStokMinStok: this.setStokFormField('minStok'),
       stokFormError: s.stokFormError, saveStokForm: this.saveStokForm,
       stokDeleteTarget: s.stokDeleteTarget, deleteTargetName: deleteTargetProduct ? deleteTargetProduct.nama : '',
       cancelDeleteStok: this.cancelDeleteStok, confirmDeleteStok: this.confirmDeleteStok,
@@ -4119,6 +4146,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       setPembelianHargaBasisFaktur: this.setPembelianHargaBasisFaktur, setPembelianHargaBasisNetto: this.setPembelianHargaBasisNetto,
       pembelianHargaBeli: s.pembelianHargaBeli, setPembelianHargaBeli: this.setPembelianHargaBeli,
       pembelianPricelist: s.pembelianPricelist, setPembelianPricelist: this.setPembelianPricelist,
+      pembelianTanggal: s.pembelianTanggal, setPembelianTanggal: this.setPembelianTanggal,
       pembelianJatuhTempo: s.pembelianJatuhTempo, setPembelianJatuhTempo: this.setPembelianJatuhTempo,
       payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
       setPembelianCash: this.setPembelianCash, setPembelianTop: this.setPembelianTop,
@@ -4163,8 +4191,13 @@ ${this.laporanLengkapTableHtml(tab, false)}
   laporanVals(s) {
     const filtered = this.laporanFilteredRows(s);
     const rows = filtered.map((p) => ({
-      ...p, ecerLabel: formatRp(p.ecer), bengkelLabel: formatRp(p.bengkel), grosirLabel: formatRp(p.grosir),
+      ...p,
+      ecerLabel: formatRpRange(p.ecerMin, p.ecerMax),
+      bengkelLabel: formatRpRange(p.bengkelMin, p.bengkelMax),
+      grosirLabel: formatRpRange(p.grosirMin, p.grosirMax),
       statusIsKritis: p.status === 'Kritis', statusIsMenipis: p.status === 'Menipis', statusIsAman: p.status === 'Aman',
+      hasSupplierTanpaHarga: p.supplierTanpaHarga.length > 0,
+      supplierTanpaHargaLabel: p.supplierTanpaHarga.join(', '),
       supplierExtraCount: p.supplierCount > 1 ? p.supplierCount - 1 : 0,
       supplierHistoryHandler: () => this.openSupplierHistory(p),
     }));
@@ -4177,7 +4210,11 @@ ${this.laporanLengkapTableHtml(tab, false)}
       laporanKategoriOptions: s.kategoriList, laporanSupplierOptions: s.suplierList.map((x) => x.nama),
       laporanRows: rows, laporanRowsEmpty: rows.length === 0,
       laporanTotalStok: filtered.reduce((a, p) => a + p.stok, 0),
-      laporanTotalNilaiJualLabel: formatRp(filtered.reduce((a, p) => a + p.stok * p.ecer, 0)),
+      // Dijumlahkan dari nilai_jual per barang (sisa tiap batch × harga jual
+      // suplier batch itu, dihitung di barang.php) — bukan stok total × harga
+      // default barang, yang sejak harga-per-suplier bukan lagi harga yang
+      // benar-benar ditagih ke pelanggan.
+      laporanTotalNilaiJualLabel: formatRp(filtered.reduce((a, p) => a + p.nilaiJual, 0)),
       laporanExportMenuOpen: s.laporanExportMenuOpen, toggleLaporanExportMenu: this.toggleLaporanExportMenu, closeLaporanExportMenu: this.closeLaporanExportMenu,
       exportLaporanXlsx: this.exportLaporanXlsx, exportLaporanPdf: this.exportLaporanPdf,
     };
@@ -4232,6 +4269,13 @@ ${this.laporanLengkapTableHtml(tab, false)}
       invoiceNo: pjDetailRaw.invoice_no, tanggal: formatTanggal(pjDetailRaw.tanggal), custName: pjDetailRaw.cust_name,
       paymentLabel: pjDetailRaw.payment_method === 'TRANSFER' ? 'Transfer' : 'Tunai',
       grandTotalLabel: formatRp(pjDetailRaw.grand_total),
+      // Jumlah bayar & kembalian sudah lama tersimpan di database dan ikut
+      // terkirim di response ini, cuma tidak pernah ditampilkan lagi setelah
+      // struknya tercetak — padahal itu satu-satunya cara mengecek ulang
+      // kalau pelanggan komplain soal kembalian.
+      isTunai: pjDetailRaw.payment_method !== 'TRANSFER',
+      amountPaidLabel: formatRp(pjDetailRaw.amount_paid || 0),
+      kembalianLabel: formatRp(pjDetailRaw.kembalian || 0),
       items: (pjDetailRaw.items || []).map((it) => ({
         ...it, tierLabel: it.tier.charAt(0).toUpperCase() + it.tier.slice(1),
         unitPriceLabel: formatRp(it.unit_price), subtotalLabel: formatRp(it.subtotal),
@@ -4529,10 +4573,8 @@ ${this.laporanLengkapTableHtml(tab, false)}
       username: s.username, password: s.password, loginError: s.loginError,
       setUsername: this.setUsername, setPassword: this.setPassword,
       doLogin: this.doLogin, handleLoginKeyDown: this.handleLoginKeyDown, doLogout: this.doLogout,
-      showForgot: s.showForgot, forgotSent: s.forgotSent, forgotNotSent: !s.forgotSent,
-      forgotContact: s.forgotContact, forgotError: s.forgotError,
+      showForgot: s.showForgot,
       openForgot: this.openForgot, closeForgot: this.closeForgot,
-      setForgotContact: this.setForgotContact, sendForgot: this.sendForgot,
       userName: finalUserName,
       userInitial: finalUserName.trim()[0].toUpperCase(),
       roleLabel: isOwner ? 'Owner' : 'Karyawan',

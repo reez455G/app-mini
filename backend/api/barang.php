@@ -65,17 +65,80 @@ if ($method === 'GET') {
     $sql .= ' ORDER BY b.nama';
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
+    $rows = $stmt->fetchAll();
+
+    // Ringkasan stok yang MASIH ADA, dikelompokkan per (barang, suplier),
+    // lengkap dengan harga jual suplier itu. Satu query untuk semua barang —
+    // sengaja dihitung di PHP di bawah alih-alih delapan subquery berkorelasi
+    // di query utama. Dipakai tiga hal sekaligus:
+    //   - kolom Suplier: sebelumnya b.suplier_id (= suplier pembelian TERAKHIR),
+    //     yang bisa menampilkan suplier yang batch-nya sudah habis terjual.
+    //   - nilai_jual: stok × harga jual suplier batch itu, bukan stok total ×
+    //     harga default barang (yang sejak harga-per-suplier bukan lagi harga
+    //     yang benar-benar ditagih ke pelanggan).
+    //   - suplier_tanpa_harga: stok yang belum bisa dijual karena harga jual
+    //     suplier itu belum diisi — supaya bisa ditandai di layar alih-alih
+    //     barangnya diam-diam hilang dari daftar kasir.
+    $lotStmt = $pdo->query(
+        'SELECT bl.barang_id, bl.suplier_id, s.nama AS suplier, SUM(bl.qty_sisa) AS sisa,
+                h.harga_ecer, h.harga_bengkel, h.harga_grosir
+         FROM barang_lot bl
+         LEFT JOIN suplier s ON s.id = bl.suplier_id
+         LEFT JOIN barang_suplier_harga h ON h.barang_id = bl.barang_id AND h.suplier_id = bl.suplier_id
+         WHERE bl.qty_sisa > 0
+         GROUP BY bl.barang_id, bl.suplier_id, s.nama, h.harga_ecer, h.harga_bengkel, h.harga_grosir
+         ORDER BY s.nama'
+    );
+    $stokPerSuplier = [];
+    foreach ($lotStmt->fetchAll() as $r) $stokPerSuplier[(int)$r['barang_id']][] = $r;
 
     // Karyawan tidak boleh lihat harga beli (data finansial) — tapi nama
     // suplier bukan data finansial (dipakai filter di Laporan Stok, yang
     // memang bisa diakses Karyawan) jadi tetap dikirim ke semua role. Lihat
     // docs/BACKEND.md § Access control.
     $isOwner = $me['role'] === 'owner';
-    $out = array_map(function ($r) use ($isOwner) {
+    $out = array_map(function ($r) use ($isOwner, $stokPerSuplier) {
+        $lots = $stokPerSuplier[(int)$r['id']] ?? [];
+        $namaSuplier = []; $tanpaHarga = []; $nilaiJual = 0.0; $adaStokTanpaSuplier = false;
+        $rentang = ['ecer' => [], 'bengkel' => [], 'grosir' => []];
+        foreach ($lots as $l) {
+            $sisa = (int)$l['sisa'];
+            // Batch tanpa suplier = hasil koreksi stok manual; harga default
+            // barang memang jawaban yang benar untuk batch itu.
+            $punyaHarga = $l['harga_ecer'] !== null;
+            foreach ($rentang as $tier => $_) {
+                $rentang[$tier][] = (float)($punyaHarga ? $l['harga_' . $tier] : $r['harga_' . $tier]);
+            }
+            $nilaiJual += $sisa * (float)($punyaHarga ? $l['harga_ecer'] : $r['harga_ecer']);
+            if ($l['suplier'] !== null) {
+                $namaSuplier[] = $l['suplier'];
+                if (!$punyaHarga) $tanpaHarga[] = $l['suplier'];
+            } else {
+                $adaStokTanpaSuplier = true;
+            }
+        }
+        // Urutan fallback: suplier batch yang masih ada → "tanpa suplier" kalau
+        // sisanya cuma stok hasil koreksi manual → suplier pembelian terakhir
+        // kalau stoknya habis sama sekali (biar kolomnya tidak kosong).
+        $suplierLabel = $namaSuplier
+            ? implode(', ', $namaSuplier)
+            : ($adaStokTanpaSuplier ? 'Tanpa Suplier (koreksi manual)' : $r['suplier_nama']);
         $base = [
             'id' => (int)$r['id'], 'kode' => $r['kode'], 'nama' => $r['nama'],
-            'kategori' => $r['kategori_nama'], 'suplier' => $r['suplier_nama'], 'suplier_kode' => $r['suplier_kode'], 'suplier_count' => (int)$r['suplier_count'], 'stok' => (int)$r['stok'],
+            'kategori' => $r['kategori_nama'],
+            'suplier' => $suplierLabel,
+            'suplier_kode' => $r['suplier_kode'], 'suplier_count' => (int)$r['suplier_count'],
+            'suplier_stok_count' => count($namaSuplier),
+            'suplier_tanpa_harga' => $tanpaHarga,
+            'stok' => (int)$r['stok'],
             'harga_ecer' => (float)$r['harga_ecer'], 'harga_bengkel' => (float)$r['harga_bengkel'], 'harga_grosir' => (float)$r['harga_grosir'],
+            'nilai_jual' => $nilaiJual,
+            'ecer_min' => $rentang['ecer'] ? min($rentang['ecer']) : (float)$r['harga_ecer'],
+            'ecer_max' => $rentang['ecer'] ? max($rentang['ecer']) : (float)$r['harga_ecer'],
+            'bengkel_min' => $rentang['bengkel'] ? min($rentang['bengkel']) : (float)$r['harga_bengkel'],
+            'bengkel_max' => $rentang['bengkel'] ? max($rentang['bengkel']) : (float)$r['harga_bengkel'],
+            'grosir_min' => $rentang['grosir'] ? min($rentang['grosir']) : (float)$r['harga_grosir'],
+            'grosir_max' => $rentang['grosir'] ? max($rentang['grosir']) : (float)$r['harga_grosir'],
             'status' => stok_status((int)$r['stok'], (int)$r['min_stok']),
         ];
         if (!$isOwner) return $base;
@@ -83,7 +146,7 @@ if ($method === 'GET') {
             'harga_faktur' => (float)$r['harga_faktur'], 'harga_netto' => (float)$r['harga_netto'],
             'price_list_basis' => $r['price_list_basis'], 'min_stok' => (int)$r['min_stok'], 'pending_setup' => (bool)$r['pending_setup'],
         ];
-    }, $stmt->fetchAll());
+    }, $rows);
     json_ok($out);
 }
 
@@ -179,15 +242,23 @@ if ($method === 'PUT') {
         $stokLama = $cur->fetchColumn();
         if ($stokLama === false) throw new RuntimeException('Barang tidak ditemukan.');
 
-        // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend)
-        $pdo->prepare(
-            'UPDATE barang SET nama=?, kategori_id=?, suplier_id=?, harga_faktur=?, harga_netto=?, price_list_basis=?, harga_ecer=?, harga_bengkel=?, harga_grosir=?, stok=?, min_stok=?, pending_setup=0
-             WHERE id=?'
-        )->execute([
-            $nama, $katId, $supId, $hargaFaktur, $hargaNetto,
+        // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend).
+        // suplier_id cuma ditimpa kalau field "suplier" memang DIKIRIM: form Ubah
+        // Barang sudah tidak punya dropdown suplier lagi (kolom itu ditentukan
+        // Input Pembelian), dan tanpa penjagaan ini setiap simpan akan mengosongkan
+        // suplier_id jadi NULL karena resolve_suplier(null) mengembalikan null.
+        $setSuplier = array_key_exists('suplier', $in) ? 'suplier_id=?, ' : '';
+        $params = [$nama, $katId];
+        if ($setSuplier) $params[] = $supId;
+        array_push(
+            $params, $hargaFaktur, $hargaNetto,
             ($in['price_list_basis'] ?? 'NETTO') === 'FAKTUR' ? 'FAKTUR' : 'NETTO',
-            $ecer, $bengkel, $grosir, $stok, $minStok, $id,
-        ]);
+            $ecer, $bengkel, $grosir, $stok, $minStok, $id
+        );
+        $pdo->prepare(
+            "UPDATE barang SET nama=?, kategori_id=?, {$setSuplier}harga_faktur=?, harga_netto=?, price_list_basis=?, harga_ecer=?, harga_bengkel=?, harga_grosir=?, stok=?, min_stok=?, pending_setup=0
+             WHERE id=?"
+        )->execute($params);
         lot_sync_stok($pdo, $id, (int)$stokLama, $stok, $hargaNetto > 0 ? $hargaNetto : $hargaFaktur);
 
         $pdo->commit();

@@ -92,7 +92,15 @@ $items = $in['items'] ?? [];
 if ($supplierName === '' || $noFaktur === '' || !$items) json_error('Suplier, No. Faktur, dan minimal 1 barang wajib diisi.');
 $paymentType = ($in['payment_type'] ?? 'CASH') === 'TOP' ? 'TOP' : 'CASH';
 $jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : null;
-$tanggal = date('Y-m-d'); // dipakai juga sebagai urutan FIFO barang_lot, harus sama dengan CURDATE() di INSERT pembelian di bawah
+// Tanggal faktur fisik dari suplier, bukan tanggal input — faktur tanggal 10
+// yang baru sempat diinput tanggal 15 harus tetap tercatat tanggal 10, kalau
+// tidak Laporan Pembelian tidak bisa dicocokkan dengan faktur fisik. Dipakai
+// juga sebagai urutan FIFO barang_lot, jadi satu nilai ini untuk keduanya.
+// ?: bukan ?? — kolom tanggal yang dikosongkan mengirim string kosong, dan
+// ?? cuma menangkap null (pola sama dengan retur_*.php).
+$tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) json_error('Tanggal faktur tidak valid.');
+if ($tanggal > date('Y-m-d')) json_error('Tanggal faktur tidak boleh di masa depan.');
 
 $pdo->beginTransaction();
 try {
@@ -180,8 +188,8 @@ try {
     try {
         $pdo->prepare(
             'INSERT INTO pembelian (no_faktur, tanggal, suplier_id, payment_type, jatuh_tempo, total_items, total_qty, total_biaya, created_by)
-             VALUES (?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)'
-        )->execute([$noFaktur, $suplierId, $paymentType, $jatuhTempo, count($items), $totalQty, $totalBiaya, $me['id']]);
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([$noFaktur, $tanggal, $suplierId, $paymentType, $jatuhTempo, count($items), $totalQty, $totalBiaya, $me['id']]);
     } catch (PDOException $e) {
         if ($e->getCode() === '23000') {
             throw new RuntimeException("No. Faktur \"$noFaktur\" sudah pernah diinput untuk suplier \"$supplierName\".");

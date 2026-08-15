@@ -66,9 +66,11 @@ CREATE TABLE barang (
   harga_faktur DECIMAL(14,2) NOT NULL DEFAULT 0,   -- harga beli terakhir (snapshot)
   harga_netto DECIMAL(14,2) NOT NULL DEFAULT 0,
   price_list_basis ENUM('FAKTUR','NETTO') NOT NULL DEFAULT 'NETTO',
-  harga_ecer DECIMAL(14,2) NOT NULL DEFAULT 0,     -- 1-5 pcs
-  harga_bengkel DECIMAL(14,2) NOT NULL DEFAULT 0,  -- 6-10 pcs
-  harga_grosir DECIMAL(14,2) NOT NULL DEFAULT 0,   -- 11-100 pcs
+  -- Batas tier di bawah ini HARUS sama dengan tier_for_qty() di
+  -- backend/api/penjualan.php dan addToCart() di Dashboard.dc.html.
+  harga_ecer DECIMAL(14,2) NOT NULL DEFAULT 0,     -- 1 pcs
+  harga_bengkel DECIMAL(14,2) NOT NULL DEFAULT 0,  -- 2-5 pcs
+  harga_grosir DECIMAL(14,2) NOT NULL DEFAULT 0,   -- 6 pcs ke atas
   stok INT NOT NULL DEFAULT 0,
   min_stok INT NOT NULL DEFAULT 10,
   pending_setup TINYINT(1) NOT NULL DEFAULT 0,     -- true: baru dibuat otomatis dari pembelian, harga jual belum diisi
