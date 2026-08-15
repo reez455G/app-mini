@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 
-require_login(); // harga jual bukan data finansial rahasia, Karyawan juga perlu baca ini buat Transaksi Penjualan
+$me = require_login(); // harga jual bukan data finansial rahasia, Karyawan juga perlu baca ini buat Transaksi Penjualan
 $method = $_SERVER['REQUEST_METHOD'];
 $pdo = db();
 
@@ -40,15 +40,33 @@ if ($method === 'GET') {
     $hargaBySuplier = [];
     foreach ($hargaRows->fetchAll() as $r) $hargaBySuplier[(int)$r['suplier_id']] = $r;
 
-    $out = array_map(function ($s) use ($stokBySuplier, $hargaBySuplier) {
+    // Harga beli (modal) TERBARU per suplier -- dari batch paling baru yang
+    // benar-benar tertaut suplier itu. Cuma dikirim ke Owner (data finansial,
+    // sama seperti harga_beli di barang.php?history=1).
+    $isOwner = $me['role'] === 'owner';
+    $hargaBeliBySuplier = [];
+    if ($isOwner) {
+        $lotRows = $pdo->prepare(
+            'SELECT suplier_id, harga_beli FROM barang_lot WHERE barang_id = ? AND suplier_id IS NOT NULL ORDER BY tanggal DESC, id DESC'
+        );
+        $lotRows->execute([$barangId]);
+        foreach ($lotRows->fetchAll() as $r) {
+            $sid = (int)$r['suplier_id'];
+            if (!isset($hargaBeliBySuplier[$sid])) $hargaBeliBySuplier[$sid] = (float)$r['harga_beli']; // baris pertama = paling baru (ORDER BY DESC)
+        }
+    }
+
+    $out = array_map(function ($s) use ($stokBySuplier, $hargaBySuplier, $hargaBeliBySuplier, $isOwner) {
         $h = $hargaBySuplier[(int)$s['id']] ?? null;
-        return [
+        $row = [
             'suplier_id' => (int)$s['id'], 'suplier' => $s['nama'], 'suplier_kode' => $s['kode'],
             'stok_sisa' => $stokBySuplier[(int)$s['id']] ?? 0,
             'harga_ecer' => $h ? (float)$h['harga_ecer'] : null,
             'harga_bengkel' => $h ? (float)$h['harga_bengkel'] : null,
             'harga_grosir' => $h ? (float)$h['harga_grosir'] : null,
         ];
+        if ($isOwner) $row['harga_beli'] = $hargaBeliBySuplier[(int)$s['id']] ?? null;
+        return $row;
     }, $suppliers);
 
     // Stok hasil koreksi manual (tidak tertaut suplier mana pun) -- dipakai

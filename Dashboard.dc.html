@@ -3439,23 +3439,60 @@ class Component extends DCLogic {
   // Excel/LibreOffice/Google Sheets sebagai spreadsheet asli, sel per sel,
   // tanpa masalah pemisah/locale) — pola umum bikin "Excel export" tanpa
   // library tambahan.
+  //
+  // Beda dari laporanTableHtml (dipakai Cetak/PDF, tetap 1 baris per barang
+  // biar tidak melebar jadi berlembar-lembar pas dicetak fisik): di sini
+  // barang yang punya beberapa suplier DIPECAH jadi satu baris per suplier
+  // -- lengkap sisa stok & harga jualnya masing-masing (bisa beda-beda,
+  // lihat Ubah Barang > Harga Jual per Suplier), bukan cuma "Multi Suplier:
+  // Ya (N)" tanpa rincian. Perlu fetch tambahan per barang (sama seperti
+  // refreshPenjSellableOptions di Transaksi Penjualan), makanya async.
   exportLaporanXlsx = () => {
     this.closeLaporanExportMenu();
-    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${this.laporanTableHtml(this.state.role === 'owner')}</table></body></html>`;
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'laporan-stok.xls'; a.click();
-    URL.revokeObjectURL(url);
+    const rows = this.laporanFilteredRows(this.state);
+    const isOwner = this.state.role === 'owner';
+    Promise.all(rows.map((p) => api('GET', 'barang_suplier_harga.php?barang_id=' + p.id).then((res) => ({ p, res })).catch(() => ({ p, res: null }))))
+      .then((results) => {
+        const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
+        if (isOwner) header.push('Harga Beli');
+        const lines = [];
+        results.forEach(({ p, res }) => {
+          const supplierRows = res && res.suppliers.length ? res.suppliers : null;
+          if (!supplierRows) {
+            // Jaga-jaga: barang tanpa riwayat suplier sama sekali (seharusnya
+            // tidak terjadi, tiap barang selalu lahir dari Input Pembelian) --
+            // tetap 1 baris pakai harga default, bukan hilang dari laporan.
+            const cells = [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status];
+            if (isOwner) cells.push((p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur) || '');
+            lines.push(cells);
+            return;
+          }
+          supplierRows.forEach((sup) => {
+            const cells = [p.kode, p.nama, p.kategori, sup.suplier, sup.stok_sisa, sup.harga_ecer ?? '', sup.harga_bengkel ?? '', sup.harga_grosir ?? '', p.status];
+            if (isOwner) cells.push(sup.harga_beli ?? '');
+            lines.push(cells);
+          });
+          if (res.stok_tanpa_suplier > 0) {
+            const cells = [p.kode, p.nama, p.kategori, 'Tanpa Suplier (koreksi manual)', res.stok_tanpa_suplier, p.ecer, p.bengkel, p.grosir, p.status];
+            if (isOwner) cells.push('');
+            lines.push(cells);
+          }
+        });
+        const headHtml = '<thead><tr>' + header.map((h) => `<th>${escHtml(h)}</th>`).join('') + '</tr></thead>';
+        const bodyHtml = '<tbody>' + lines.map((cells) => '<tr>' + cells.map((v) => `<td>${escHtml(v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+        const html = `<html><head><meta charset="utf-8"></head><body><table border="1">${headHtml}${bodyHtml}</table></body></html>`;
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'laporan-stok.xls'; a.click();
+        URL.revokeObjectURL(url);
+      });
   };
 
   // Isi tabel laporan stok (thead + tbody) dari baris yang LAGI TAMPIL sesudah
-  // filter — satu sumber untuk export Excel dan cetak/PDF, biar dua-duanya
-  // tidak pernah beda isi. includeOwnerCols nambah kolom Multi Suplier +
-  // Harga Beli (data finansial) -- dipakai Excel MAUPUN Cetak/PDF, tapi
-  // cuma kalau yang export Owner (dicek di pemanggilnya, exportLaporanXlsx
-  // & exportLaporanPdf), supaya tidak bocor ke Karyawan lewat salah satu
-  // format ekspor.
+  // filter — dipakai Cetak/PDF (exportLaporanXlsx punya versi sendiri, 1
+  // baris per suplier, lihat komentar di atas). includeOwnerCols nambah
+  // kolom Multi Suplier + Harga Beli (data finansial, Owner-only).
   laporanTableHtml = (includeOwnerCols) => {
     const rows = this.laporanFilteredRows(this.state);
     const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
