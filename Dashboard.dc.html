@@ -3452,9 +3452,10 @@ class Component extends DCLogic {
   // Isi tabel laporan stok (thead + tbody) dari baris yang LAGI TAMPIL sesudah
   // filter — satu sumber untuk export Excel dan cetak/PDF, biar dua-duanya
   // tidak pernah beda isi. includeOwnerCols nambah kolom Multi Suplier +
-  // Harga Beli (data finansial, Owner-only) -- cuma dipakai export Excel,
-  // Cetak/PDF tetap kolom lama supaya tetap muat rapi & tidak bocor ke
-  // siapa pun yang kebetulan buka file PDF-nya.
+  // Harga Beli (data finansial) -- dipakai Excel MAUPUN Cetak/PDF, tapi
+  // cuma kalau yang export Owner (dicek di pemanggilnya, exportLaporanXlsx
+  // & exportLaporanPdf), supaya tidak bocor ke Karyawan lewat salah satu
+  // format ekspor.
   laporanTableHtml = (includeOwnerCols) => {
     const rows = this.laporanFilteredRows(this.state);
     const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
@@ -3511,7 +3512,7 @@ tr { page-break-inside: avoid; }
 <p>Laporan Stok — dicetak ${escHtml(formatTanggal(new Date().toISOString().slice(0, 10)))}</p>
 <p>${escHtml(filterLabel)}</p>
 <p>${rows.length} jenis barang · total ${totalStok} pcs</p>
-<table>${this.laporanTableHtml()}</table>
+<table>${this.laporanTableHtml(s.role === 'owner')}</table>
 </body></html>`;
     const frame = document.createElement('iframe');
     frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
