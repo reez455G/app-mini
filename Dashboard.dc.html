@@ -1336,13 +1336,11 @@
             </sc-if>
             <div class="field" style="width:190px;">
               <label for="lap-dari">Periode Dari</label>
-              <input class="input" id="lap-dari" type="date" lang="id" style="min-height:44px;font-size:15px;" value="{{ laporanDari }}" onChange="{{ setLaporanDari }}" />
-              <span style="font-size:11px;opacity:0.55;">{{ laporanDariDMY }}</span>
+              <input class="input" id="lap-dari" type="date" style="min-height:44px;font-size:15px;" value="{{ laporanDari }}" onChange="{{ setLaporanDari }}" />
             </div>
             <div class="field" style="width:190px;">
               <label for="lap-sampai">Sampai</label>
-              <input class="input" id="lap-sampai" type="date" lang="id" style="min-height:44px;font-size:15px;" value="{{ laporanSampai }}" onChange="{{ setLaporanSampai }}" />
-              <span style="font-size:11px;opacity:0.55;">{{ laporanSampaiDMY }}</span>
+              <input class="input" id="lap-sampai" type="date" style="min-height:44px;font-size:15px;" value="{{ laporanSampai }}" onChange="{{ setLaporanSampai }}" />
             </div>
             <sc-if value="{{ lapTabHasExport }}" hint-placeholder-val="{{ false }}">
               <div style="position:relative;flex:none;">
@@ -1563,8 +1561,7 @@
                   </div>
                   <div class="field" style="margin-top:16px;width:220px;">
                     <label for="rp-tgl">Tanggal Retur</label>
-                    <input class="input" id="rp-tgl" type="date" lang="id" style="min-height:46px;font-size:15px;" value="{{ returPjTanggal }}" onChange="{{ setReturPjTanggal }}" />
-                    <span style="font-size:11px;opacity:0.55;">{{ returPjTanggalDMY }}</span>
+                    <input class="input" id="rp-tgl" type="date" style="min-height:46px;font-size:15px;" value="{{ returPjTanggal }}" onChange="{{ setReturPjTanggal }}" />
                   </div>
                   <sc-if value="{{ returPjChecking }}" hint-placeholder-val="{{ false }}">
                     <p style="margin:10px 0 0;font-size:13px;opacity:0.6;">Memeriksa invoice...</p>
@@ -1662,8 +1659,7 @@
                   </div>
                   <div class="field" style="margin-top:16px;width:220px;">
                     <label for="rb-tgl">Tanggal Retur</label>
-                    <input class="input" id="rb-tgl" type="date" lang="id" style="min-height:46px;font-size:15px;" value="{{ returPbTanggal }}" onChange="{{ setReturPbTanggal }}" />
-                    <span style="font-size:11px;opacity:0.55;">{{ returPbTanggalDMY }}</span>
+                    <input class="input" id="rb-tgl" type="date" style="min-height:46px;font-size:15px;" value="{{ returPbTanggal }}" onChange="{{ setReturPbTanggal }}" />
                   </div>
                   <sc-if value="{{ returPbChecking }}" hint-placeholder-val="{{ false }}">
                     <p style="margin:10px 0 0;font-size:13px;opacity:0.6;">Memeriksa faktur...</p>
@@ -4330,7 +4326,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       isModLaporanLengkap: s.activeModule === 'laporanLengkap',
       laporanDari: s.laporanDari, setLaporanDari: this.setLaporanDari,
       laporanSampai: s.laporanSampai, setLaporanSampai: this.setLaporanSampai,
-      laporanDariDMY: formatTanggalDMY(s.laporanDari), laporanSampaiDMY: formatTanggalDMY(s.laporanSampai),
       laporanLengkapSearch: s.laporanLengkapSearch, setLaporanLengkapSearch: this.setLaporanLengkapSearch,
       laporanLengkapTabs: tabsView,
       lapTabIsGlobal: s.laporanLengkapTab === 'global', lapTabNotGlobal: s.laporanLengkapTab !== 'global',
@@ -4437,7 +4432,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       returPjCustomer: s.returPjCustomer, setReturPjCustomer: this.setReturPjCustomer,
       returPjInvoice: s.returPjInvoice, setReturPjInvoice: this.setReturPjInvoice,
       returPjTanggal: s.returPjTanggal, setReturPjTanggal: this.setReturPjTanggal,
-      returPjTanggalDMY: formatTanggalDMY(s.returPjTanggal),
       checkReturPjInvoice: this.checkReturPjInvoice, returPjChecking: s.returPjChecking, returPjCheckError: s.returPjCheckError,
       returPjInvoiceChecked: s.returPjInvoiceChecked,
       returPjItemsView, returPjItemsEmpty: s.returPjInvoiceChecked && returPjItemsView.length === 0,
@@ -4451,7 +4445,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       returPbSupplier: s.returPbSupplier, setReturPbSupplier: this.setReturPbSupplier,
       returPbInvoice: s.returPbInvoice, setReturPbInvoice: this.setReturPbInvoice,
       returPbTanggal: s.returPbTanggal, setReturPbTanggal: this.setReturPbTanggal,
-      returPbTanggalDMY: formatTanggalDMY(s.returPbTanggal),
       checkReturPbInvoice: this.checkReturPbInvoice, returPbChecking: s.returPbChecking, returPbCheckError: s.returPbCheckError,
       returPbInvoiceChecked: s.returPbInvoiceChecked,
       returPbItemsView, returPbItemsEmpty: s.returPbInvoiceChecked && returPbItemsView.length === 0,
