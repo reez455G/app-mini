@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Bikin docs/FAQ.pdf dari docs/FAQ.md.
+"""Bikin docs/<NAMA>.pdf dari docs/<NAMA>.md.
 
-Jalankan ulang tiap kali FAQ.md diubah:  python3 docs/build-faq-pdf.py
+Jalankan ulang tiap kali sumbernya diubah:
+    python3 docs/build-faq-pdf.py          # default: FAQ
+    python3 docs/build-faq-pdf.py AUDIT    # dokumen lain, lihat DOCS di bawah
 
 Pakai modul `markdown` + chromium yang sudah ada di sistem — sengaja tidak
 memakai pandoc/wkhtmltopdf supaya tidak menambah dependensi baru.
@@ -16,17 +18,22 @@ import tempfile
 import markdown
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "docs" / "FAQ.md"
-OUT = ROOT / "docs" / "FAQ.pdf"
 LOGO = ROOT / "assets" / "logo.png"
 
-# Cover dipisah dari isi: baris pertama FAQ.md (judul + alamat toko) dirender
-# sebagai halaman sampul sendiri, sisanya jadi isi biasa.
+# Judul + subjudul sampul per dokumen. Tambah baris baru di sini kalau ada
+# dokumen .md lain yang mau ikut dibikin PDF-nya dengan tata letak yang sama.
+DOCS = {
+    "FAQ": ("FAQ — App-mini", "Sistem Stok &amp; Kasir Toko"),
+    "AUDIT": ("Laporan Audit — App-mini", "Keterhubungan Input, Konsistensi Data &amp; Laporan"),
+}
+
+# Cover dipisah dari isi: blok judul+alamat toko di paling atas file .md
+# dirender sebagai halaman sampul sendiri, sisanya jadi isi biasa.
 COVER = """
 <div class="cover">
   {logo}
-  <h1>FAQ — App-mini</h1>
-  <div class="cover-sub">Sistem Stok &amp; Kasir Toko</div>
+  <h1>{judul}</h1>
+  <div class="cover-sub">{sub}</div>
   <div class="cover-toko">
     <strong>PUTRA JAYA MOTOR</strong><br />
     Jl. Jati Raya Blok J No. 11, Banyumanik, Semarang<br />
@@ -98,18 +105,26 @@ strong { color: #000; }
 
 HTML = """<!doctype html>
 <html lang="id"><head><meta charset="utf-8">
-<title>FAQ — App-mini</title>
+<title>{judul}</title>
 <style>{css}</style></head>
 <body>{cover}{content}</body></html>
 """
 
 
 def main() -> int:
-    if not SRC.exists():
-        print(f"tidak ketemu: {SRC}", file=sys.stderr)
+    name = (sys.argv[1] if len(sys.argv) > 1 else "FAQ").upper()
+    if name not in DOCS:
+        print(f"dokumen tidak dikenal: {name} (pilihan: {', '.join(DOCS)})", file=sys.stderr)
+        return 1
+    judul, sub = DOCS[name]
+    src = ROOT / "docs" / f"{name}.md"
+    out = ROOT / "docs" / f"{name}.pdf"
+
+    if not src.exists():
+        print(f"tidak ketemu: {src}", file=sys.stderr)
         return 1
 
-    text = SRC.read_text(encoding="utf-8")
+    text = src.read_text(encoding="utf-8")
     # Buang blok judul+alamat toko di paling atas (sudah jadi cover), yaitu
     # semuanya sampai '---' pertama.
     _, _, body = text.partition("\n---\n")
@@ -126,7 +141,11 @@ def main() -> int:
     else:
         logo_tag = ""
 
-    html = HTML.format(css=CSS, cover=COVER.format(logo=logo_tag), content=content)
+    html = HTML.format(
+        css=CSS, judul=judul,
+        cover=COVER.format(logo=logo_tag, judul=judul, sub=sub),
+        content=content,
+    )
 
     with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
         f.write(html)
@@ -137,14 +156,14 @@ def main() -> int:
             [
                 "chromium", "--headless=new", "--disable-gpu", "--no-sandbox",
                 "--no-pdf-header-footer", "--virtual-time-budget=3000",
-                f"--print-to-pdf={OUT}", tmp.as_uri(),
+                f"--print-to-pdf={out}", tmp.as_uri(),
             ],
             check=True, capture_output=True,
         )
     finally:
         tmp.unlink(missing_ok=True)
 
-    print(f"OK: {OUT} ({OUT.stat().st_size // 1024} KB)")
+    print(f"OK: {out} ({out.stat().st_size // 1024} KB)")
     return 0
 
 
