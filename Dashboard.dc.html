@@ -1018,13 +1018,11 @@
                   </div>
                   <div class="field" style="margin:0;">
                     <label for="pb-tanggal" style="font-size:13px;opacity:0.65;">Tanggal Faktur</label>
-                    <input class="input" id="pb-tanggal" type="date" lang="id" style="min-height:40px;font-size:14px;" value="{{ pembelianTanggal }}" onChange="{{ setPembelianTanggal }}" />
-                    <span style="font-size:11px;opacity:0.55;">{{ pembelianTanggalDMY }}</span>
+                    <input class="input" id="pb-tanggal" type="date" style="min-height:40px;font-size:14px;" value="{{ pembelianTanggal }}" onChange="{{ setPembelianTanggal }}" />
                   </div>
                   <div class="field" style="margin:0;">
                     <label for="pb-jatuhtempo" style="font-size:13px;opacity:0.65;">Tgl Jatuh Tempo</label>
-                    <input class="input" id="pb-jatuhtempo" type="date" lang="id" style="min-height:40px;font-size:14px;" value="{{ pembelianJatuhTempo }}" onChange="{{ setPembelianJatuhTempo }}" />
-                    <sc-if value="{{ pembelianJatuhTempo }}"><span style="font-size:11px;opacity:0.55;">{{ pembelianJatuhTempoDMY }}</span></sc-if>
+                    <input class="input" id="pb-jatuhtempo" type="date" style="min-height:40px;font-size:14px;" value="{{ pembelianJatuhTempo }}" onChange="{{ setPembelianJatuhTempo }}" />
                   </div>
                   <div class="field" style="margin:0;">
                     <label id="pb-payment-label" style="font-size:13px;opacity:0.65;">Payment</label>
@@ -2257,16 +2255,6 @@ function formatWaktuInvoice(d) {
   const pad = (n) => String(n).padStart(2, '0');
   return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear()
     + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-}
-
-// <input type="date"> tampilan kalendernya ikut locale OS komputer kasir,
-// bukan bahasa halaman -- toko yang region Windows-nya bukan Indonesia akan
-// melihat mm/dd/yyyy walau isinya sama. Keterangan kecil ini memastikan
-// tanggal faktur selalu kelihatan jelas dd/mm/yyyy apa pun locale mesinnya.
-function formatTanggalDMY(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return d + '/' + m + '/' + y;
 }
 
 // ponytail: draft disimpan di localStorage, bukan server — cukup buat jaga-jaga
@@ -4165,8 +4153,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       pembelianHargaBeli: s.pembelianHargaBeli, setPembelianHargaBeli: this.setPembelianHargaBeli,
       pembelianPricelist: s.pembelianPricelist, setPembelianPricelist: this.setPembelianPricelist,
       pembelianTanggal: s.pembelianTanggal, setPembelianTanggal: this.setPembelianTanggal,
-      pembelianTanggalDMY: formatTanggalDMY(s.pembelianTanggal),
-      pembelianJatuhTempoDMY: formatTanggalDMY(s.pembelianJatuhTempo),
       pembelianJatuhTempo: s.pembelianJatuhTempo, setPembelianJatuhTempo: this.setPembelianJatuhTempo,
       payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
       setPembelianCash: this.setPembelianCash, setPembelianTop: this.setPembelianTop,
