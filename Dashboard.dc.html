@@ -806,112 +806,111 @@
 
           <sc-if value="{{ stokModalOpen }}" hint-placeholder-val="{{ false }}">
             <div class="dialog-backdrop">
-              <div class="dialog">
+              <div class="dialog" style="width:min(640px,100%);">
                 <div class="dialog-title">{{ stokModalTitle }}</div>
-                <div class="dialog-body" style="display:flex;flex-direction:column;gap:14px;">
-                  <div class="field">
-                    <label for="stok-f-kode">Kode Barang</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                      <input class="input" id="stok-f-kode" style="min-height:44px;font-size:15px;flex:1;" disabled="{{ stokIsEdit }}" placeholder="Contoh: BAN-030" value="{{ stokForm.kode }}" onChange="{{ setStokKode }}" />
-                      <sc-if value="{{ stokCanPrintFromForm }}">
-                        <button type="button" class="btn btn-secondary btn-icon" style="min-height:44px;width:44px;flex:none;" aria-label="Cetak Barcode" title="Cetak Barcode" onClick="{{ openStokPrint }}">
-                          <svg width="15" height="15" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg>
-                        </button>
-                      </sc-if>
+                <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="field">
+                      <label for="stok-f-kode">Kode Barang</label>
+                      <div style="display:flex;gap:8px;align-items:center;">
+                        <input class="input" id="stok-f-kode" style="min-height:42px;font-size:14px;flex:1;min-width:0;" disabled="{{ stokIsEdit }}" placeholder="Contoh: BAN-030" value="{{ stokForm.kode }}" onChange="{{ setStokKode }}" />
+                        <sc-if value="{{ stokCanPrintFromForm }}">
+                          <button type="button" class="btn btn-secondary btn-icon" style="min-height:42px;width:42px;flex:none;" aria-label="Cetak Barcode" title="Cetak Barcode" onClick="{{ openStokPrint }}">
+                            <svg width="15" height="15" viewBox="0 0 256 256"><rect x="32" y="48" width="16" height="160" fill="currentColor"></rect><rect x="60" y="48" width="8" height="160" fill="currentColor"></rect><rect x="80" y="48" width="16" height="160" fill="currentColor"></rect><rect x="108" y="48" width="8" height="160" fill="currentColor"></rect><rect x="128" y="48" width="24" height="160" fill="currentColor"></rect><rect x="164" y="48" width="8" height="160" fill="currentColor"></rect><rect x="184" y="48" width="16" height="160" fill="currentColor"></rect><rect x="212" y="48" width="12" height="160" fill="currentColor"></rect></svg>
+                          </button>
+                        </sc-if>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label for="stok-f-kategori">Kategori</label>
+                      <select class="input" id="stok-f-kategori" style="min-height:42px;font-size:14px;" value="{{ stokForm.kategori }}" onChange="{{ setStokKategori }}">
+                        <sc-for list="{{ kategoriOptions }}" as="k" hint-placeholder-count="4">
+                          <option value="{{ k }}">{{ k }}</option>
+                        </sc-for>
+                      </select>
                     </div>
                   </div>
                   <div class="field">
                     <label for="stok-f-nama">Nama Barang</label>
-                    <input class="input" id="stok-f-nama" style="min-height:44px;font-size:15px;" placeholder="Nama barang" value="{{ stokForm.nama }}" onChange="{{ setStokNama }}" />
+                    <input class="input" id="stok-f-nama" style="min-height:42px;font-size:14px;" placeholder="Nama barang" value="{{ stokForm.nama }}" onChange="{{ setStokNama }}" />
                   </div>
-                  <div class="field">
-                    <label for="stok-f-kategori">Kategori</label>
-                    <select class="input" id="stok-f-kategori" style="min-height:44px;font-size:15px;" value="{{ stokForm.kategori }}" onChange="{{ setStokKategori }}">
-                      <sc-for list="{{ kategoriOptions }}" as="k" hint-placeholder-count="4">
-                        <option value="{{ k }}">{{ k }}</option>
-                      </sc-for>
-                    </select>
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="field">
+                      <label for="stok-f-supplier">Suplier</label>
+                      <select class="input" id="stok-f-supplier" style="min-height:42px;font-size:14px;" value="{{ stokForm.supplier }}" onChange="{{ setStokSupplier }}">
+                        <sc-for list="{{ stokSupplierOptions }}" as="sup" hint-placeholder-count="4">
+                          <option value="{{ sup }}">{{ sup }}</option>
+                        </sc-for>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="stok-f-stok">Stok</label>
+                      <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
+                    </div>
                   </div>
-                  <div class="field">
-                    <label for="stok-f-supplier">Suplier</label>
-                    <select class="input" id="stok-f-supplier" style="min-height:44px;font-size:15px;" value="{{ stokForm.supplier }}" onChange="{{ setStokSupplier }}">
-                      <sc-for list="{{ stokSupplierOptions }}" as="sup" hint-placeholder-count="4">
-                        <option value="{{ sup }}">{{ sup }}</option>
-                      </sc-for>
-                    </select>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:10px 12px;">
-                    <span style="opacity:0.65;">Harga Faktur / Netto (dari Input Pembelian)</span>
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:8px 12px;">
+                    <span style="opacity:0.65;">Harga Faktur / Netto</span>
                     <span style="font-weight:600;">{{ stokHargaSourceLabel }}</span>
-                  </div>
-                  <div class="field">
-                    <label id="stok-pricelist-label">Price List (acuan tampilan)</label>
-                    <div class="seg" role="radiogroup" aria-labelledby="stok-pricelist-label" style="width:100%;">
-                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
-                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsFaktur }}" onChange="{{ setStokPriceFaktur }}" />Harga Faktur
+                    <div class="seg" role="radiogroup" aria-label="Price List" style="flex:none;">
+                      <label class="seg-opt" style="padding:5px 9px;font-size:11px;">
+                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsFaktur }}" onChange="{{ setStokPriceFaktur }}" />Faktur
                       </label>
-                      <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
-                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsNetto }}" onChange="{{ setStokPriceNetto }}" />Harga Netto
+                      <label class="seg-opt" style="padding:5px 9px;font-size:11px;">
+                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsNetto }}" onChange="{{ setStokPriceNetto }}" />Netto
                       </label>
                     </div>
                   </div>
-                  <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-top:4px;">Harga Jual</div>
-                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                     <div class="field">
                       <label for="stok-f-ecer">Harga Ecer</label>
-                      <input class="input" id="stok-f-ecer" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.ecer }}" onChange="{{ setStokEcer }}" />
+                      <input class="input" id="stok-f-ecer" type="number" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.ecer }}" onChange="{{ setStokEcer }}" />
                     </div>
                     <div class="field">
                       <label for="stok-f-bengkel">Harga Bengkel</label>
-                      <input class="input" id="stok-f-bengkel" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.bengkel }}" onChange="{{ setStokBengkel }}" />
+                      <input class="input" id="stok-f-bengkel" type="number" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.bengkel }}" onChange="{{ setStokBengkel }}" />
                     </div>
                     <div class="field">
                       <label for="stok-f-grosir">Harga Grosir</label>
-                      <input class="input" id="stok-f-grosir" type="number" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.grosir }}" onChange="{{ setStokGrosir }}" />
+                      <input class="input" id="stok-f-grosir" type="number" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.grosir }}" onChange="{{ setStokGrosir }}" />
                     </div>
-                  </div>
-                  <div class="field">
-                    <label for="stok-f-stok">Stok</label>
-                    <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:44px;font-size:15px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
                   </div>
                   <sc-if value="{{ stokFormError }}">
                     <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ stokFormError }}</p>
                   </sc-if>
                   <div>
-                    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-top:4px;">Harga Jual per Suplier</div>
-                    <p style="margin:4px 0 8px;font-size:12px;opacity:0.6;">Kasir wajib pilih suplier saat menjual barang ini di Transaksi Penjualan — transaksi ditolak kalau suplier yang dipilih belum ada harganya di sini.</p>
-                    <sc-for list="{{ stokSupplierPricesView }}" as="sp" hint-placeholder-count="2">
-                      <div class="card elev-sm" style="margin-top:8px;padding:12px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-                          <div style="font-weight:600;font-size:14px;">{{ sp.suplier }}</div>
-                          <div style="display:flex;align-items:center;gap:10px;">
-                            <span style="font-size:12px;opacity:0.6;">{{ sp.stokSisaLabel }}</span>
-                            <button type="button" class="btn btn-ghost" style="min-height:30px;font-size:12px;padding:4px 10px;" onClick="{{ sp.copyDefaultHandler }}">Salin dari harga default</button>
-                          </div>
-                        </div>
-                        <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-top:8px;align-items:end;">
-                          <div class="field">
-                            <label>Ecer</label>
-                            <input class="input" type="number" style="min-height:40px;font-size:14px;" placeholder="0" value="{{ sp.ecer }}" onChange="{{ sp.setEcer }}" />
-                          </div>
-                          <div class="field">
-                            <label>Bengkel</label>
-                            <input class="input" type="number" style="min-height:40px;font-size:14px;" placeholder="0" value="{{ sp.bengkel }}" onChange="{{ sp.setBengkel }}" />
-                          </div>
-                          <div class="field">
-                            <label>Grosir</label>
-                            <input class="input" type="number" style="min-height:40px;font-size:14px;" placeholder="0" value="{{ sp.grosir }}" onChange="{{ sp.setGrosir }}" />
-                          </div>
-                          <button type="button" class="btn btn-secondary" style="min-height:40px;font-size:13px;" disabled="{{ busy }}" onClick="{{ sp.saveHandler }}">Simpan</button>
-                        </div>
-                        <sc-if value="{{ sp.error }}" hint-placeholder-val="{{ false }}">
-                          <p style="margin:6px 0 0;font-size:12px;color:var(--color-accent-2-700);">{{ sp.error }}</p>
-                        </sc-if>
-                        <sc-if value="{{ sp.saved }}" hint-placeholder-val="{{ false }}">
-                          <p style="margin:6px 0 0;font-size:12px;color:var(--color-accent-700);">Tersimpan.</p>
-                        </sc-if>
-                      </div>
-                    </sc-for>
+                    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;">Harga Jual per Suplier</div>
+                    <p style="margin:3px 0 6px;font-size:11px;opacity:0.6;">Kasir wajib pilih suplier saat jual — ditolak kalau belum ada harganya di sini.</p>
+                    <div style="overflow-x:auto;">
+                      <table class="table" style="min-width:0;">
+                        <thead><tr>
+                          <th style="padding:4px 6px;">Suplier</th><th style="padding:4px 6px;">Sisa</th>
+                          <th style="padding:4px 6px;">Ecer</th><th style="padding:4px 6px;">Bengkel</th><th style="padding:4px 6px;">Grosir</th><th style="padding:4px 6px;"></th>
+                        </tr></thead>
+                        <tbody>
+                          <sc-for list="{{ stokSupplierPricesView }}" as="sp" hint-placeholder-count="2">
+                            <tr>
+                              <td style="padding:4px 6px;">{{ sp.suplier }}</td>
+                              <td style="padding:4px 6px;white-space:nowrap;">{{ sp.stokSisaLabel }}</td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.ecer }}" onChange="{{ sp.setEcer }}" /></td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.bengkel }}" onChange="{{ sp.setBengkel }}" /></td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.grosir }}" onChange="{{ sp.setGrosir }}" /></td>
+                              <td style="padding:4px 6px;">
+                                <div style="display:flex;gap:4px;white-space:nowrap;">
+                                  <button type="button" class="btn btn-ghost" style="min-height:34px;font-size:11px;padding:4px 6px;" title="Salin dari harga default" onClick="{{ sp.copyDefaultHandler }}">Salin</button>
+                                  <button type="button" class="btn btn-secondary" style="min-height:34px;font-size:12px;padding:4px 8px;" disabled="{{ busy }}" onClick="{{ sp.saveHandler }}">Simpan</button>
+                                </div>
+                              </td>
+                            </tr>
+                            <sc-if value="{{ sp.error }}" hint-placeholder-val="{{ false }}">
+                              <tr><td colspan="6" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-2-700);">{{ sp.error }}</td></tr>
+                            </sc-if>
+                            <sc-if value="{{ sp.saved }}" hint-placeholder-val="{{ false }}">
+                              <tr><td colspan="6" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-700);">Tersimpan.</td></tr>
+                            </sc-if>
+                          </sc-for>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
                 <div class="dialog-actions">
@@ -4014,7 +4013,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       stokSupplierOptions: s.stokFormSupplierOptions,
       stokSupplierPricesView: s.stokSupplierPrices.map((r) => ({
         suplierId: r.suplierId, suplier: r.suplier,
-        stokSisaLabel: r.stokSisa + ' pcs tersisa',
+        stokSisaLabel: r.stokSisa + ' pcs',
         ecer: r.ecer, bengkel: r.bengkel, grosir: r.grosir, error: r.error, saved: r.saved,
         setEcer: this.setStokSupplierPriceField(r.suplierId, 'ecer'),
         setBengkel: this.setStokSupplierPriceField(r.suplierId, 'bengkel'),
