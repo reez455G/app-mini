@@ -131,9 +131,11 @@ try {
         $qty = (int)($line['qty'] ?? 0);
         $hargaFaktur = (float)($line['harga_faktur'] ?? 0);
         $hargaNetto = (float)($line['harga_netto'] ?? 0);
-        // pembelian_item.pricelist (catatan manual per baris pembelian) sudah
-        // tidak diisi dari Input Pembelian lagi -- diganti Pricelist/HET per
-        // barang (lihat barang.pricelist), jadi selalu 0 di sini sekarang.
+        // Pricelist/HET: SATU angka yang sama dengan barang.pricelist (bukan
+        // catatan terpisah per baris pembelian seperti dulu) -- diisi di sini
+        // supaya barang baru langsung punya patokan harga sejak awal, dan
+        // ikut disimpan ke pembelian_item.pricelist sebagai snapshot histori.
+        // Boleh 0/kosong: artinya "tidak diubah" untuk barang yang sudah ada.
         $pricelist = (float)($line['pricelist'] ?? 0);
         // Input Pembelian sekarang cuma minta SATU basis harga (Faktur ATAU
         // Netto, bukan dua-duanya) — jadi salah satu boleh 0, tapi keduanya
@@ -156,13 +158,16 @@ try {
             // dipertahankan dari pembelian sebelumnya (bukan ditimpa jadi 0),
             // supaya kalau bulan ini beli pakai Netto lalu bulan depan pakai
             // Faktur, dua-duanya tetap punya nilai terakhir yang wajar.
+            // pricelist ikut pola yang sama: cuma ditimpa kalau kali ini diisi,
+            // jadi mengosongkannya tidak menghapus Pricelist/HET yang sudah ada.
             $pdo->prepare(
                 'UPDATE barang SET stok = stok + ?,
                     harga_faktur = IF(? > 0, ?, harga_faktur),
                     harga_netto = IF(? > 0, ?, harga_netto),
+                    pricelist = IF(? > 0, ?, pricelist),
                     suplier_id = ?
                  WHERE id = ?'
-            )->execute([$qty, $hargaFaktur, $hargaFaktur, $hargaNetto, $hargaNetto, $suplierId, $barang['id']]);
+            )->execute([$qty, $hargaFaktur, $hargaFaktur, $hargaNetto, $hargaNetto, $pricelist, $pricelist, $suplierId, $barang['id']]);
             $barangId = $barang['id'];
             $nama = $barang['nama'];
             $kn = $pdo->prepare('SELECT nama FROM kategori WHERE id = ?');
@@ -179,9 +184,9 @@ try {
             $katId = $kat->fetchColumn();
             if (!$katId) throw new RuntimeException("Kategori \"$kategoriNama\" tidak ditemukan.");
             $pdo->prepare(
-                'INSERT INTO barang (kode, nama, kategori_id, suplier_id, harga_faktur, harga_netto, stok, min_stok, pending_setup)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, 10, 1)'
-            )->execute([$kode, $nama, $katId, $suplierId, $hargaFaktur, $hargaNetto, $qty]);
+                'INSERT INTO barang (kode, nama, kategori_id, suplier_id, harga_faktur, harga_netto, pricelist, stok, min_stok, pending_setup)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 10, 1)'
+            )->execute([$kode, $nama, $katId, $suplierId, $hargaFaktur, $hargaNetto, $pricelist, $qty]);
             $barangId = (int)$pdo->lastInsertId();
         }
 

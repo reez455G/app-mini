@@ -1126,6 +1126,11 @@
                     <input class="input {{ pembelianQtyInvalidClass }}" id="pb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ pembelianQty }}" onChange="{{ setPembelianQty }}" />
                   </div>
                 </div>
+                <div class="field" style="margin-top:16px;">
+                  <label for="pb-pricelist">Pricelist / HET</label>
+                  <input class="input" id="pb-pricelist" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianPricelist }}" onChange="{{ setPembelianPricelist }}" />
+                  <p style="margin:4px 0 0;font-size:12px;opacity:0.6;">Patokan harga per barang — angka yang sama dengan Pricelist/HET di Data Barang. Terisi otomatis dari barang yang dipilih; kalau diubah di sini, Pricelist/HET barangnya ikut diperbarui saat Simpan Pembelian. Boleh 0.</p>
+                </div>
                 <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addToPembelianCart }}">+ Tambah ke Daftar</button>
                 <sc-if value="{{ pembelianItemFormError }}">
                   <p style="margin:8px 0 0;font-size:12px;color:var(--color-accent-2-700);">{{ pembelianItemFormError }}</p>
@@ -2390,7 +2395,7 @@ const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
 const PEMBELIAN_DRAFT_FIELDS = [
   'pembelianNoFaktur', 'pembelianSupplierNew', 'pembelianTanggal', 'pembelianJatuhTempo', 'pembelianPayment',
   'pembelianKategoriFilter', 'pembelianNewKode', 'pembelianNewNama',
-  'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianQty',
+  'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianPricelist', 'pembelianQty',
   'pembelianCart',
 ];
 
@@ -2537,6 +2542,7 @@ class Component extends DCLogic {
     pembelianQty: 1,
     pembelianHargaBasis: 'NETTO',
     pembelianHargaBeli: '',
+    pembelianPricelist: '',
     // Tanggal faktur fisik dari suplier -- bisa beda dari hari input (faktur
     // kemarin baru sempat diinput hari ini). Default hari ini, tapi bisa
     // diubah; ikut menentukan urutan batch FIFO di backend.
@@ -3640,7 +3646,16 @@ class Component extends DCLogic {
 
   setPembelianComboQuery = (e) => this.setState({ pembelianProductComboQuery: e.target.value, pembelianProductComboHighlight: 0, pembelianProductComboOpen: true });
 
-  selectPembelianCombo = (kode) => this.setState({ pembelianSelectedKode: kode, pembelianProductComboOpen: false, pembelianProductComboQuery: '' });
+  // Pricelist/HET barang yang dipilih, buat prefill kolom input -- supaya
+  // angkanya sinkron dengan Data Barang dan tidak perlu diketik ulang kalau
+  // memang tidak berubah. '' (bukan '0') untuk barang baru/tanpa HET, biar
+  // placeholder "0" yang muncul, bukan angka 0 yang kelihatan sudah diisi.
+  pembelianPricelistFor = (kode) => {
+    const p = this.state.stokProducts.find((x) => x.kode === kode);
+    return p && p.pricelist > 0 ? String(p.pricelist) : '';
+  };
+
+  selectPembelianCombo = (kode) => this.setState({ pembelianSelectedKode: kode, pembelianPricelist: this.pembelianPricelistFor(kode), pembelianProductComboOpen: false, pembelianProductComboQuery: '' });
 
   handlePembelianComboKeyDown = (e) => {
     const s = this.state;
@@ -3687,8 +3702,8 @@ class Component extends DCLogic {
     this.setState((s) => {
       const match = s.stokProducts.find((p) => p.kode.toLowerCase() === code.toLowerCase());
       return match
-        ? { pembelianScanInput: '', pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode, pembelianScanReady: false }
-        : { pembelianScanInput: '', pembelianSelectedKode: '__NEW__', pembelianNewKode: code, pembelianScanReady: false };
+        ? { pembelianScanInput: '', pembelianKategoriFilter: 'ALL', pembelianSelectedKode: match.kode, pembelianPricelist: match.pricelist > 0 ? String(match.pricelist) : '', pembelianScanReady: false }
+        : { pembelianScanInput: '', pembelianSelectedKode: '__NEW__', pembelianNewKode: code, pembelianPricelist: '', pembelianScanReady: false };
     });
   };
 
@@ -3709,6 +3724,7 @@ class Component extends DCLogic {
   setPembelianHargaBasisFaktur = () => this.setState({ pembelianHargaBasis: 'FAKTUR', ...this.clearPembelianItemError() });
   setPembelianHargaBasisNetto = () => this.setState({ pembelianHargaBasis: 'NETTO', ...this.clearPembelianItemError() });
   setPembelianHargaBeli = (e) => this.setState({ pembelianHargaBeli: e.target.value, ...this.clearPembelianItemError() });
+  setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value, ...this.clearPembelianItemError() });
   setPembelianTanggal = (e) => this.setState({ pembelianTanggal: e.target.value });
   setPembelianJatuhTempo = (e) => this.setState({ pembelianJatuhTempo: e.target.value });
   setLaporanSearch = (e) => this.setState({ laporanSearch: e.target.value });
@@ -4016,6 +4032,10 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const product = isNewItem ? null : s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
     const qty = parseInt(s.pembelianQty) || 0;
     const hargaBeli = parseFloat(s.pembelianHargaBeli) || 0;
+    // Boleh 0/kosong: untuk barang yang sudah ada artinya "jangan diubah",
+    // untuk barang baru artinya belum ada patokan harga (diisi nanti lewat
+    // Ubah Barang).
+    const pricelist = parseFloat(s.pembelianPricelist) || 0;
 
     const missing = [];
     const missingKeys = [];
@@ -4049,9 +4069,9 @@ ${this.laporanLengkapTableHtml(tab, false)}
         kode, nama, kategori, isNew: isNewItem, qty, hargaBasis,
         hargaFaktur: hargaBasis === 'FAKTUR' ? hargaBeli : 0,
         hargaNetto: hargaBasis === 'NETTO' ? hargaBeli : 0,
-        subtotal: qty * hargaBeli,
+        pricelist, subtotal: qty * hargaBeli,
       }],
-      pembelianQty: 1, pembelianHargaBeli: '', pembelianNewKode: '', pembelianNewNama: '',
+      pembelianQty: 1, pembelianHargaBeli: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
       pembelianItemFormError: '', pembelianItemFieldErrors: [],
     }));
   };
@@ -4069,14 +4089,14 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const supplierName = this.resolvePembelianSupplier(s);
     const noFaktur = s.pembelianNoFaktur.trim();
     if (!supplierName || !noFaktur || s.pembelianCart.length === 0) return;
-    const items = s.pembelianCart.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, qty: i.qty }));
+    const items = s.pembelianCart.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
     const justAddedNew = s.pembelianCart.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
     api('POST', 'pembelian.php', { suplier: supplierName, no_faktur: noFaktur, tanggal: s.pembelianTanggal, payment_type: s.pembelianPayment, jatuh_tempo: s.pembelianJatuhTempo || null, items }).then((res) => {
       clearPembelianDraft();
       this.setState({
         busy: false,
-        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianTanggal: new Date().toISOString().slice(0, 10), pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
+        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianTanggal: new Date().toISOString().slice(0, 10), pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianJustAddedNew: justAddedNew,
         pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
@@ -4401,10 +4421,11 @@ ${this.laporanLengkapTableHtml(tab, false)}
       hargaBeliLabel: formatRp(item.hargaBasis === 'FAKTUR' ? item.hargaFaktur : item.hargaNetto),
       hargaBasisLabel: item.hargaBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
       subtotalLabel: formatRp(item.subtotal),
-      // Pricelist/HET bukan lagi catatan yang diketik per baris pembelian --
-      // ini live lookup ke barang.pricelist SAAT INI (barang baru yang belum
-      // tersimpan tampil '—', isinya diatur nanti lewat Ubah Barang).
-      pricelistLabel: item.isNew ? '—' : formatRp((s.stokProducts.find((p) => p.kode === item.kode) || {}).pricelist || 0),
+      // Nilai yang diketik di form, BUKAN lookup ke stokProducts: kalau Owner
+      // baru mengubah HET-nya di form, angka yang harus terlihat di sini yang
+      // baru itu -- barang.pricelist-nya sendiri baru ikut berubah nanti saat
+      // Simpan Pembelian. 0 = tidak diubah/belum ada, tampil '—'.
+      pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
       removeHandler: () => this.removeFromPembelianCart(idx),
       // Cetak Barcode langsung dari daftar keranjang — belum perlu tunggu
       // pembelian disimpan, berguna terutama buat barang baru yang kode/nama-nya
@@ -4451,6 +4472,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       pembelianHargaBasisIsFaktur: s.pembelianHargaBasis === 'FAKTUR', pembelianHargaBasisIsNetto: s.pembelianHargaBasis === 'NETTO',
       setPembelianHargaBasisFaktur: this.setPembelianHargaBasisFaktur, setPembelianHargaBasisNetto: this.setPembelianHargaBasisNetto,
       pembelianHargaBeli: s.pembelianHargaBeli, setPembelianHargaBeli: this.setPembelianHargaBeli,
+      pembelianPricelist: s.pembelianPricelist, setPembelianPricelist: this.setPembelianPricelist,
       pembelianTanggal: s.pembelianTanggal, setPembelianTanggal: this.setPembelianTanggal,
       pembelianJatuhTempo: s.pembelianJatuhTempo, setPembelianJatuhTempo: this.setPembelianJatuhTempo,
       payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
