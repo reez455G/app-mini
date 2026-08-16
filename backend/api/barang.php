@@ -25,7 +25,7 @@ if ($method === 'GET') {
         // dari batch itu yang masih belum terjual/diretur. LEFT JOIN karena
         // data lama sebelum fitur lot ada belum punya baris barang_lot.
         $rows = $pdo->prepare(
-            'SELECT p.no_faktur, p.tanggal, s.nama AS suplier, pi.harga_faktur, pi.harga_netto, pi.qty, bl.qty_sisa AS sisa
+            'SELECT p.no_faktur, p.tanggal, s.nama AS suplier, s.kode AS suplier_kode, pi.harga_faktur, pi.harga_netto, pi.qty, bl.qty_sisa AS sisa
              FROM pembelian_item pi
              JOIN pembelian p ON p.id = pi.pembelian_id
              JOIN suplier s ON s.id = p.suplier_id
@@ -35,9 +35,11 @@ if ($method === 'GET') {
         $rows->execute([(int)$_GET['id']]);
         $history = $rows->fetchAll();
         if ($me['role'] !== 'owner') {
+            // Karyawan tidak boleh tahu nama suplier (identitas bisnis private) —
+            // dibuang total dari response, bukan cuma disembunyikan di frontend.
             $history = array_map(fn($r) => [
                 'no_faktur' => $r['no_faktur'], 'tanggal' => $r['tanggal'],
-                'suplier' => $r['suplier'], 'qty' => $r['qty'], 'sisa' => $r['sisa'],
+                'suplier_kode' => $r['suplier_kode'], 'qty' => $r['qty'], 'sisa' => $r['sisa'],
             ], $history);
         }
         json_ok($history);
@@ -80,13 +82,13 @@ if ($method === 'GET') {
     //     suplier itu belum diisi — supaya bisa ditandai di layar alih-alih
     //     barangnya diam-diam hilang dari daftar kasir.
     $lotStmt = $pdo->query(
-        'SELECT bl.barang_id, bl.suplier_id, s.nama AS suplier, SUM(bl.qty_sisa) AS sisa,
+        'SELECT bl.barang_id, bl.suplier_id, s.nama AS suplier, s.kode AS suplier_kode_lot, SUM(bl.qty_sisa) AS sisa,
                 h.harga_ecer, h.harga_bengkel, h.harga_grosir
          FROM barang_lot bl
          LEFT JOIN suplier s ON s.id = bl.suplier_id
          LEFT JOIN barang_suplier_harga h ON h.barang_id = bl.barang_id AND h.suplier_id = bl.suplier_id
          WHERE bl.qty_sisa > 0
-         GROUP BY bl.barang_id, bl.suplier_id, s.nama, h.harga_ecer, h.harga_bengkel, h.harga_grosir
+         GROUP BY bl.barang_id, bl.suplier_id, s.nama, s.kode, h.harga_ecer, h.harga_bengkel, h.harga_grosir
          ORDER BY s.nama'
     );
     $stokPerSuplier = [];
@@ -99,7 +101,7 @@ if ($method === 'GET') {
     $isOwner = $me['role'] === 'owner';
     $out = array_map(function ($r) use ($isOwner, $stokPerSuplier) {
         $lots = $stokPerSuplier[(int)$r['id']] ?? [];
-        $namaSuplier = []; $tanpaHarga = []; $nilaiJual = 0.0; $adaStokTanpaSuplier = false;
+        $namaSuplier = []; $kodeSuplier = []; $tanpaHarga = []; $kodeTanpaHarga = []; $nilaiJual = 0.0; $adaStokTanpaSuplier = false;
         $rentang = ['ecer' => [], 'bengkel' => [], 'grosir' => []];
         foreach ($lots as $l) {
             $sisa = (int)$l['sisa'];
@@ -112,7 +114,8 @@ if ($method === 'GET') {
             $nilaiJual += $sisa * (float)($punyaHarga ? $l['harga_ecer'] : $r['harga_ecer']);
             if ($l['suplier'] !== null) {
                 $namaSuplier[] = $l['suplier'];
-                if (!$punyaHarga) $tanpaHarga[] = $l['suplier'];
+                $kodeSuplier[] = $l['suplier_kode_lot'];
+                if (!$punyaHarga) { $tanpaHarga[] = $l['suplier']; $kodeTanpaHarga[] = $l['suplier_kode_lot']; }
             } else {
                 $adaStokTanpaSuplier = true;
             }
@@ -123,13 +126,20 @@ if ($method === 'GET') {
         $suplierLabel = $namaSuplier
             ? implode(', ', $namaSuplier)
             : ($adaStokTanpaSuplier ? 'Tanpa Suplier (koreksi manual)' : $r['suplier_nama']);
+        // Versi kode, sepadan dengan $suplierLabel di atas — dipakai Karyawan
+        // supaya tidak pernah lihat nama suplier (identitas bisnis private).
+        $kodeSuplierLabel = $kodeSuplier
+            ? implode(', ', $kodeSuplier)
+            : ($adaStokTanpaSuplier ? 'Tanpa Suplier (koreksi manual)' : $r['suplier_kode']);
         $base = [
             'id' => (int)$r['id'], 'kode' => $r['kode'], 'nama' => $r['nama'],
             'kategori' => $r['kategori_nama'],
             'suplier' => $suplierLabel,
+            'suplier_kode_label' => $kodeSuplierLabel,
             'suplier_kode' => $r['suplier_kode'], 'suplier_count' => (int)$r['suplier_count'],
             'suplier_stok_count' => count($namaSuplier),
             'suplier_tanpa_harga' => $tanpaHarga,
+            'suplier_kode_tanpa_harga' => $kodeTanpaHarga,
             'stok' => (int)$r['stok'],
             'harga_ecer' => (float)$r['harga_ecer'], 'harga_bengkel' => (float)$r['harga_bengkel'], 'harga_grosir' => (float)$r['harga_grosir'],
             'nilai_jual' => $nilaiJual,

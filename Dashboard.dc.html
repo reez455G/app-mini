@@ -1287,21 +1287,19 @@
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok dengan filter.</p>
             </sc-if>
             <table class="table" style="margin-top:8px;min-width:1000px;white-space:nowrap;">
-              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}"><th>Suplier</th></sc-if><th>Stok</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Status</th></tr></thead>
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Stok</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Status</th></tr></thead>
               <tbody>
                 <sc-for list="{{ laporanRows }}" as="item" hint-placeholder-count="8">
                   <tr>
                     <td>{{ item.kode }}</td>
                     <td>{{ item.nama }}</td>
                     <td><span class="tag tag-neutral">{{ item.kategori }}</span></td>
-                    <sc-if value="{{ isOwner }}" hint-placeholder-val="{{ true }}">
-                      <td>
-                        {{ item.supplier }}
-                        <sc-if value="{{ item.supplierExtraCount }}" hint-placeholder-val="{{ false }}">
-                          <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
-                        </sc-if>
-                      </td>
-                    </sc-if>
+                    <td>
+                      {{ item.supplierDisplay }}
+                      <sc-if value="{{ item.supplierExtraCount }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
+                      </sc-if>
+                    </td>
                     <td>{{ item.stok }} pcs</td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
@@ -2340,9 +2338,9 @@ function normalizeBarang(r) {
   return {
     id: r.id, kode: r.kode, nama: r.nama, kategori: r.kategori, stok: r.stok,
     ecer: r.harga_ecer, bengkel: r.harga_bengkel, grosir: r.harga_grosir, status: r.status,
-    supplier: r.suplier || '', supplierKode: r.suplier_kode || '', supplierCount: r.suplier_count || 0, hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
+    supplier: r.suplier || '', supplierKode: r.suplier_kode || '', supplierKodeLabel: r.suplier_kode_label || '', supplierCount: r.suplier_count || 0, hargaFaktur: r.harga_faktur || 0, hargaNetto: r.harga_netto || 0,
     // Diturunkan dari batch stok yang masih ada, bukan dari harga default barang.
-    supplierStokCount: r.suplier_stok_count || 0, supplierTanpaHarga: r.suplier_tanpa_harga || [],
+    supplierStokCount: r.suplier_stok_count || 0, supplierTanpaHarga: r.suplier_tanpa_harga || [], supplierKodeTanpaHarga: r.suplier_kode_tanpa_harga || [],
     nilaiJual: Number(r.nilai_jual || 0),
     ecerMin: Number(r.ecer_min ?? r.harga_ecer), ecerMax: Number(r.ecer_max ?? r.harga_ecer),
     bengkelMin: Number(r.bengkel_min ?? r.harga_bengkel), bengkelMax: Number(r.bengkel_max ?? r.harga_bengkel),
@@ -2563,7 +2561,7 @@ class Component extends DCLogic {
             options.push({
               optId: p.kode + '::' + suplierId, kode: p.kode, nama: p.nama,
               label: p.kategori + '-' + sup.suplier_kode + '-' + p.nama + (belumAdaHarga ? ' (harga belum diisi)' : ''),
-              suplierId, suplier: sup.suplier, belumAdaHarga,
+              suplierId, suplier: sup.suplier, suplierKode: sup.suplier_kode, belumAdaHarga,
               stokSisa: sup.stok_sisa, ecer: sup.harga_ecer, bengkel: sup.harga_bengkel, grosir: sup.harga_grosir,
             });
           });
@@ -2571,7 +2569,7 @@ class Component extends DCLogic {
             options.push({
               optId: p.kode + '::__NONE__', kode: p.kode, nama: p.nama,
               label: p.kode + ' — ' + p.nama + ' (tanpa suplier)',
-              suplierId: '__NONE__', suplier: 'Tanpa Suplier (koreksi stok manual)', belumAdaHarga: false,
+              suplierId: '__NONE__', suplier: 'Tanpa Suplier (koreksi stok manual)', suplierKode: '', belumAdaHarga: false,
               stokSisa: res.stok_tanpa_suplier, ecer: p.ecer, bengkel: p.bengkel, grosir: p.grosir,
             });
           }
@@ -2724,6 +2722,7 @@ class Component extends DCLogic {
 
   addToCart = () => {
     const s = this.state;
+    const isOwner = s.role === 'owner';
     const qty = parseInt(s.penjQty) || 0;
     const opt = s.penjSellableOptions.find((o) => o.optId === s.penjSelectedOptId);
     // belumAdaHarga: opsi ini sengaja tetap terlihat di daftar supaya kasir
@@ -2741,7 +2740,9 @@ class Component extends DCLogic {
     this.setState((s2) => ({
       penjCart: [...s2.penjCart, {
         kode: opt.kode, nama: opt.nama, tier, tierLabel, qty, unitPrice, subtotal: unitPrice * qty,
-        suplierId, suplierLabel: opt.suplier, optId: opt.optId,
+        // Karyawan tidak boleh tahu nama suplier (identitas bisnis private) --
+        // ditampilkan kodenya saja, Owner tetap lihat nama lengkap.
+        suplierId, suplierLabel: isOwner ? opt.suplier : opt.suplierKode, optId: opt.optId,
       }],
       penjQty: 1,
     }));
@@ -3925,6 +3926,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
   }
 
   penjualanVals(s) {
+    const isOwner = s.role === 'owner';
     const qtyNum = parseInt(s.penjQty) || 0;
     const tier = qtyNum >= 6 ? 'grosir' : qtyNum >= 2 ? 'bengkel' : qtyNum >= 1 ? 'ecer' : null;
     const tierLabel = tier === 'grosir' ? 'GROSIR' : tier === 'bengkel' ? 'BENGKEL' : tier === 'ecer' ? 'ECER' : '';
@@ -3993,7 +3995,9 @@ ${this.laporanLengkapTableHtml(tab, false)}
       penjQty: s.penjQty, setPenjQty: this.setPenjQty,
       availableStokLabel: String(availableStok), hasTier: !!(tier && selectedOpt), tierLabel, unitPriceLabel: formatRp(unitPrice),
       qtyExceedsStock, cannotAdd: !canAdd, addToCart: this.addToCart,
-      hargaSuplierKosong, hargaSuplierKosongNama: hargaSuplierKosong ? selectedOpt.suplier : '',
+      // Karyawan tidak boleh tahu nama suplier (identitas bisnis private) --
+      // ditampilkan kodenya saja, Owner tetap lihat nama lengkap.
+      hargaSuplierKosong, hargaSuplierKosongNama: hargaSuplierKosong ? (isOwner ? selectedOpt.suplier : selectedOpt.suplierKode) : '',
       cartEmpty: s.penjCart.length === 0, cartNotEmpty: s.penjCart.length > 0, penjCartView,
       penjCustName: s.penjCustName, setPenjCustName: this.setPenjCustName,
       previewInvoiceNo: 'Dibuat otomatis saat disimpan',
@@ -4269,6 +4273,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
   }
 
   laporanVals(s) {
+    const isOwner = s.role === 'owner';
     const filtered = this.laporanFilteredRows(s);
     const rows = filtered.map((p) => ({
       ...p,
@@ -4277,9 +4282,13 @@ ${this.laporanLengkapTableHtml(tab, false)}
       grosirLabel: formatRpRange(p.grosirMin, p.grosirMax),
       statusIsKritis: p.status === 'Kritis', statusIsMenipis: p.status === 'Menipis', statusIsAman: p.status === 'Aman',
       hasSupplierTanpaHarga: p.supplierTanpaHarga.length > 0,
-      supplierTanpaHargaLabel: p.supplierTanpaHarga.join(', '),
+      // Karyawan tidak boleh tahu nama suplier (identitas bisnis private) --
+      // ditampilkan kodenya saja, Owner tetap lihat nama lengkap. Berlaku juga
+      // untuk tooltip badge "Harga Suplier Kosong" di bawah, bukan cuma kolom Suplier.
+      supplierTanpaHargaLabel: (isOwner ? p.supplierTanpaHarga : p.supplierKodeTanpaHarga).join(', '),
       supplierExtraCount: p.supplierCount > 1 ? p.supplierCount - 1 : 0,
       supplierHistoryHandler: () => this.openSupplierHistory(p),
+      supplierDisplay: isOwner ? p.supplier : p.supplierKodeLabel,
     }));
     return {
       isModLaporan: s.activeModule === 'laporan',
@@ -4637,7 +4646,10 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const moduleLabels = { dashboard: 'Dashboard', penjualan: 'Transaksi Penjualan', stok: 'Data Barang', pembelian: 'Input Pembelian', laporan: 'Laporan Stok', laporanLengkap: 'Laporan', retur: 'Retur', master: 'Master Data' };
 
     const supplierHistoryRows = (s.supplierHistory || []).map((r) => ({
-      noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), suplier: r.suplier,
+      noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal),
+      // Karyawan tidak boleh tahu nama suplier (identitas bisnis private) --
+      // backend sudah membuang field `suplier` untuk non-owner, dipakai kode.
+      suplier: isOwner ? r.suplier : (r.suplier_kode || ''),
       // Karyawan tidak dikirimi harga sama sekali oleh backend, jadi jangan
       // diformat (formatRp(undefined) menghasilkan "Rp NaN") — kolomnya juga
       // memang tidak dirender untuk mereka.
