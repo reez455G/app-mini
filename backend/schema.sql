@@ -141,15 +141,22 @@ CREATE TABLE barang_lot (
   FOREIGN KEY (suplier_id) REFERENCES suplier(id)
 ) ENGINE=InnoDB;
 
--- Harga jual (Ecer/Bengkel/Grosir) per suplier untuk satu barang -- barang
--- yang sama bisa dibeli dari beberapa suplier dengan harga beli berbeda,
--- jadi harga jualnya pun dibedakan per suplier, bukan satu harga default di
--- barang.harga_ecer/bengkel/grosir (kolom itu tetap ada, dipakai fallback
--- untuk stok hasil koreksi manual yang tidak terkait suplier mana pun).
+-- Harga jual (Ecer/Bengkel/Grosir) DAN harga beli referensi (Faktur/Netto)
+-- per suplier untuk satu barang -- barang yang sama bisa dibeli dari
+-- beberapa suplier dengan harga berbeda, jadi harganya pun dibedakan per
+-- suplier, bukan satu harga default di barang.harga_ecer/bengkel/grosir/
+-- faktur/netto (kolom itu tetap ada, murni snapshot otomatis dari
+-- pembelian.php, dipakai fallback untuk stok lama hasil koreksi manual
+-- yang tidak terkait suplier mana pun -- lihat Ubah Barang di Dashboard).
+-- harga_faktur/harga_netto di sini SEKADAR REFERENSI yang Owner isi manual
+-- (boleh 0), BUKAN modal aktual -- modal aktual per batch tetap di
+-- barang_lot.harga_beli, tidak boleh diubah retroaktif lewat sini.
 CREATE TABLE barang_suplier_harga (
   id INT AUTO_INCREMENT PRIMARY KEY,
   barang_id INT NOT NULL,
   suplier_id INT NOT NULL,
+  harga_faktur DECIMAL(14,2) NOT NULL DEFAULT 0,
+  harga_netto DECIMAL(14,2) NOT NULL DEFAULT 0,
   harga_ecer DECIMAL(14,2) NOT NULL,
   harga_bengkel DECIMAL(14,2) NOT NULL,
   harga_grosir DECIMAL(14,2) NOT NULL,

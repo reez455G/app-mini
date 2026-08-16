@@ -803,7 +803,7 @@
 
           <sc-if value="{{ stokModalOpen }}" hint-placeholder-val="{{ false }}">
             <div class="dialog-backdrop">
-              <div class="dialog" style="width:min(640px,100%);">
+              <div class="dialog" style="width:min(920px,100%);">
                 <div class="dialog-title">{{ stokModalTitle }}</div>
                 <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
                   <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -831,60 +831,34 @@
                     <label for="stok-f-nama">Nama Barang</label>
                     <input class="input" id="stok-f-nama" style="min-height:42px;font-size:14px;" placeholder="Nama barang" value="{{ stokForm.nama }}" onChange="{{ setStokNama }}" />
                   </div>
-                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="field">
-                      <label for="stok-f-stok">Stok</label>
-                      <input class="input" id="stok-f-stok" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.stok }}" onChange="{{ setStokStok }}" />
-                    </div>
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
                     <div class="field">
                       <label for="stok-f-minstok">Stok Minimum</label>
                       <input class="input" id="stok-f-minstok" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="10" value="{{ stokForm.minStok }}" onChange="{{ setStokMinStok }}" />
                     </div>
-                  </div>
-                  <p style="margin:-4px 0 0;font-size:12px;opacity:0.65;">Stok Minimum menentukan kapan barang ini ditandai Menipis (stok ≤ minimum) dan Kritis (stok ≤ setengah minimum).</p>
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:8px 12px;">
-                    <span style="opacity:0.65;">Harga Faktur / Netto</span>
-                    <span style="font-weight:600;">{{ stokHargaSourceLabel }}</span>
-                    <div class="seg" role="radiogroup" aria-label="Price List" style="flex:none;">
-                      <label class="seg-opt" style="padding:5px 9px;font-size:11px;">
-                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsFaktur }}" onChange="{{ setStokPriceFaktur }}" />Faktur
-                      </label>
-                      <label class="seg-opt" style="padding:5px 9px;font-size:11px;">
-                        <input type="radio" name="stok-pricelist" checked="{{ stokPriceIsNetto }}" onChange="{{ setStokPriceNetto }}" />Netto
-                      </label>
-                    </div>
-                  </div>
-                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-                    <div class="field">
-                      <label for="stok-f-ecer">Harga Ecer</label>
-                      <input class="input" id="stok-f-ecer" type="number" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.ecer }}" onChange="{{ setStokEcer }}" />
-                    </div>
-                    <div class="field">
-                      <label for="stok-f-bengkel">Harga Bengkel</label>
-                      <input class="input" id="stok-f-bengkel" type="number" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.bengkel }}" onChange="{{ setStokBengkel }}" />
-                    </div>
-                    <div class="field">
-                      <label for="stok-f-grosir">Harga Grosir</label>
-                      <input class="input" id="stok-f-grosir" type="number" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.grosir }}" onChange="{{ setStokGrosir }}" />
-                    </div>
+                    <p style="margin:0 0 10px;font-size:12px;opacity:0.65;">Total stok saat ini: <strong>{{ stokTotalLabel }}</strong> — menentukan kapan barang ini ditandai Menipis (stok ≤ minimum) / Kritis (stok ≤ setengah minimum).</p>
                   </div>
                   <sc-if value="{{ stokFormError }}">
                     <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ stokFormError }}</p>
                   </sc-if>
                   <div>
-                    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;">Harga Jual per Suplier</div>
-                    <p style="margin:3px 0 6px;font-size:11px;opacity:0.6;">Kasir wajib pilih suplier saat jual — ditolak kalau belum ada harganya di sini.</p>
+                    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;">Suplier & Harga</div>
+                    <p style="margin:3px 0 2px;font-size:11px;opacity:0.6;">Stok dan harga cuma bisa diubah per suplier di sini — kasir wajib pilih suplier saat jual, ditolak kalau belum ada harganya.</p>
+                    <p style="margin:0 0 6px;font-size:11px;opacity:0.55;">Harga default barang (dipakai stok lama tanpa suplier & sumber tombol Salin): Faktur {{ stokDefaultFakturLabel }} · Netto {{ stokDefaultNettoLabel }} · Ecer {{ stokDefaultEcerLabel }} · Bengkel {{ stokDefaultBengkelLabel }} · Grosir {{ stokDefaultGrosirLabel }}</p>
                     <div style="overflow-x:auto;">
                       <table class="table" style="min-width:0;">
                         <thead><tr>
-                          <th style="padding:4px 6px;">Suplier</th><th style="padding:4px 6px;">Sisa</th>
+                          <th style="padding:4px 6px;">Suplier</th><th style="padding:4px 6px;">Pcs</th>
+                          <th style="padding:4px 6px;">Faktur</th><th style="padding:4px 6px;">Netto</th>
                           <th style="padding:4px 6px;">Ecer</th><th style="padding:4px 6px;">Bengkel</th><th style="padding:4px 6px;">Grosir</th><th style="padding:4px 6px;"></th>
                         </tr></thead>
                         <tbody>
                           <sc-for list="{{ stokSupplierPricesView }}" as="sp" hint-placeholder-count="2">
                             <tr>
-                              <td style="padding:4px 6px;">{{ sp.suplier }}</td>
-                              <td style="padding:4px 6px;white-space:nowrap;">{{ sp.stokSisaLabel }}</td>
+                              <td style="padding:4px 6px;white-space:nowrap;">{{ sp.suplier }}</td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" min="0" style="min-height:34px;font-size:13px;width:56px;padding:4px 6px;" placeholder="0" value="{{ sp.stok }}" onChange="{{ sp.setStok }}" /></td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.hargaFaktur }}" onChange="{{ sp.setHargaFaktur }}" /></td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.hargaNetto }}" onChange="{{ sp.setHargaNetto }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.ecer }}" onChange="{{ sp.setEcer }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.bengkel }}" onChange="{{ sp.setBengkel }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.grosir }}" onChange="{{ sp.setGrosir }}" /></td>
@@ -896,15 +870,18 @@
                               </td>
                             </tr>
                             <sc-if value="{{ sp.error }}" hint-placeholder-val="{{ false }}">
-                              <tr><td colspan="6" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-2-700);">{{ sp.error }}</td></tr>
+                              <tr><td colspan="8" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-2-700);">{{ sp.error }}</td></tr>
                             </sc-if>
                             <sc-if value="{{ sp.saved }}" hint-placeholder-val="{{ false }}">
-                              <tr><td colspan="6" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-700);">Tersimpan.</td></tr>
+                              <tr><td colspan="8" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-700);">Tersimpan.</td></tr>
                             </sc-if>
                           </sc-for>
                         </tbody>
                       </table>
                     </div>
+                    <sc-if value="{{ stokAdaTanpaSuplier }}">
+                      <p style="margin:8px 0 0;font-size:11px;opacity:0.55;">Barang ini juga punya {{ stokTanpaSuplierLabel }} stok lama hasil koreksi manual (tanpa suplier) — tetap bisa dijual dengan harga default di atas, tapi tidak bisa dikoreksi lagi dari sini.</p>
+                    </sc-if>
                   </div>
                 </div>
                 <div class="dialog-actions">
@@ -2385,7 +2362,8 @@ class Component extends DCLogic {
     stokModalOpen: false,
     stokEditKode: null,
     stokSupplierPrices: [],
-    stokForm: { kode: '', nama: '', kategori: 'BAN', hargaFaktur: '', hargaNetto: '', priceListBasis: 'NETTO', ecer: '', bengkel: '', grosir: '', stok: '', minStok: '' },
+    stokTanpaSuplier: 0,
+    stokForm: { kode: '', nama: '', kategori: 'BAN', hargaFaktur: '', hargaNetto: '', ecer: '', bengkel: '', grosir: '', minStok: '' },
     stokFormError: '',
     stokDeleteTarget: null,
     stokSelectedKodes: [],
@@ -3126,12 +3104,14 @@ class Component extends DCLogic {
     if (!p) return;
     this.setState({
       stokModalOpen: true, stokEditKode: kode, stokFormError: '',
+      // hargaFaktur/hargaNetto/ecer/bengkel/grosir di sini TIDAK lagi diedit
+      // langsung -- cuma referensi baca-saja (info "Harga default barang" +
+      // sumber tombol Salin di tabel Suplier & Harga di bawah).
       stokForm: {
         kode: p.kode, nama: p.nama, kategori: p.kategori,
         hargaFaktur: p.hargaFaktur ? String(p.hargaFaktur) : '', hargaNetto: p.hargaNetto ? String(p.hargaNetto) : '',
-        priceListBasis: p.priceListBasis || 'NETTO',
         ecer: p.ecer ? String(p.ecer) : '', bengkel: p.bengkel ? String(p.bengkel) : '', grosir: p.grosir ? String(p.grosir) : '',
-        stok: String(p.stok), minStok: String(p.minStok),
+        minStok: String(p.minStok),
       },
     });
     // Tidak ada dropdown Suplier di form ini lagi: kolom suplier di barang
@@ -3143,11 +3123,14 @@ class Component extends DCLogic {
     // Harga jual per suplier — kasir wajib pilih suplier saat menjual (lihat
     // penjualan.php), jadi tiap suplier yang pernah kirim barang ini butuh
     // harganya sendiri di sini, bukan cuma satu harga default di atas.
-    this.setState({ stokSupplierPrices: [] });
+    this.setState({ stokSupplierPrices: [], stokTanpaSuplier: 0 });
     api('GET', 'barang_suplier_harga.php?barang_id=' + p.id).then((res) => {
       this.setState((s) => (s.stokEditKode !== kode ? {} : {
+        stokTanpaSuplier: res.stok_tanpa_suplier,
         stokSupplierPrices: res.suppliers.map((r) => ({
-          suplierId: r.suplier_id, suplier: r.suplier, stokSisa: r.stok_sisa,
+          suplierId: r.suplier_id, suplier: r.suplier, stok: String(r.stok_sisa),
+          hargaFaktur: r.harga_faktur != null ? String(r.harga_faktur) : '',
+          hargaNetto: r.harga_netto != null ? String(r.harga_netto) : '',
           ecer: r.harga_ecer != null ? String(r.harga_ecer) : '',
           bengkel: r.harga_bengkel != null ? String(r.harga_bengkel) : '',
           grosir: r.harga_grosir != null ? String(r.harga_grosir) : '',
@@ -3160,31 +3143,23 @@ class Component extends DCLogic {
   closeStokModal = () => this.setState({ stokModalOpen: false, stokEditKode: null, stokFormError: '' });
 
   setStokFormField = (field) => (e) => this.setState((s) => ({ stokForm: { ...s.stokForm, [field]: e.target.value } }));
-  setStokPriceFaktur = () => this.setState((s) => ({ stokForm: { ...s.stokForm, priceListBasis: 'FAKTUR' } }));
-  setStokPriceNetto = () => this.setState((s) => ({ stokForm: { ...s.stokForm, priceListBasis: 'NETTO' } }));
 
   // Data Barang cuma mengubah barang yang sudah ada — barang baru didaftarkan
   // lewat Input Pembelian, jadi ini selalu PUT, tidak pernah bikin baris baru.
+  // Stok & harga jual TIDAK lagi lewat sini -- itu per suplier di tabel
+  // "Suplier & Harga" (saveStokSupplierPrice), supaya setiap koreksi selalu
+  // tertaut ke suplier yang jelas.
   saveStokForm = () => {
     const s = this.state;
     const f = s.stokForm;
     const nama = f.nama.trim();
-    const ecer = parseFloat(f.ecer), bengkel = parseFloat(f.bengkel), grosir = parseFloat(f.grosir);
-    const stok = parseInt(f.stok), minStok = parseInt(f.minStok);
-    const hargaFaktur = parseFloat(f.hargaFaktur) || 0, hargaNetto = parseFloat(f.hargaNetto) || 0;
+    const minStok = parseInt(f.minStok);
     if (!nama) { this.setState({ stokFormError: 'Nama barang wajib diisi.' }); return; }
-    if (!(ecer > 0) || !(bengkel > 0) || !(grosir > 0)) { this.setState({ stokFormError: 'Isi semua harga jual dengan angka lebih dari 0.' }); return; }
-    if (!(stok >= 0) || !(minStok >= 0)) { this.setState({ stokFormError: 'Isi stok dan stok minimum dengan angka valid.' }); return; }
+    if (!(minStok >= 0)) { this.setState({ stokFormError: 'Isi stok minimum dengan angka valid.' }); return; }
 
     const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
     if (!editingId) { this.setState({ stokFormError: 'Barang tidak ditemukan.' }); return; }
-    // suplier sengaja TIDAK dikirim: kolom itu ditentukan Input Pembelian,
-    // bukan form ini (barang.php membiarkannya apa adanya kalau tidak dikirim).
-    const body = {
-      nama, kategori: f.kategori,
-      harga_faktur: hargaFaktur, harga_netto: hargaNetto, price_list_basis: f.priceListBasis,
-      harga_ecer: ecer, harga_bengkel: bengkel, harga_grosir: grosir, stok, min_stok: minStok,
-    };
+    const body = { nama, kategori: f.kategori, min_stok: minStok };
     this.setState({ busy: true });
     api('PUT', 'barang.php?id=' + editingId, body).then(() => {
       this.setState({ busy: false, stokModalOpen: false, stokEditKode: null });
@@ -3197,23 +3172,43 @@ class Component extends DCLogic {
   }));
   copyDefaultToSupplierPrice = (suplierId) => this.setState((s) => ({
     stokSupplierPrices: s.stokSupplierPrices.map((r) => (r.suplierId === suplierId
-      ? { ...r, ecer: s.stokForm.ecer, bengkel: s.stokForm.bengkel, grosir: s.stokForm.grosir, error: '', saved: false }
+      ? {
+        ...r,
+        hargaFaktur: s.stokForm.hargaFaktur, hargaNetto: s.stokForm.hargaNetto,
+        ecer: s.stokForm.ecer, bengkel: s.stokForm.bengkel, grosir: s.stokForm.grosir,
+        error: '', saved: false,
+      }
       : r)),
   }));
+  // Satu tombol Simpan per baris mengirim SEMUANYA sekaligus (harga jual,
+  // harga faktur/netto referensi, DAN Pcs) -- inilah satu-satunya jalur
+  // sekarang untuk mengoreksi stok, selalu tertaut ke suplier yang jelas
+  // (lihat backend/api/barang_suplier_harga.php, lot_sync_stok_suplier).
   saveStokSupplierPrice = (suplierId) => {
     const s = this.state;
     const row = s.stokSupplierPrices.find((r) => r.suplierId === suplierId);
     if (!row) return;
     const ecer = parseFloat(row.ecer), bengkel = parseFloat(row.bengkel), grosir = parseFloat(row.grosir);
+    const stok = parseInt(row.stok);
     if (!(ecer > 0) || !(bengkel > 0) || !(grosir > 0)) {
       this.setState((s2) => ({ stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: 'Isi semua harga jual dengan angka lebih dari 0.' } : r)) }));
       return;
     }
+    if (!(stok >= 0)) {
+      this.setState((s2) => ({ stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: 'Isi Pcs dengan angka valid (minimal 0).' } : r)) }));
+      return;
+    }
     const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
     if (!editingId) return;
+    const hargaFaktur = parseFloat(row.hargaFaktur) || 0, hargaNetto = parseFloat(row.hargaNetto) || 0;
     this.setState({ busy: true });
-    api('POST', 'barang_suplier_harga.php', { barang_id: editingId, suplier_id: suplierId, harga_ecer: ecer, harga_bengkel: bengkel, harga_grosir: grosir }).then(() => {
+    api('POST', 'barang_suplier_harga.php', {
+      barang_id: editingId, suplier_id: suplierId,
+      harga_faktur: hargaFaktur, harga_netto: hargaNetto,
+      harga_ecer: ecer, harga_bengkel: bengkel, harga_grosir: grosir, stok,
+    }).then(() => {
       this.setState((s2) => ({ busy: false, stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: '', saved: true } : r)) }));
+      this.refreshBarang();
     }).catch((e) => {
       this.setState((s2) => ({ busy: false, stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: e.message, saved: false } : r)) }));
     });
@@ -4014,6 +4009,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const stokMenipisCount = s.stokProducts.filter((p) => !p.pendingSetup && p.status === 'Menipis').length;
     const stokPendingCount = s.stokProducts.filter((p) => p.pendingSetup).length;
     const deleteTargetProduct = s.stokProducts.find((p) => p.kode === s.stokDeleteTarget);
+    const editingProduct = s.stokProducts.find((p) => p.kode === s.stokEditKode);
     const stokSelectedCount = s.stokSelectedKodes.length;
     const stokAllVisibleSelected = filtered.length > 0 && filtered.every((p) => s.stokSelectedKodes.includes(p.kode));
 
@@ -4044,10 +4040,24 @@ ${this.laporanLengkapTableHtml(tab, false)}
       stokIsEdit: !!s.stokEditKode,
       stokCanPrintFromForm: s.stokForm.kode.trim() !== '',
       stokForm: s.stokForm,
+      stokTotalLabel: editingProduct ? editingProduct.stok + ' pcs' : '—',
+      // Harga default barang (barang.harga_*) -- bukan lagi yang diedit di
+      // sini, cuma referensi baca-saja: sumber "Salin" & harga stok lama
+      // tanpa suplier yang legacy.
+      stokDefaultFakturLabel: formatRp(parseFloat(s.stokForm.hargaFaktur) || 0),
+      stokDefaultNettoLabel: formatRp(parseFloat(s.stokForm.hargaNetto) || 0),
+      stokDefaultEcerLabel: formatRp(parseFloat(s.stokForm.ecer) || 0),
+      stokDefaultBengkelLabel: formatRp(parseFloat(s.stokForm.bengkel) || 0),
+      stokDefaultGrosirLabel: formatRp(parseFloat(s.stokForm.grosir) || 0),
+      stokAdaTanpaSuplier: s.stokTanpaSuplier > 0,
+      stokTanpaSuplierLabel: s.stokTanpaSuplier + ' pcs',
       stokSupplierPricesView: s.stokSupplierPrices.map((r) => ({
         suplierId: r.suplierId, suplier: r.suplier,
-        stokSisaLabel: r.stokSisa + ' pcs',
+        stok: r.stok, hargaFaktur: r.hargaFaktur, hargaNetto: r.hargaNetto,
         ecer: r.ecer, bengkel: r.bengkel, grosir: r.grosir, error: r.error, saved: r.saved,
+        setStok: this.setStokSupplierPriceField(r.suplierId, 'stok'),
+        setHargaFaktur: this.setStokSupplierPriceField(r.suplierId, 'hargaFaktur'),
+        setHargaNetto: this.setStokSupplierPriceField(r.suplierId, 'hargaNetto'),
         setEcer: this.setStokSupplierPriceField(r.suplierId, 'ecer'),
         setBengkel: this.setStokSupplierPriceField(r.suplierId, 'bengkel'),
         setGrosir: this.setStokSupplierPriceField(r.suplierId, 'grosir'),
@@ -4055,14 +4065,8 @@ ${this.laporanLengkapTableHtml(tab, false)}
         saveHandler: () => this.saveStokSupplierPrice(r.suplierId),
       })),
       setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
-      setStokKategori: this.setStokFormField('kategori'), setStokEcer: this.setStokFormField('ecer'),
-      setStokBengkel: this.setStokFormField('bengkel'), setStokGrosir: this.setStokFormField('grosir'),
-      stokHargaSourceLabel: (parseFloat(s.stokForm.hargaFaktur) || parseFloat(s.stokForm.hargaNetto))
-        ? formatRp(parseFloat(s.stokForm.hargaFaktur) || 0) + ' / ' + formatRp(parseFloat(s.stokForm.hargaNetto) || 0)
-        : 'Belum ada data pembelian',
-      stokPriceIsFaktur: s.stokForm.priceListBasis === 'FAKTUR', stokPriceIsNetto: s.stokForm.priceListBasis !== 'FAKTUR',
-      setStokPriceFaktur: this.setStokPriceFaktur, setStokPriceNetto: this.setStokPriceNetto,
-      setStokStok: this.setStokFormField('stok'), setStokMinStok: this.setStokFormField('minStok'),
+      setStokKategori: this.setStokFormField('kategori'),
+      setStokMinStok: this.setStokFormField('minStok'),
       stokFormError: s.stokFormError, saveStokForm: this.saveStokForm,
       stokDeleteTarget: s.stokDeleteTarget, deleteTargetName: deleteTargetProduct ? deleteTargetProduct.nama : '',
       cancelDeleteStok: this.cancelDeleteStok, confirmDeleteStok: this.confirmDeleteStok,

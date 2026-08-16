@@ -83,6 +83,51 @@ function lot_sync_stok(PDO $pdo, int $barangId, int $stokLama, int $stokBaru, fl
     }
 }
 
+// Rata-rata harga beli dari batch SATU SUPLIER tertentu yang masih bersisa
+// -- fallback cost saat pcs suplier itu dinaikkan manual lewat Ubah Barang
+// (lihat lot_sync_stok_suplier di bawah). Mirror lot_avg_cost, cuma
+// discope ke suplier_id.
+function lot_avg_cost_suplier(PDO $pdo, int $barangId, int $suplierId): float {
+    $s = $pdo->prepare(
+        'SELECT SUM(qty_sisa * harga_beli) / NULLIF(SUM(qty_sisa), 0)
+         FROM barang_lot WHERE barang_id = ? AND suplier_id = ? AND qty_sisa > 0'
+    );
+    $s->execute([$barangId, $suplierId]);
+    return (float)($s->fetchColumn() ?: 0);
+}
+
+// Sama seperti lot_sync_stok(), tapi discope ke SATU suplier: batch naik
+// dibuat DENGAN suplier_id ini (bukan NULL), batch turun FIFO-draw HANYA
+// dari lot suplier ini. Dipakai koreksi Pcs per suplier di Ubah Barang --
+// gantinya lot_sync_stok() lama yang selalu membuat batch tanpa suplier.
+// Harus dipanggil DI DALAM transaksi yang sama dengan UPDATE barang.stok-nya.
+function lot_sync_stok_suplier(PDO $pdo, int $barangId, int $suplierId, int $stokLama, int $stokBaru, float $fallbackCost = 0): void {
+    $delta = $stokBaru - $stokLama;
+    if ($delta === 0) return;
+
+    if ($delta > 0) {
+        $harga = lot_avg_cost_suplier($pdo, $barangId, $suplierId) ?: $fallbackCost;
+        $pdo->prepare(
+            'INSERT INTO barang_lot (barang_id, pembelian_item_id, suplier_id, harga_beli, qty_awal, qty_sisa, tanggal)
+             VALUES (?, NULL, ?, ?, ?, ?, CURDATE())'
+        )->execute([$barangId, $suplierId, $harga, $delta, $delta]);
+        return;
+    }
+
+    $sisa = -$delta;
+    $lots = $pdo->prepare('SELECT id, qty_sisa FROM barang_lot WHERE barang_id = ? AND suplier_id = ? AND qty_sisa > 0 ORDER BY tanggal ASC, id ASC FOR UPDATE');
+    $lots->execute([$barangId, $suplierId]);
+    foreach ($lots->fetchAll() as $lot) {
+        if ($sisa <= 0) break;
+        $take = min($sisa, (int)$lot['qty_sisa']);
+        $pdo->prepare('UPDATE barang_lot SET qty_sisa = qty_sisa - ? WHERE id = ?')->execute([$take, $lot['id']]);
+        $sisa -= $take;
+    }
+    if ($sisa > 0) {
+        throw new RuntimeException("Batch suplier ini tidak cukup untuk menurunkan stok sebanyak itu (kurang $sisa pcs).");
+    }
+}
+
 // ── Nilai retur ───────────────────────────────────────────────────────
 // Retur penjualan mengembalikan barang ke stok, tapi dulu omzet & laba di
 // semua laporan tetap dihitung penuh — barang yang sama terhitung dua kali

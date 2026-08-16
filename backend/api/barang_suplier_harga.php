@@ -32,9 +32,11 @@ if ($method === 'GET') {
     $stokBySuplier = [];
     foreach ($stokRows->fetchAll() as $r) $stokBySuplier[(int)$r['suplier_id']] = (int)$r['sisa'];
 
-    // Harga yang sudah pernah diisi Owner (kalau ada).
+    // Harga yang sudah pernah diisi Owner (kalau ada) -- termasuk harga
+    // faktur/netto REFERENSI per suplier (beda dari barang_lot.harga_beli
+    // yang aktual per batch; ini cuma catatan Owner, boleh 0).
     $hargaRows = $pdo->prepare(
-        'SELECT suplier_id, harga_ecer, harga_bengkel, harga_grosir FROM barang_suplier_harga WHERE barang_id = ?'
+        'SELECT suplier_id, harga_faktur, harga_netto, harga_ecer, harga_bengkel, harga_grosir FROM barang_suplier_harga WHERE barang_id = ?'
     );
     $hargaRows->execute([$barangId]);
     $hargaBySuplier = [];
@@ -61,6 +63,8 @@ if ($method === 'GET') {
         $row = [
             'suplier_id' => (int)$s['id'], 'suplier' => $s['nama'], 'suplier_kode' => $s['kode'],
             'stok_sisa' => $stokBySuplier[(int)$s['id']] ?? 0,
+            'harga_faktur' => $h ? (float)$h['harga_faktur'] : null,
+            'harga_netto' => $h ? (float)$h['harga_netto'] : null,
             'harga_ecer' => $h ? (float)$h['harga_ecer'] : null,
             'harga_bengkel' => $h ? (float)$h['harga_bengkel'] : null,
             'harga_grosir' => $h ? (float)$h['harga_grosir'] : null,
@@ -83,18 +87,61 @@ if ($method === 'POST') {
     $in = body();
     $barangId = (int)($in['barang_id'] ?? 0);
     $suplierId = (int)($in['suplier_id'] ?? 0);
+    $hargaFaktur = (float)($in['harga_faktur'] ?? 0);
+    $hargaNetto = (float)($in['harga_netto'] ?? 0);
     $ecer = (float)($in['harga_ecer'] ?? 0);
     $bengkel = (float)($in['harga_bengkel'] ?? 0);
     $grosir = (float)($in['harga_grosir'] ?? 0);
     if (!$barangId || !$suplierId) json_error('barang_id dan suplier_id wajib diisi.');
     if ($ecer <= 0 || $bengkel <= 0 || $grosir <= 0) json_error('Isi semua harga jual dengan angka lebih dari 0.');
+    // stok: opsional -- kalau dikirim, ini TARGET jumlah pcs suplier ini
+    // (bukan delta). Ubah Barang sekarang cuma bisa mengoreksi Pcs lewat
+    // baris suplier di sini, tidak ada lagi jalur global tanpa suplier.
+    $adaStok = array_key_exists('stok', $in);
+    $stokBaru = $adaStok ? (int)$in['stok'] : null;
+    if ($adaStok && $stokBaru < 0) json_error('Stok tidak boleh negatif.');
 
-    $pdo->prepare(
-        'INSERT INTO barang_suplier_harga (barang_id, suplier_id, harga_ecer, harga_bengkel, harga_grosir)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE harga_ecer = VALUES(harga_ecer), harga_bengkel = VALUES(harga_bengkel), harga_grosir = VALUES(harga_grosir)'
-    )->execute([$barangId, $suplierId, $ecer, $bengkel, $grosir]);
-    json_ok(['barang_id' => $barangId, 'suplier_id' => $suplierId, 'harga_ecer' => $ecer, 'harga_bengkel' => $bengkel, 'harga_grosir' => $grosir]);
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            'INSERT INTO barang_suplier_harga (barang_id, suplier_id, harga_faktur, harga_netto, harga_ecer, harga_bengkel, harga_grosir)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE harga_faktur = VALUES(harga_faktur), harga_netto = VALUES(harga_netto),
+                 harga_ecer = VALUES(harga_ecer), harga_bengkel = VALUES(harga_bengkel), harga_grosir = VALUES(harga_grosir)'
+        )->execute([$barangId, $suplierId, $hargaFaktur, $hargaNetto, $ecer, $bengkel, $grosir]);
+
+        if ($adaStok) {
+            // Kunci baris barang dulu (pola sama seperti barang.php PUT) supaya
+            // dua penyimpanan bersamaan tidak sama-sama baca stok lama yang sama.
+            $cur = $pdo->prepare('SELECT stok FROM barang WHERE id = ? FOR UPDATE');
+            $cur->execute([$barangId]);
+            if ($cur->fetchColumn() === false) throw new RuntimeException('Barang tidak ditemukan.');
+
+            $sisaLama = $pdo->prepare('SELECT COALESCE(SUM(qty_sisa), 0) FROM barang_lot WHERE barang_id = ? AND suplier_id = ? FOR UPDATE');
+            $sisaLama->execute([$barangId, $suplierId]);
+            $stokLama = (int)$sisaLama->fetchColumn();
+
+            $delta = $stokBaru - $stokLama;
+            if ($delta !== 0) {
+                $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$delta, $barangId]);
+                lot_sync_stok_suplier($pdo, $barangId, $suplierId, $stokLama, $stokBaru, $hargaNetto > 0 ? $hargaNetto : $hargaFaktur);
+            }
+        }
+
+        // Momen ini yang sekarang menandai "harga jual barang sudah diisi" --
+        // dipindah dari barang.php PUT (yang sudah tidak lagi mengurus harga).
+        $pdo->prepare('UPDATE barang SET pending_setup = 0 WHERE id = ?')->execute([$barangId]);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
+    json_ok([
+        'barang_id' => $barangId, 'suplier_id' => $suplierId,
+        'harga_faktur' => $hargaFaktur, 'harga_netto' => $hargaNetto,
+        'harga_ecer' => $ecer, 'harga_bengkel' => $bengkel, 'harga_grosir' => $grosir,
+    ]);
 }
 
 json_error('Method not allowed', 405);

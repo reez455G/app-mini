@@ -215,57 +215,31 @@ $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_error('id wajib diisi.');
 
 if ($method === 'PUT') {
+    // Ubah Barang cuma info dasar sekarang -- harga (faktur/netto/ecer/
+    // bengkel/grosir) dan stok (Pcs) dipindah jadi per-suplier lewat
+    // barang_suplier_harga.php, supaya setiap koreksi stok/harga selalu
+    // tertaut ke suplier yang jelas (tidak ada lagi batch "tanpa suplier"
+    // baru yang bisa tercipta dari sini). min_stok tetap di sini karena itu
+    // ambang peringatan, bukan angka stok/harga yang perlu suplier.
     $in = body();
     $nama = trim($in['nama'] ?? '');
     if ($nama === '') json_error('Nama barang wajib diisi.');
-    $ecer = (float)($in['harga_ecer'] ?? 0);
-    $bengkel = (float)($in['harga_bengkel'] ?? 0);
-    $grosir = (float)($in['harga_grosir'] ?? 0);
-    if ($ecer <= 0 || $bengkel <= 0 || $grosir <= 0) json_error('Isi semua harga jual dengan angka lebih dari 0.');
-    $stok = (int)($in['stok'] ?? 0);
     $minStok = (int)($in['min_stok'] ?? 10);
-    if ($stok < 0 || $minStok < 0) json_error('Isi stok dan stok minimum dengan angka valid.');
+    if ($minStok < 0) json_error('Isi stok minimum dengan angka valid.');
 
     $katId = resolve_kategori($pdo, $in['kategori'] ?? '');
-    $supId = resolve_suplier($pdo, $in['suplier'] ?? null);
+    // suplier_id cuma ditimpa kalau field "suplier" memang DIKIRIM: form Ubah
+    // Barang sudah tidak punya dropdown suplier lagi (kolom itu ditentukan
+    // Input Pembelian), dan tanpa penjagaan ini setiap simpan akan mengosongkan
+    // suplier_id jadi NULL karena resolve_suplier(null) mengembalikan null.
+    $setSuplier = array_key_exists('suplier', $in) ? 'suplier_id=?, ' : '';
+    $params = [$nama, $katId];
+    if ($setSuplier) $params[] = resolve_suplier($pdo, $in['suplier'] ?? null);
+    $params[] = $minStok;
+    $params[] = $id;
 
-    $hargaFaktur = (float)($in['harga_faktur'] ?? 0);
-    $hargaNetto = (float)($in['harga_netto'] ?? 0);
-
-    // Stok yang diubah manual di sini (koreksi stok opname) harus ikut
-    // menyesuaikan barang_lot — kalau tidak, barang.stok dan SUM(qty_sisa)
-    // berbeda dan penjualan barang ini berikutnya ditolak penjualan.php.
-    $pdo->beginTransaction();
-    try {
-        $cur = $pdo->prepare('SELECT stok FROM barang WHERE id = ? FOR UPDATE');
-        $cur->execute([$id]);
-        $stokLama = $cur->fetchColumn();
-        if ($stokLama === false) throw new RuntimeException('Barang tidak ditemukan.');
-
-        // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend).
-        // suplier_id cuma ditimpa kalau field "suplier" memang DIKIRIM: form Ubah
-        // Barang sudah tidak punya dropdown suplier lagi (kolom itu ditentukan
-        // Input Pembelian), dan tanpa penjagaan ini setiap simpan akan mengosongkan
-        // suplier_id jadi NULL karena resolve_suplier(null) mengembalikan null.
-        $setSuplier = array_key_exists('suplier', $in) ? 'suplier_id=?, ' : '';
-        $params = [$nama, $katId];
-        if ($setSuplier) $params[] = $supId;
-        array_push(
-            $params, $hargaFaktur, $hargaNetto,
-            ($in['price_list_basis'] ?? 'NETTO') === 'FAKTUR' ? 'FAKTUR' : 'NETTO',
-            $ecer, $bengkel, $grosir, $stok, $minStok, $id
-        );
-        $pdo->prepare(
-            "UPDATE barang SET nama=?, kategori_id=?, {$setSuplier}harga_faktur=?, harga_netto=?, price_list_basis=?, harga_ecer=?, harga_bengkel=?, harga_grosir=?, stok=?, min_stok=?, pending_setup=0
-             WHERE id=?"
-        )->execute($params);
-        lot_sync_stok($pdo, $id, (int)$stokLama, $stok, $hargaNetto > 0 ? $hargaNetto : $hargaFaktur);
-
-        $pdo->commit();
-    } catch (Throwable $e) {
-        $pdo->rollBack();
-        json_error($e->getMessage(), 400);
-    }
+    // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend).
+    $pdo->prepare("UPDATE barang SET nama=?, kategori_id=?, {$setSuplier}min_stok=? WHERE id=?")->execute($params);
     json_ok(['updated' => $id]);
 }
 
