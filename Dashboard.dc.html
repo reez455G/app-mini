@@ -728,7 +728,7 @@
                 <div class="no-print" style="display:flex;flex-direction:column;gap:16px;">
                   <button type="button" class="btn btn-primary btn-block" style="min-height:48px;" onClick="{{ newTransaction }}">Transaksi Baru</button>
                   <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ printPage }}">Cetak</button>
-                  <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ goDashboard }}">Kembali</button>
+                  <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ backToPenjualanCart }}">Kembali</button>
                 </div>
               </div>
             </div>
@@ -2995,6 +2995,14 @@ class Component extends DCLogic {
     penjSelectedOptId: (s.penjSellableOptions[0] || {}).optId || '', penjQty: 1, penjCompleted: false, penjLastInvoice: null, penjSubmitError: '',
   }));
 
+  // Tombol "Kembali" di layar invoice -- beda dari newTransaction: cuma
+  // menutup layar invoice, TIDAK mengosongkan keranjang/pelanggan/metode
+  // bayar (field itu memang tidak pernah dihapus completeTransaction saat
+  // sukses, cuma disembunyikan di balik penjCompleted). Sebelumnya tombol
+  // ini salah pakai goDashboard (navigasi ke Dashboard, keranjang jadi
+  // "hilang" dari pandangan meski datanya sebenarnya masih ada di state).
+  backToPenjualanCart = () => this.setState({ penjCompleted: false });
+
   setStokSearch = (e) => this.setState({ stokSearch: e.target.value });
   setStokKategoriFilter = (e) => this.setState({ stokKategoriFilter: e.target.value });
 
@@ -3979,7 +3987,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       penjKembalianLabel: (penjKembalian < 0 ? '-' : '') + formatRp(Math.abs(penjKembalian)),
       penjCannotComplete: !penjCanComplete, completeTransaction: this.completeTransaction, penjNote,
       penjNotCompleted: !s.penjCompleted, penjCompletedFlag: s.penjCompleted,
-      penjLastInvoiceView, newTransaction: this.newTransaction,
+      penjLastInvoiceView, newTransaction: this.newTransaction, backToPenjualanCart: this.backToPenjualanCart,
       tokoNama: toko ? toko.nama : '', tokoAlamat: toko ? toko.alamat : '', tokoNoHp: toko ? toko.no_hp : '',
       penjHistoryEmpty: s.penjHistory.length === 0,
       penjHistoryView: s.penjHistory.map((h) => ({
