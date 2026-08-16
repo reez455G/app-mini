@@ -1728,6 +1728,7 @@
             <button type="button" class="btn {{ masterTabKategori_class }}" style="min-height:44px;" onClick="{{ setMasterTabKategori }}">Kategori Barang</button>
             <button type="button" class="btn {{ masterTabUser_class }}" style="min-height:44px;" onClick="{{ setMasterTabUser }}">Pengguna</button>
             <button type="button" class="btn {{ masterTabToko_class }}" style="min-height:44px;" onClick="{{ setMasterTabToko }}">Toko</button>
+            <button type="button" class="btn {{ masterTabCleansing_class }}" style="min-height:44px;" onClick="{{ setMasterTabCleansing }}">Cleansing Data</button>
           </div>
 
           <sc-if value="{{ masterTabIsSuplier }}" hint-placeholder-val="{{ true }}">
@@ -1854,6 +1855,128 @@
                   <p style="margin:0;font-size:13px;color:var(--color-accent-700);">Tersimpan.</p>
                 </sc-if>
                 <button type="button" class="btn btn-primary" style="min-height:46px;align-self:flex-start;padding:0 24px;" disabled="{{ busy }}" onClick="{{ saveTokoProfil }}">Simpan</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ masterTabIsCleansing }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm" style="max-width:720px;display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <div class="card-kicker">Cleansing Data</div>
+                <p style="margin:6px 0 0;font-size:13px;opacity:0.65;">Bersihkan riwayat transaksi, barang & stok, atau suplier/pelanggan secara massal. Bisa disaring per periode, per modul, dan per suplier/pelanggan. Data Pengguna (login) tidak pernah ikut tersentuh di sini.</p>
+              </div>
+
+              <div>
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-bottom:8px;">1. Backup Dulu</div>
+                <p style="margin:0 0 8px;font-size:13px;opacity:0.7;">Unduh cadangan SELURUH data toko (bukan cuma yang disaring di bawah) sebelum menghapus apa pun -- kalau nanti perlu, bisa dipulihkan lagi lewat "Pulihkan dari Backup" di bagian paling bawah.</p>
+                <button type="button" class="btn btn-secondary" style="min-height:44px;" onClick="{{ downloadCleanseBackup }}">Unduh Backup (.json)</button>
+              </div>
+
+              <div>
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-bottom:8px;">2. Pilih Data yang Dihapus</div>
+                <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div class="field">
+                    <label for="cleanse-dari">Tanggal Dari (opsional)</label>
+                    <input class="input" id="cleanse-dari" type="date" style="min-height:42px;font-size:14px;" value="{{ cleanseDari }}" onChange="{{ setCleanseDari }}" />
+                  </div>
+                  <div class="field">
+                    <label for="cleanse-sampai">Tanggal Sampai (opsional)</label>
+                    <input class="input" id="cleanse-sampai" type="date" style="min-height:42px;font-size:14px;" value="{{ cleanseSampai }}" onChange="{{ setCleanseSampai }}" />
+                  </div>
+                </div>
+                <p style="margin:6px 0 10px;font-size:11px;opacity:0.55;">Kosongkan Dari/Sampai untuk tidak membatasi tanggal (kena filter suplier/pelanggan saja, atau seluruh riwayat kalau tidak ada filter sama sekali).</p>
+
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModPenjualan }}" onChange="{{ toggleCleanseModPenjualan }}" />Penjualan</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModPembelian }}" onChange="{{ toggleCleanseModPembelian }}" />Pembelian</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModReturPenjualan }}" onChange="{{ toggleCleanseModReturPenjualan }}" />Retur Penjualan</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModReturPembelian }}" onChange="{{ toggleCleanseModReturPembelian }}" />Retur Pembelian</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModBarang }}" onChange="{{ toggleCleanseModBarang }}" />Barang &amp; Stok</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModSuplier }}" onChange="{{ toggleCleanseModSuplier }}" />Suplier</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ cleanseModPelanggan }}" onChange="{{ toggleCleanseModPelanggan }}" />Pelanggan</label>
+                </div>
+
+                <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                  <div class="field">
+                    <label for="cleanse-suplier">Suplier tertentu (opsional)</label>
+                    <select class="input" id="cleanse-suplier" style="min-height:42px;font-size:14px;" value="{{ cleanseSuplierId }}" onChange="{{ setCleanseSuplierId }}">
+                      <option value="">Semua suplier</option>
+                      <sc-for list="{{ cleanseSuplierOptions }}" as="sup" hint-placeholder-count="4">
+                        <option value="{{ sup.id }}">{{ sup.nama }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="cleanse-pelanggan">Pelanggan tertentu (opsional)</label>
+                    <select class="input" id="cleanse-pelanggan" style="min-height:42px;font-size:14px;" value="{{ cleansePelangganId }}" onChange="{{ setCleansePelangganId }}">
+                      <option value="">Semua pelanggan</option>
+                      <sc-for list="{{ cleansePelangganOptions }}" as="p" hint-placeholder-count="3">
+                        <option value="{{ p.id }}">{{ p.nama }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                </div>
+                <p style="margin:6px 0 0;font-size:11px;opacity:0.55;">Suplier berlaku untuk Pembelian, Retur Pembelian, dan Barang. Pelanggan berlaku untuk Penjualan dan Retur Penjualan.</p>
+              </div>
+
+              <div>
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-bottom:8px;">3. Lihat Preview</div>
+                <button type="button" class="btn btn-secondary" style="min-height:44px;" disabled="{{ cleansePreviewLoading }}" onClick="{{ runCleansePreview }}">Lihat Preview</button>
+                <sc-if value="{{ cleansePreviewError }}">
+                  <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">{{ cleansePreviewError }}</p>
+                </sc-if>
+                <sc-if value="{{ cleansePreviewDone }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:10px;background:var(--color-neutral-100);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;">
+                    <sc-if value="{{ cleansePreviewEmpty }}">
+                      <p style="margin:0;">Tidak ada data yang cocok dengan filter ini.</p>
+                    </sc-if>
+                    <sc-if value="{{ cleansePreviewHasRows }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-direction:column;gap:2px;">
+                        <sc-for list="{{ cleansePreviewRows }}" as="r" hint-placeholder-count="3">
+                          <div style="display:flex;justify-content:space-between;"><span>{{ r.label }}</span><strong>{{ r.count }}</strong></div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--color-divider);font-weight:600;"><span>Total baris terhapus</span><span>{{ cleansePreview.total }}</span></div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+
+              <sc-if value="{{ cleansePreviewHasRows }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid var(--color-accent-2-500);border-radius:var(--radius-md);padding:14px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:var(--color-accent-2-700);">4. Konfirmasi Penghapusan</div>
+                  <p style="margin:0;font-size:13px;">Aksi ini TIDAK BISA dibatalkan. Ketik ulang nama toko <strong>{{ tokoNama }}</strong> untuk mengaktifkan tombol hapus.</p>
+                  <input class="input" style="min-height:44px;font-size:14px;" placeholder="{{ tokoNama }}" value="{{ cleanseConfirmText }}" onChange="{{ setCleanseConfirmText }}" />
+                  <sc-if value="{{ cleanseError }}">
+                    <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ cleanseError }}</p>
+                  </sc-if>
+                  <button type="button" class="btn btn-primary" style="min-height:46px;background:var(--color-accent-2-600);border-color:var(--color-accent-2-600);align-self:flex-start;padding:0 24px;" disabled="{{ cleanseConfirmDisabled }}" onClick="{{ runCleanseDelete }}">Hapus Sekarang</button>
+                  <sc-if value="{{ cleanseResultDone }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:13px;">
+                      <p style="margin:0 0 4px;color:var(--color-accent-700);">Selesai. Rincian yang terhapus:</p>
+                      <sc-for list="{{ cleanseResultRows }}" as="r" hint-placeholder-count="2">
+                        <div>{{ r.label }}: {{ r.count }}</div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+
+              <div style="border-top:1px solid var(--color-divider);padding-top:16px;">
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;margin-bottom:8px;">Pulihkan dari Backup</div>
+                <p style="margin:0 0 8px;font-size:13px;opacity:0.7;">Unggah file backup .json yang pernah diunduh -- cuma bisa memulihkan ke tabel yang saat ini benar-benar kosong (tidak menimpa data yang sudah ada).</p>
+                <input type="file" accept=".json,application/json" onChange="{{ handleCleanseImportFile }}" disabled="{{ cleanseImportBusy }}" />
+                <sc-if value="{{ cleanseImportError }}">
+                  <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">{{ cleanseImportError }}</p>
+                </sc-if>
+                <sc-if value="{{ cleanseImportResultDone }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:8px;font-size:13px;">
+                    <p style="margin:0 0 4px;color:var(--color-accent-700);">Selesai. Rincian yang dipulihkan:</p>
+                    <sc-for list="{{ cleanseImportResultRows }}" as="r" hint-placeholder-count="2">
+                      <div>{{ r.label }}: {{ r.count }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
               </div>
             </div>
           </sc-if>
@@ -2460,6 +2583,14 @@ class Component extends DCLogic {
     kategoriList: [],
     userList: [],
     masterTab: 'suplier',
+    // Cleansing Data -- lihat backend/api/master_cleanse.php untuk alasan
+    // urutan hapus & kenapa Users tidak pernah ditawarkan di sini.
+    cleanseDari: '', cleanseSampai: '',
+    cleanseModules: [],
+    cleanseSuplierId: '', cleansePelangganId: '',
+    cleansePreview: null, cleansePreviewLoading: false, cleansePreviewError: '',
+    cleanseConfirmText: '', cleanseBusy: false, cleanseResult: null, cleanseError: '',
+    cleanseImportBusy: false, cleanseImportResult: null, cleanseImportError: '',
     masterModalOpen: false, masterModalType: null, masterEditKey: null,
     masterForm: { nama: '', alamat: '', noHp: '', role: 'karyawan', password: '' },
     masterFormError: '', masterDeleteTarget: null,
@@ -2884,6 +3015,115 @@ class Component extends DCLogic {
       // berikutnya di sesi yang sama langsung pakai data baru tanpa reload.
       this.setState({ busy: false, tokoSaved: true, tokoProfil: { nama: data.nama, alamat: data.alamat, no_hp: data.noHp } });
     }).catch((e) => this.setState({ busy: false, tokoFormError: e.message }));
+  };
+
+  setMasterTabCleansing = () => {
+    this.setMasterTab('cleansing');
+    this.setState({
+      cleansePreview: null, cleansePreviewError: '', cleanseConfirmText: '',
+      cleanseResult: null, cleanseError: '', cleanseImportResult: null, cleanseImportError: '',
+    });
+  };
+
+  setCleanseDari = (e) => this.setState({ cleanseDari: e.target.value, cleansePreview: null, cleanseResult: null });
+  setCleanseSampai = (e) => this.setState({ cleanseSampai: e.target.value, cleansePreview: null, cleanseResult: null });
+  setCleanseSuplierId = (e) => this.setState({ cleanseSuplierId: e.target.value, cleansePreview: null, cleanseResult: null });
+  setCleansePelangganId = (e) => this.setState({ cleansePelangganId: e.target.value, cleansePreview: null, cleanseResult: null });
+  setCleanseConfirmText = (e) => this.setState({ cleanseConfirmText: e.target.value });
+
+  // Ubah filter apa pun mengosongkan preview lama -- preview yang tampil
+  // HARUS selalu cocok dengan filter yang sedang aktif, supaya tombol Hapus
+  // tidak pernah mengeksekusi angka dari filter yang sudah ditinggalkan.
+  toggleCleanseModule = (key) => this.setState((s) => {
+    const has = s.cleanseModules.includes(key);
+    return {
+      cleanseModules: has ? s.cleanseModules.filter((k) => k !== key) : [...s.cleanseModules, key],
+      cleansePreview: null, cleanseResult: null,
+    };
+  });
+  toggleCleanseModPenjualan = () => this.toggleCleanseModule('penjualan');
+  toggleCleanseModPembelian = () => this.toggleCleanseModule('pembelian');
+  toggleCleanseModReturPenjualan = () => this.toggleCleanseModule('retur_penjualan');
+  toggleCleanseModReturPembelian = () => this.toggleCleanseModule('retur_pembelian');
+  toggleCleanseModBarang = () => this.toggleCleanseModule('barang');
+  toggleCleanseModSuplier = () => this.toggleCleanseModule('suplier');
+  toggleCleanseModPelanggan = () => this.toggleCleanseModule('pelanggan');
+
+  cleanseFilterParams = (s) => ({
+    dari: s.cleanseDari || null, sampai: s.cleanseSampai || null,
+    modules: s.cleanseModules,
+    suplier_id: s.cleanseSuplierId || null, pelanggan_id: s.cleansePelangganId || null,
+  });
+
+  runCleansePreview = () => {
+    const s = this.state;
+    if (!s.cleanseModules.length) { this.setState({ cleansePreviewError: 'Pilih minimal satu kategori data dulu.' }); return; }
+    const f = this.cleanseFilterParams(s);
+    const qs = new URLSearchParams({ action: 'preview' });
+    if (f.dari) qs.set('dari', f.dari);
+    if (f.sampai) qs.set('sampai', f.sampai);
+    f.modules.forEach((m) => qs.append('modules[]', m));
+    if (f.suplier_id) qs.set('suplier_id', f.suplier_id);
+    if (f.pelanggan_id) qs.set('pelanggan_id', f.pelanggan_id);
+    this.setState({ cleansePreviewLoading: true, cleansePreviewError: '', cleanseResult: null });
+    api('GET', 'master_cleanse.php?' + qs.toString()).then((res) => {
+      this.setState({ cleansePreviewLoading: false, cleansePreview: res });
+    }).catch((e) => this.setState({ cleansePreviewLoading: false, cleansePreviewError: e.message }));
+  };
+
+  // Backup SELALU seluruh data (tidak ikut filter di atas) -- pola Blob
+  // download sama seperti export Excel yang sudah ada di laporan.
+  downloadCleanseBackup = () => {
+    api('GET', 'master_cleanse.php?action=export').then((res) => {
+      const blob = new Blob([JSON.stringify(res)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'app-mini-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+      URL.revokeObjectURL(url);
+    }).catch((e) => this.setState({ cleanseError: e.message }));
+  };
+
+  runCleanseDelete = () => {
+    const s = this.state;
+    const toko = (s.tokoProfil && s.tokoProfil.nama) || '';
+    if (!s.cleanseConfirmText || s.cleanseConfirmText !== toko) {
+      this.setState({ cleanseError: 'Kata konfirmasi belum cocok dengan nama toko.' });
+      return;
+    }
+    const f = this.cleanseFilterParams(s);
+    this.setState({ cleanseBusy: true, cleanseError: '', cleanseResult: null });
+    api('POST', 'master_cleanse.php', { action: 'cleanse', ...f, confirm_phrase: s.cleanseConfirmText }).then((res) => {
+      this.setState({
+        cleanseBusy: false, cleanseResult: res, cleansePreview: null, cleanseConfirmText: '',
+        cleanseModules: [], cleanseDari: '', cleanseSampai: '', cleanseSuplierId: '', cleansePelangganId: '',
+      });
+      this.refreshBarang(); this.refreshSuplier(); this.refreshPelanggan();
+      this.refreshPembelianHistory(); this.refreshPenjHistory();
+      this.refreshReturPj(); this.refreshReturPb();
+    }).catch((e) => this.setState({ cleanseBusy: false, cleanseError: e.message }));
+  };
+
+  handleCleanseImportFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    this.setState({ cleanseImportBusy: true, cleanseImportError: '', cleanseImportResult: null });
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try { parsed = JSON.parse(reader.result); } catch (err) {
+        this.setState({ cleanseImportBusy: false, cleanseImportError: 'File bukan JSON yang valid.' });
+        return;
+      }
+      api('POST', 'master_cleanse.php', { action: 'import', ...parsed }).then((res) => {
+        this.setState({ cleanseImportBusy: false, cleanseImportResult: res });
+        this.refreshBarang(); this.refreshSuplier(); this.refreshPelanggan();
+        this.refreshPembelianHistory(); this.refreshPenjHistory();
+        this.refreshReturPj(); this.refreshReturPb();
+      }).catch((err) => this.setState({ cleanseImportBusy: false, cleanseImportError: err.message }));
+    };
+    reader.onerror = () => this.setState({ cleanseImportBusy: false, cleanseImportError: 'Gagal membaca file.' });
+    reader.readAsText(file);
   };
 
   openMasterAdd = (type) => this.setState({
@@ -4520,15 +4760,16 @@ ${this.laporanLengkapTableHtml(tab, false)}
       isModMaster: s.activeModule === 'master',
       masterTabIsSuplier: s.masterTab === 'suplier', masterTabIsPelanggan: s.masterTab === 'pelanggan',
       masterTabIsKategori: s.masterTab === 'kategori', masterTabIsUser: s.masterTab === 'user',
-      masterTabIsToko: s.masterTab === 'toko',
+      masterTabIsToko: s.masterTab === 'toko', masterTabIsCleansing: s.masterTab === 'cleansing',
       setMasterTabSuplier: () => this.setMasterTab('suplier'), setMasterTabPelanggan: () => this.setMasterTab('pelanggan'),
       setMasterTabKategori: () => this.setMasterTab('kategori'), setMasterTabUser: () => this.setMasterTab('user'),
-      setMasterTabToko: this.setMasterTabToko,
+      setMasterTabToko: this.setMasterTabToko, setMasterTabCleansing: this.setMasterTabCleansing,
       masterTabSuplier_class: s.masterTab === 'suplier' ? 'btn-primary' : 'btn-secondary',
       masterTabPelanggan_class: s.masterTab === 'pelanggan' ? 'btn-primary' : 'btn-secondary',
       masterTabKategori_class: s.masterTab === 'kategori' ? 'btn-primary' : 'btn-secondary',
       masterTabUser_class: s.masterTab === 'user' ? 'btn-primary' : 'btn-secondary',
       masterTabToko_class: s.masterTab === 'toko' ? 'btn-primary' : 'btn-secondary',
+      masterTabCleansing_class: s.masterTab === 'cleansing' ? 'btn-primary' : 'btn-secondary',
       tokoForm: s.tokoForm, tokoFormError: s.tokoFormError, tokoSaved: s.tokoSaved,
       setTokoNama: this.setTokoFormField('nama'), setTokoAlamat: this.setTokoFormField('alamat'), setTokoNoHp: this.setTokoFormField('noHp'),
       saveTokoProfil: this.saveTokoProfil,
@@ -4555,6 +4796,42 @@ ${this.laporanLengkapTableHtml(tab, false)}
       masterFormError: s.masterFormError, saveMasterForm: this.saveMasterForm,
       masterDeleteTarget: s.masterDeleteTarget, masterDeleteTargetName: deleteTargetName,
       cancelDeleteMaster: this.cancelDeleteMaster, confirmDeleteMaster: this.confirmDeleteMaster,
+
+      ...this.cleanseVals(s),
+    };
+  }
+
+  cleanseVals(s) {
+    const CLEANSE_LABELS = {
+      penjualan: 'Penjualan', pembelian: 'Pembelian',
+      retur_penjualan: 'Retur Penjualan', retur_pembelian: 'Retur Pembelian',
+      barang: 'Barang & Stok', suplier: 'Suplier', pelanggan: 'Pelanggan',
+    };
+    const toRows = (obj) => Object.keys(obj || {}).map((k) => ({ label: CLEANSE_LABELS[k] || k, count: obj[k] }));
+    const preview = s.cleansePreview;
+    return {
+      cleanseDari: s.cleanseDari, setCleanseDari: this.setCleanseDari,
+      cleanseSampai: s.cleanseSampai, setCleanseSampai: this.setCleanseSampai,
+      cleanseModPenjualan: s.cleanseModules.includes('penjualan'), toggleCleanseModPenjualan: this.toggleCleanseModPenjualan,
+      cleanseModPembelian: s.cleanseModules.includes('pembelian'), toggleCleanseModPembelian: this.toggleCleanseModPembelian,
+      cleanseModReturPenjualan: s.cleanseModules.includes('retur_penjualan'), toggleCleanseModReturPenjualan: this.toggleCleanseModReturPenjualan,
+      cleanseModReturPembelian: s.cleanseModules.includes('retur_pembelian'), toggleCleanseModReturPembelian: this.toggleCleanseModReturPembelian,
+      cleanseModBarang: s.cleanseModules.includes('barang'), toggleCleanseModBarang: this.toggleCleanseModBarang,
+      cleanseModSuplier: s.cleanseModules.includes('suplier'), toggleCleanseModSuplier: this.toggleCleanseModSuplier,
+      cleanseModPelanggan: s.cleanseModules.includes('pelanggan'), toggleCleanseModPelanggan: this.toggleCleanseModPelanggan,
+      cleanseSuplierId: s.cleanseSuplierId, setCleanseSuplierId: this.setCleanseSuplierId,
+      cleansePelangganId: s.cleansePelangganId, setCleansePelangganId: this.setCleansePelangganId,
+      cleanseSuplierOptions: s.suplierList, cleansePelangganOptions: s.pelangganList,
+      runCleansePreview: this.runCleansePreview, cleansePreviewLoading: s.cleansePreviewLoading, cleansePreviewError: s.cleansePreviewError,
+      cleansePreviewDone: !!preview, cleansePreviewEmpty: !!preview && preview.total === 0, cleansePreviewHasRows: !!preview && preview.total > 0,
+      cleansePreviewRows: toRows(preview && preview.counts), cleansePreview: preview || { total: 0 },
+      downloadCleanseBackup: this.downloadCleanseBackup,
+      cleanseConfirmText: s.cleanseConfirmText, setCleanseConfirmText: this.setCleanseConfirmText,
+      cleanseConfirmDisabled: s.cleanseBusy || !s.cleanseConfirmText || s.cleanseConfirmText !== ((s.tokoProfil && s.tokoProfil.nama) || ''),
+      cleanseError: s.cleanseError, runCleanseDelete: this.runCleanseDelete,
+      cleanseResultDone: !!s.cleanseResult, cleanseResultRows: toRows(s.cleanseResult && s.cleanseResult.deleted),
+      handleCleanseImportFile: this.handleCleanseImportFile, cleanseImportBusy: s.cleanseImportBusy, cleanseImportError: s.cleanseImportError,
+      cleanseImportResultDone: !!s.cleanseImportResult, cleanseImportResultRows: toRows(s.cleanseImportResult && s.cleanseImportResult.restored),
     };
   }
 
