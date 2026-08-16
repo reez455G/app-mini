@@ -15,6 +15,29 @@ $stmt = $pdo->prepare(
 $stmt->execute([$from, $to]);
 $data = $stmt->fetchAll();
 
+// Rincian barang per faktur -- dipakai export Laporan Pembelian (1 baris
+// per barang, bukan cuma 1 baris ringkasan per faktur) supaya kelihatan
+// barang apa saja yang dibeli dan harga faktur/netto masing-masing.
+$itemStmt = $pdo->prepare(
+    'SELECT pi.pembelian_id, pi.kode_snapshot AS kode, pi.nama_snapshot AS nama,
+            pi.harga_faktur, pi.harga_netto, pi.qty, pi.subtotal
+     FROM pembelian_item pi JOIN pembelian p ON p.id = pi.pembelian_id
+     WHERE p.tanggal BETWEEN ? AND ? ORDER BY pi.id'
+);
+$itemStmt->execute([$from, $to]);
+$itemsByPembelian = [];
+foreach ($itemStmt->fetchAll() as $it) {
+    $itemsByPembelian[(int)$it['pembelian_id']][] = [
+        'kode' => $it['kode'], 'nama' => $it['nama'],
+        'harga_faktur' => (float)$it['harga_faktur'], 'harga_netto' => (float)$it['harga_netto'],
+        'qty' => (int)$it['qty'], 'subtotal' => (float)$it['subtotal'],
+    ];
+}
+$data = array_map(function ($r) use ($itemsByPembelian) {
+    $r['items'] = $itemsByPembelian[(int)$r['id']] ?? [];
+    return $r;
+}, $data);
+
 $perSupplier = [];
 foreach ($data as $r) {
     $s = $r['suplier'];
