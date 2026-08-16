@@ -58,18 +58,39 @@ if ($method === 'GET') {
         }
     }
 
-    $out = array_map(function ($s) use ($stokBySuplier, $hargaBySuplier, $hargaBeliBySuplier, $isOwner) {
-        $h = $hargaBySuplier[(int)$s['id']] ?? null;
+    // Faktur/Netto dari FAKTUR PEMBELIAN ASLI paling baru per suplier --
+    // dipakai isi awal kalau Owner belum pernah simpan harga referensi
+    // sendiri untuk suplier itu di barang_suplier_harga, supaya angka yang
+    // sebenarnya sudah diketahui (dari Input Pembelian) tidak perlu diketik
+    // ulang. Cuma salah satu (faktur ATAU netto) yang > 0, sama seperti
+    // basis yang dipilih saat Input Pembelian dulu -- lihat pembelian.php.
+    $latestPurchase = $pdo->prepare(
+        'SELECT p.suplier_id, pi.harga_faktur, pi.harga_netto
+         FROM pembelian_item pi JOIN pembelian p ON p.id = pi.pembelian_id
+         WHERE pi.barang_id = ? ORDER BY p.tanggal DESC, p.id DESC, pi.id DESC'
+    );
+    $latestPurchase->execute([$barangId]);
+    $latestBySuplier = [];
+    foreach ($latestPurchase->fetchAll() as $r) {
+        $sid = (int)$r['suplier_id'];
+        if (!isset($latestBySuplier[$sid])) $latestBySuplier[$sid] = $r; // baris pertama = paling baru
+    }
+
+    $out = array_map(function ($s) use ($stokBySuplier, $hargaBySuplier, $hargaBeliBySuplier, $isOwner, $latestBySuplier) {
+        $sid = (int)$s['id'];
+        $h = $hargaBySuplier[$sid] ?? null;
+        $sudahDisimpan = $h && ((float)$h['harga_faktur'] > 0 || (float)$h['harga_netto'] > 0);
+        $lp = $latestBySuplier[$sid] ?? null;
         $row = [
-            'suplier_id' => (int)$s['id'], 'suplier' => $s['nama'], 'suplier_kode' => $s['kode'],
-            'stok_sisa' => $stokBySuplier[(int)$s['id']] ?? 0,
-            'harga_faktur' => $h ? (float)$h['harga_faktur'] : null,
-            'harga_netto' => $h ? (float)$h['harga_netto'] : null,
+            'suplier_id' => $sid, 'suplier' => $s['nama'], 'suplier_kode' => $s['kode'],
+            'stok_sisa' => $stokBySuplier[$sid] ?? 0,
+            'harga_faktur' => $sudahDisimpan ? (float)$h['harga_faktur'] : ($lp ? (float)$lp['harga_faktur'] : null),
+            'harga_netto' => $sudahDisimpan ? (float)$h['harga_netto'] : ($lp ? (float)$lp['harga_netto'] : null),
             'harga_ecer' => $h ? (float)$h['harga_ecer'] : null,
             'harga_bengkel' => $h ? (float)$h['harga_bengkel'] : null,
             'harga_grosir' => $h ? (float)$h['harga_grosir'] : null,
         ];
-        if ($isOwner) $row['harga_beli'] = $hargaBeliBySuplier[(int)$s['id']] ?? null;
+        if ($isOwner) $row['harga_beli'] = $hargaBeliBySuplier[$sid] ?? null;
         return $row;
     }, $suppliers);
 

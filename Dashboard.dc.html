@@ -868,12 +868,12 @@
                   <div>
                     <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;">Suplier & Harga</div>
                     <p style="margin:3px 0 2px;font-size:11px;opacity:0.6;">Stok dan harga cuma bisa diubah per suplier di sini — kasir wajib pilih suplier saat jual, ditolak kalau belum ada harganya.</p>
-                    <p style="margin:0 0 6px;font-size:11px;opacity:0.55;">Harga default barang (dipakai stok lama tanpa suplier & sumber tombol Salin): Faktur {{ stokDefaultFakturLabel }} · Netto {{ stokDefaultNettoLabel }} · Ecer {{ stokDefaultEcerLabel }} · Bengkel {{ stokDefaultBengkelLabel }} · Grosir {{ stokDefaultGrosirLabel }}</p>
+                    <p style="margin:0 0 6px;font-size:11px;opacity:0.55;">Harga default barang (dipakai stok lama tanpa suplier & sumber tombol Salin): Harga Beli {{ stokDefaultHargaBeliLabel }} · Ecer {{ stokDefaultEcerLabel }} · Bengkel {{ stokDefaultBengkelLabel }} · Grosir {{ stokDefaultGrosirLabel }}</p>
                     <div style="overflow-x:auto;">
                       <table class="table" style="min-width:0;">
                         <thead><tr>
                           <th style="padding:4px 6px;">Suplier</th><th style="padding:4px 6px;">Pcs</th>
-                          <th style="padding:4px 6px;">Faktur</th><th style="padding:4px 6px;">Netto</th>
+                          <th style="padding:4px 6px;">Basis</th><th style="padding:4px 6px;">Harga Beli</th>
                           <th style="padding:4px 6px;">Ecer</th><th style="padding:4px 6px;">Bengkel</th><th style="padding:4px 6px;">Grosir</th><th style="padding:4px 6px;"></th>
                         </tr></thead>
                         <tbody>
@@ -881,8 +881,13 @@
                             <tr>
                               <td style="padding:4px 6px;white-space:nowrap;">{{ sp.suplier }}</td>
                               <td style="padding:4px 6px;"><input class="input" type="number" min="0" style="min-height:34px;font-size:13px;width:56px;padding:4px 6px;" placeholder="0" value="{{ sp.stok }}" onChange="{{ sp.setStok }}" /></td>
-                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.hargaFaktur }}" onChange="{{ sp.setHargaFaktur }}" /></td>
-                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.hargaNetto }}" onChange="{{ sp.setHargaNetto }}" /></td>
+                              <td style="padding:4px 6px;">
+                                <select class="input" style="min-height:34px;font-size:12px;width:72px;padding:4px 2px;" value="{{ sp.hargaBasis }}" onChange="{{ sp.setHargaBasis }}">
+                                  <option value="FAKTUR">Faktur</option>
+                                  <option value="NETTO">Netto</option>
+                                </select>
+                              </td>
+                              <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:70px;padding:4px 6px;" placeholder="0" value="{{ sp.hargaBeli }}" onChange="{{ sp.setHargaBeli }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.ecer }}" onChange="{{ sp.setEcer }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.bengkel }}" onChange="{{ sp.setBengkel }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.grosir }}" onChange="{{ sp.setGrosir }}" /></td>
@@ -3155,15 +3160,23 @@ class Component extends DCLogic {
     api('GET', 'barang_suplier_harga.php?barang_id=' + p.id).then((res) => {
       this.setState((s) => (s.stokEditKode !== kode ? {} : {
         stokTanpaSuplier: res.stok_tanpa_suplier,
-        stokSupplierPrices: res.suppliers.map((r) => ({
-          suplierId: r.suplier_id, suplier: r.suplier, stok: String(r.stok_sisa),
-          hargaFaktur: r.harga_faktur != null ? String(r.harga_faktur) : '',
-          hargaNetto: r.harga_netto != null ? String(r.harga_netto) : '',
-          ecer: r.harga_ecer != null ? String(r.harga_ecer) : '',
-          bengkel: r.harga_bengkel != null ? String(r.harga_bengkel) : '',
-          grosir: r.harga_grosir != null ? String(r.harga_grosir) : '',
-          error: '', saved: false,
-        })),
+        // Faktur/Netto digabung jadi satu Basis+Harga Beli -- server sudah
+        // isi salah satunya dari faktur pembelian ASLI paling baru (lihat
+        // komentar di barang_suplier_harga.php) kalau Owner belum pernah
+        // simpan harga referensi sendiri, jadi baris ini tidak pernah mulai
+        // dari 0 selama suplier itu memang pernah kirim barang ini.
+        stokSupplierPrices: res.suppliers.map((r) => {
+          const netto = r.harga_netto || 0, faktur = r.harga_faktur || 0;
+          return {
+            suplierId: r.suplier_id, suplier: r.suplier, stok: String(r.stok_sisa),
+            hargaBasis: netto > 0 ? 'NETTO' : 'FAKTUR',
+            hargaBeli: (netto > 0 ? netto : faktur) ? String(netto > 0 ? netto : faktur) : '',
+            ecer: r.harga_ecer != null ? String(r.harga_ecer) : '',
+            bengkel: r.harga_bengkel != null ? String(r.harga_bengkel) : '',
+            grosir: r.harga_grosir != null ? String(r.harga_grosir) : '',
+            error: '', saved: false,
+          };
+        }),
       }));
     }).catch(() => {});
   };
@@ -3202,7 +3215,8 @@ class Component extends DCLogic {
     stokSupplierPrices: s.stokSupplierPrices.map((r) => (r.suplierId === suplierId
       ? {
         ...r,
-        hargaFaktur: s.stokForm.hargaFaktur, hargaNetto: s.stokForm.hargaNetto,
+        hargaBasis: (parseFloat(s.stokForm.hargaNetto) || 0) > 0 ? 'NETTO' : 'FAKTUR',
+        hargaBeli: (parseFloat(s.stokForm.hargaNetto) || 0) > 0 ? s.stokForm.hargaNetto : s.stokForm.hargaFaktur,
         ecer: s.stokForm.ecer, bengkel: s.stokForm.bengkel, grosir: s.stokForm.grosir,
         error: '', saved: false,
       }
@@ -3228,7 +3242,12 @@ class Component extends DCLogic {
     }
     const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
     if (!editingId) return;
-    const hargaFaktur = parseFloat(row.hargaFaktur) || 0, hargaNetto = parseFloat(row.hargaNetto) || 0;
+    // Basis+Harga Beli (satu kolom di layar) dipecah balik jadi harga_faktur/
+    // harga_netto (salah satunya 0) sebelum dikirim -- pola sama dengan
+    // Input Pembelian (lihat finalizePembelian), bukan dua kolom independen.
+    const hargaBeli = parseFloat(row.hargaBeli) || 0;
+    const hargaFaktur = row.hargaBasis === 'FAKTUR' ? hargaBeli : 0;
+    const hargaNetto = row.hargaBasis === 'NETTO' ? hargaBeli : 0;
     this.setState({ busy: true });
     api('POST', 'barang_suplier_harga.php', {
       barang_id: editingId, suplier_id: suplierId,
@@ -4089,9 +4108,14 @@ ${this.laporanLengkapTableHtml(tab, false)}
       stokTotalLabel: editingProduct ? editingProduct.stok + ' pcs' : '—',
       // Harga default barang (barang.harga_*) -- bukan lagi yang diedit di
       // sini, cuma referensi baca-saja: sumber "Salin" & harga stok lama
-      // tanpa suplier yang legacy.
-      stokDefaultFakturLabel: formatRp(parseFloat(s.stokForm.hargaFaktur) || 0),
-      stokDefaultNettoLabel: formatRp(parseFloat(s.stokForm.hargaNetto) || 0),
+      // tanpa suplier yang legacy. Faktur/Netto ditampilkan gabung jadi satu
+      // "Harga Beli" -- cuma salah satu yang pernah diisi (basis yang dipilih
+      // saat Input Pembelian), menampilkan dua-duanya berdampingan cuma
+      // bikin satu kolom selalu kelihatan 0 tanpa alasan jelas.
+      stokDefaultHargaBeliLabel: (() => {
+        const faktur = parseFloat(s.stokForm.hargaFaktur) || 0, netto = parseFloat(s.stokForm.hargaNetto) || 0;
+        return netto > 0 ? formatRp(netto) + ' (Netto)' : formatRp(faktur) + ' (Faktur)';
+      })(),
       stokDefaultEcerLabel: formatRp(parseFloat(s.stokForm.ecer) || 0),
       stokDefaultBengkelLabel: formatRp(parseFloat(s.stokForm.bengkel) || 0),
       stokDefaultGrosirLabel: formatRp(parseFloat(s.stokForm.grosir) || 0),
@@ -4099,11 +4123,11 @@ ${this.laporanLengkapTableHtml(tab, false)}
       stokTanpaSuplierLabel: s.stokTanpaSuplier + ' pcs',
       stokSupplierPricesView: s.stokSupplierPrices.map((r) => ({
         suplierId: r.suplierId, suplier: r.suplier,
-        stok: r.stok, hargaFaktur: r.hargaFaktur, hargaNetto: r.hargaNetto,
+        stok: r.stok, hargaBasis: r.hargaBasis, hargaBeli: r.hargaBeli,
         ecer: r.ecer, bengkel: r.bengkel, grosir: r.grosir, error: r.error, saved: r.saved,
         setStok: this.setStokSupplierPriceField(r.suplierId, 'stok'),
-        setHargaFaktur: this.setStokSupplierPriceField(r.suplierId, 'hargaFaktur'),
-        setHargaNetto: this.setStokSupplierPriceField(r.suplierId, 'hargaNetto'),
+        setHargaBasis: this.setStokSupplierPriceField(r.suplierId, 'hargaBasis'),
+        setHargaBeli: this.setStokSupplierPriceField(r.suplierId, 'hargaBeli'),
         setEcer: this.setStokSupplierPriceField(r.suplierId, 'ecer'),
         setBengkel: this.setStokSupplierPriceField(r.suplierId, 'bengkel'),
         setGrosir: this.setStokSupplierPriceField(r.suplierId, 'grosir'),
