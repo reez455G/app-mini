@@ -1,0 +1,17 @@
+{
+  "name": "App-mini — PUTRA JAYA MOTOR",
+  "short_name": "App-mini",
+  "description": "Sistem Stok & Kasir Toko PUTRA JAYA MOTOR",
+  "start_url": "Dashboard.dc.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12141a",
+  "theme_color": "#12141a",
+  "lang": "id",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

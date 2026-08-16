@@ -3,6 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PWA: bisa "Install" / "Add to Home Screen" di Android & iPhone jadi
+     ikon sendiri, layar penuh tanpa address bar. manifest.json + sw.js ada
+     di root yang sama (lihat komentar di sw.js kenapa cache-nya sengaja
+     minim). Di iPhone (Safari) ini jalan apa adanya lewat meta apple-* di
+     bawah, tidak perlu HTTPS. Di Android (Chrome), prompt "Install app"
+     otomatis baru muncul kalau diakses lewat HTTPS atau localhost -- lewat
+     alamat IP toko biasa (http://192.168.x.x/...) tetap bisa "Add to Home
+     screen" manual dari menu Chrome, cuma tidak dapat prompt otomatisnya. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12141a">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="App-mini">
+<script>
+  if ('serviceWorker' in navigator) {
+    // Didaftarkan cuma di secure context (HTTPS/localhost) -- di HTTP biasa
+    // (akses lewat IP LAN toko) browser menolak register() sama sekali,
+    // gagalnya ditangkap diam-diam di sini, aplikasi tetap jalan normal.
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
 <!-- --app-100vh dipakai di .dialog (lihat <style> di bawah) supaya batas
      tinggi dialog dihitung dari window.visualViewport.height — area yang
      BENAR-BENAR kelihatan di layar, bukan "100vh" CSS yang di banyak
