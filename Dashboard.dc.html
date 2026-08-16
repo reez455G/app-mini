@@ -2911,7 +2911,7 @@ class Component extends DCLogic {
         invoiceNo: res.invoice_no, custName: s.penjCustName, items: s.penjCart,
         totalQty: res.total_qty, grandTotal: res.grand_total, paymentMethod: s.penjPaymentMethod,
         amountPaid: amountPaidNum, kembalian: res.kembalian, completedAt: new Date(),
-        kasir: s.userName + (s.role === 'owner' ? ' (Owner)' : ' (Karyawan)'),
+        kasir: s.userName,
       };
       this.setState({ busy: false, penjCompleted: true, penjLastInvoice: newInvoice });
       this.refreshBarang();
