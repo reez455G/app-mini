@@ -2244,8 +2244,12 @@ function formatWaktu(datetime) {
   if (!datetime) return '-';
   const d = new Date(datetime.replace(' ', 'T'));
   if (isNaN(d.getTime())) return '-';
+  // toLocaleTimeString('id-ID') pakai titik ("14.30"), bukan titik dua --
+  // itu memang konvensi locale Indonesia, tapi kolom timestamp di laporan
+  // maunya HH:MM biasa, jadi jamnya dirakit manual (pola sama formatWaktuInvoice).
+  const pad = (n) => String(n).padStart(2, '0');
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-    + ', ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
 
 // Tanggal cetak di invoice Transaksi Penjualan -- format numerik pendek
