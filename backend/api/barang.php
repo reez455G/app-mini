@@ -150,11 +150,12 @@ if ($method === 'GET') {
             'grosir_min' => $rentang['grosir'] ? min($rentang['grosir']) : (float)$r['harga_grosir'],
             'grosir_max' => $rentang['grosir'] ? max($rentang['grosir']) : (float)$r['harga_grosir'],
             'status' => stok_status((int)$r['stok'], (int)$r['min_stok']),
+            'pricelist' => (float)$r['pricelist'],
         ];
         if (!$isOwner) return $base;
         return $base + [
             'harga_faktur' => (float)$r['harga_faktur'], 'harga_netto' => (float)$r['harga_netto'],
-            'price_list_basis' => $r['price_list_basis'], 'min_stok' => (int)$r['min_stok'], 'pending_setup' => (bool)$r['pending_setup'],
+            'min_stok' => (int)$r['min_stok'], 'pending_setup' => (bool)$r['pending_setup'],
         ];
     }, $rows);
     json_ok($out);
@@ -236,6 +237,10 @@ if ($method === 'PUT') {
     if ($nama === '') json_error('Nama barang wajib diisi.');
     $minStok = (int)($in['min_stok'] ?? 10);
     if ($minStok < 0) json_error('Isi stok minimum dengan angka valid.');
+    // Pricelist/HET boleh 0 (artinya belum diisi/tidak dipakai) -- cuma
+    // ditolak kalau negatif.
+    $pricelist = (float)($in['pricelist'] ?? 0);
+    if ($pricelist < 0) json_error('Isi Pricelist/HET dengan angka valid (minimal 0).');
 
     $katId = resolve_kategori($pdo, $in['kategori'] ?? '');
     // suplier_id cuma ditimpa kalau field "suplier" memang DIKIRIM: form Ubah
@@ -245,11 +250,12 @@ if ($method === 'PUT') {
     $setSuplier = array_key_exists('suplier', $in) ? 'suplier_id=?, ' : '';
     $params = [$nama, $katId];
     if ($setSuplier) $params[] = resolve_suplier($pdo, $in['suplier'] ?? null);
+    $params[] = $pricelist;
     $params[] = $minStok;
     $params[] = $id;
 
     // kode tidak bisa diubah lewat endpoint ini (sama seperti form "Ubah Barang" di frontend).
-    $pdo->prepare("UPDATE barang SET nama=?, kategori_id=?, {$setSuplier}min_stok=? WHERE id=?")->execute($params);
+    $pdo->prepare("UPDATE barang SET nama=?, kategori_id=?, {$setSuplier}pricelist=?, min_stok=? WHERE id=?")->execute($params);
     json_ok(['updated' => $id]);
 }
 

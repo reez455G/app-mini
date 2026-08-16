@@ -787,7 +787,7 @@
               <p style="margin:10px 0 0;font-size:14px;opacity:0.6;">Tidak ada barang yang cocok.</p>
             </sc-if>
             <table class="table" style="margin-top:8px;min-width:1300px;white-space:nowrap;">
-              <thead><tr><th style="width:1%;"><input type="checkbox" checked="{{ stokAllVisibleSelected }}" onChange="{{ toggleStokSelectAll }}" aria-label="Pilih semua" /></th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Price List</th><th>Harga Beli</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th style="width:1%;"><input type="checkbox" checked="{{ stokAllVisibleSelected }}" onChange="{{ toggleStokSelectAll }}" aria-label="Pilih semua" /></th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Suplier</th><th>Pricelist / HET</th><th>Harga Beli</th><th>Harga Ecer</th><th>Harga Bengkel</th><th>Harga Grosir</th><th>Stok</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <sc-for list="{{ stokRows }}" as="item" hint-placeholder-count="8">
                   <tr>
@@ -801,7 +801,7 @@
                         <button type="button" class="btn btn-ghost" style="padding:1px 6px;min-height:auto;font-size:11px;" title="Lihat riwayat suplier" onClick="{{ item.supplierHistoryHandler }}">+{{ item.supplierExtraCount }}</button>
                       </sc-if>
                     </td>
-                    <td>{{ item.priceListValueLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.priceListBasisLabel }})</span></td>
+                    <td>{{ item.pricelistLabel }}</td>
                     <td>{{ item.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.hargaBasisLabel }})</span></td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
@@ -865,6 +865,10 @@
                       <input class="input" id="stok-f-minstok" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="10" value="{{ stokForm.minStok }}" onChange="{{ setStokMinStok }}" />
                     </div>
                     <p style="margin:0 0 10px;font-size:12px;opacity:0.65;">Total stok saat ini: <strong>{{ stokTotalLabel }}</strong> — menentukan kapan barang ini ditandai Menipis (stok ≤ minimum) / Kritis (stok ≤ setengah minimum).</p>
+                  </div>
+                  <div class="field">
+                    <label for="stok-f-pricelist">Pricelist / HET</label>
+                    <input class="input" id="stok-f-pricelist" type="number" min="0" style="min-height:42px;font-size:14px;" placeholder="0" value="{{ stokForm.pricelist }}" onChange="{{ setStokPricelist }}" />
                   </div>
                   <sc-if value="{{ stokFormError }}">
                     <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ stokFormError }}</p>
@@ -2127,12 +2131,12 @@
             </div>
             <div style="max-height:320px;overflow-y:auto;">
               <table class="table">
-                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist (catatan)</th><th>Subtotal</th></tr></thead>
+                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist (catatan)</th><th>Pricelist/HET</th><th>Subtotal</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
                     <tr>
                       <td>{{ it.kode }}</td><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td>
-                      <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                      <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistLabel }}</td><td>{{ it.pricelistHetLabel }}</td><td>{{ it.subtotalLabel }}</td>
                     </tr>
                   </sc-for>
                 </tbody>
@@ -2460,7 +2464,7 @@ function normalizeBarang(r) {
     ecerMin: Number(r.ecer_min ?? r.harga_ecer), ecerMax: Number(r.ecer_max ?? r.harga_ecer),
     bengkelMin: Number(r.bengkel_min ?? r.harga_bengkel), bengkelMax: Number(r.bengkel_max ?? r.harga_bengkel),
     grosirMin: Number(r.grosir_min ?? r.harga_grosir), grosirMax: Number(r.grosir_max ?? r.harga_grosir),
-    priceListBasis: r.price_list_basis || 'NETTO', minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
+    pricelist: Number(r.pricelist || 0), minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
   };
 }
 function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
@@ -2509,7 +2513,7 @@ class Component extends DCLogic {
     stokEditKode: null,
     stokSupplierPrices: [],
     stokTanpaSuplier: 0,
-    stokForm: { kode: '', nama: '', kategori: 'BAN', hargaFaktur: '', hargaNetto: '', ecer: '', bengkel: '', grosir: '', minStok: '' },
+    stokForm: { kode: '', nama: '', kategori: 'BAN', hargaFaktur: '', hargaNetto: '', ecer: '', bengkel: '', grosir: '', minStok: '', pricelist: '' },
     stokFormError: '',
     stokDeleteTarget: null,
     stokSelectedKodes: [],
@@ -3385,7 +3389,7 @@ class Component extends DCLogic {
         kode: p.kode, nama: p.nama, kategori: p.kategori,
         hargaFaktur: p.hargaFaktur ? String(p.hargaFaktur) : '', hargaNetto: p.hargaNetto ? String(p.hargaNetto) : '',
         ecer: p.ecer ? String(p.ecer) : '', bengkel: p.bengkel ? String(p.bengkel) : '', grosir: p.grosir ? String(p.grosir) : '',
-        minStok: String(p.minStok),
+        minStok: String(p.minStok), pricelist: String(p.pricelist || 0),
       },
     });
     // Tidak ada dropdown Suplier di form ini lagi: kolom suplier di barang
@@ -3437,8 +3441,12 @@ class Component extends DCLogic {
     const f = s.stokForm;
     const nama = f.nama.trim();
     const minStok = parseInt(f.minStok);
+    const pricelist = parseFloat(f.pricelist);
     if (!nama) { this.setState({ stokFormError: 'Nama barang wajib diisi.' }); return; }
     if (!(minStok >= 0)) { this.setState({ stokFormError: 'Isi stok minimum dengan angka valid.' }); return; }
+    // Pricelist/HET boleh 0 (memang boleh belum diisi/tidak dipakai untuk
+    // barang ini) -- cuma ditolak kalau kosong/bukan angka atau negatif.
+    if (!(pricelist >= 0)) { this.setState({ stokFormError: 'Isi Pricelist/HET dengan angka valid (boleh 0).' }); return; }
 
     const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
     if (!editingId) { this.setState({ stokFormError: 'Barang tidak ditemukan.' }); return; }
@@ -3459,7 +3467,7 @@ class Component extends DCLogic {
     }
 
     this.setState({ busy: true, stokFormError: '' });
-    const body = { nama, kategori: f.kategori, min_stok: minStok };
+    const body = { nama, kategori: f.kategori, min_stok: minStok, pricelist };
     // Satu tombol Simpan menyimpan SEMUANYA sekaligus -- info dasar barang +
     // tiap baris suplier (harga jual, harga faktur/netto referensi, DAN Pcs).
     // Basis+Harga Beli (satu kolom di layar) dipecah balik jadi harga_faktur/
@@ -3882,19 +3890,20 @@ tr { page-break-inside: avoid; }
       // per faktur -- ini cuma bentuk exportnya, tidak mengubah tampilan.
       const rows = [];
       v.pembelianRowsView.forEach((r) => {
-        const items = r.items.length ? r.items : [{ kode: '', nama: '(tidak ada rincian barang)', harga_faktur: 0, harga_netto: 0, qty: '', subtotal: 0 }];
+        const items = r.items.length ? r.items : [{ kode: '', nama: '(tidak ada rincian barang)', harga_faktur: 0, harga_netto: 0, qty: '', subtotal: 0, pricelist_het: 0 }];
         items.forEach((it) => {
           rows.push([
             r.waktuLabel, r.supplier, r.noFaktur, it.kode, it.nama,
             it.harga_faktur > 0 ? formatRp(it.harga_faktur) : '—',
             it.harga_netto > 0 ? formatRp(it.harga_netto) : '—',
+            formatRp(it.pricelist_het || 0),
             it.qty, it.subtotal ? formatRp(it.subtotal) : '—',
             r.totalBiayaLabel,
           ]);
         });
       });
       return this.laporanLengkapOneTable(
-        ['Waktu', 'Suplier', 'No. Faktur', 'Kode', 'Nama Barang', 'Harga Faktur', 'Harga Netto', 'Qty', 'Subtotal Barang', 'Total Faktur'],
+        ['Waktu', 'Suplier', 'No. Faktur', 'Kode', 'Nama Barang', 'Harga Faktur', 'Harga Netto', 'Pricelist/HET', 'Qty', 'Subtotal Barang', 'Total Faktur'],
         rows,
         border,
       );
@@ -4267,11 +4276,9 @@ ${this.laporanLengkapTableHtml(tab, false)}
   stokVals(s) {
     const filtered = this.stokFilteredProducts(s);
     const stokRows = filtered.map((p) => {
-      const priceListValue = p.priceListBasis === 'FAKTUR' ? p.hargaFaktur : p.hargaNetto;
-      // Harga Beli beda dari Price List di atas: Price List ikut basis yang
-      // DIPILIH manual per barang (acuan tampilan), sedangkan ini selalu
-      // Netto-diutamakan-fallback-Faktur — konsisten dengan "Harga Beli" di
-      // Riwayat Pembelian/Suplier/Detail Pembelian di tempat lain.
+      // Harga Beli beda dari Pricelist/HET: Harga Beli dihitung otomatis dari
+      // faktur/netto pembelian terakhir, sedangkan Pricelist/HET adalah angka
+      // yang diisi manual per barang (patokan harga jual, boleh 0).
       const hargaBeliValue = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
       return {
         ...p,
@@ -4283,8 +4290,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
         // barangnya cuma "hilang" dari daftar kasir tanpa penjelasan.
         hasSupplierTanpaHarga: p.supplierTanpaHarga.length > 0,
         supplierTanpaHargaLabel: p.supplierTanpaHarga.join(', '),
-        priceListBasisLabel: p.priceListBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
-        priceListValueLabel: priceListValue ? formatRp(priceListValue) : '—',
+        pricelistLabel: formatRp(p.pricelist || 0),
         hargaBasisLabel: p.hargaNetto > 0 ? 'Netto' : 'Faktur',
         hargaBeliLabel: hargaBeliValue ? formatRp(hargaBeliValue) : '—',
         statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
@@ -4361,7 +4367,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       })),
       setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
       setStokKategori: this.setStokFormField('kategori'),
-      setStokMinStok: this.setStokFormField('minStok'),
+      setStokMinStok: this.setStokFormField('minStok'), setStokPricelist: this.setStokFormField('pricelist'),
       stokFormError: s.stokFormError, saveStokForm: this.saveStokForm,
       stokDeleteTarget: s.stokDeleteTarget, deleteTargetName: deleteTargetProduct ? deleteTargetProduct.nama : '',
       cancelDeleteStok: this.cancelDeleteStok, confirmDeleteStok: this.confirmDeleteStok,
@@ -4570,6 +4576,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
         hargaBeliLabel: formatRp(it.harga_netto > 0 ? it.harga_netto : it.harga_faktur),
         hargaBasisLabel: it.harga_netto > 0 ? 'Netto' : 'Faktur',
         pricelistLabel: it.pricelist > 0 ? formatRp(it.pricelist) : '—', subtotalLabel: formatRp(it.subtotal),
+        pricelistHetLabel: formatRp(it.pricelist_het || 0),
       })),
     } : null;
     const laporanPembelianDetailLoading = s.laporanPembelianDetailOpen && !laporanPembelianDetailView && !s.laporanPembelianDetailError;

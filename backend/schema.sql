@@ -65,7 +65,8 @@ CREATE TABLE barang (
   suplier_id INT DEFAULT NULL,          -- suplier utama (ditentukan manual di Data Barang)
   harga_faktur DECIMAL(14,2) NOT NULL DEFAULT 0,   -- harga beli terakhir (snapshot)
   harga_netto DECIMAL(14,2) NOT NULL DEFAULT 0,
-  price_list_basis ENUM('FAKTUR','NETTO') NOT NULL DEFAULT 'NETTO',
+  price_list_basis ENUM('FAKTUR','NETTO') NOT NULL DEFAULT 'NETTO',  -- sudah tidak dipakai, ditinggal apa adanya
+  pricelist DECIMAL(14,2) NOT NULL DEFAULT 0,  -- Pricelist/HET: patokan harga per barang, diisi manual, boleh 0
   -- Batas tier di bawah ini HARUS sama dengan tier_for_qty() di
   -- backend/api/penjualan.php dan addToCart() di Dashboard.dc.html.
   harga_ecer DECIMAL(14,2) NOT NULL DEFAULT 0,     -- 1 pcs

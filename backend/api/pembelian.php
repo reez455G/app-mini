@@ -13,7 +13,14 @@ if ($method === 'GET') {
         $h->execute([$id]);
         $header = $h->fetch();
         if (!$header) json_error('Pembelian tidak ditemukan.', 404);
-        $it = $pdo->prepare('SELECT kode_snapshot AS kode, nama_snapshot AS nama, kategori_snapshot AS kategori, harga_faktur, harga_netto, pricelist, qty, subtotal FROM pembelian_item WHERE pembelian_id = ?');
+        // b.pricelist: Pricelist/HET SAAT INI di Data Barang (bukan snapshot
+        // waktu pembelian) -- beda dari pi.pricelist (catatan manual per
+        // baris pembelian, snapshot histori, lihat komentar di sekitarnya).
+        $it = $pdo->prepare(
+            'SELECT pi.kode_snapshot AS kode, pi.nama_snapshot AS nama, pi.kategori_snapshot AS kategori,
+                    pi.harga_faktur, pi.harga_netto, pi.pricelist, pi.qty, pi.subtotal, b.pricelist AS pricelist_het
+             FROM pembelian_item pi JOIN barang b ON b.id = pi.barang_id WHERE pi.pembelian_id = ?'
+        );
         $it->execute([$id]);
         $header['items'] = $it->fetchAll();
         json_ok($header);

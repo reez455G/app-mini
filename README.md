@@ -67,9 +67,12 @@ saja di komputer Windows-nya (hasil unzip atau `git clone`), nyalakan MySQL di
 XAMPP Control Panel, lalu klik dua kali **`deploy-windows.bat`**. Kalau XAMPP
 bukan di `C:\xampp`, jalankan lewat cmd: `deploy-windows.bat D:\xampp`.
 
-Script-nya menyalin aplikasi ke `htdocs\app-mini` dan mengimport
-`backend/schema.sql` **hanya kalau database `app_mini` belum ada** — jadi aman
-dijalankan ulang tiap kali ada update aplikasi, data toko tidak akan tertimpa.
+Script-nya menyalin aplikasi ke `htdocs\app-mini`, mengimport
+`backend/schema.sql` **hanya kalau database `app_mini` belum ada**, lalu
+menjalankan semua `backend/migration_*.sql` (aman diulang, lihat isi
+file migrasinya) — jadi aman dijalankan ulang tiap kali ada update aplikasi:
+data toko tidak akan tertimpa, dan perubahan struktur tabel dari update
+otomatis ikut diterapkan.
 
 Tidak perlu langkah install/build tambahan (tidak ada `npm install`) — cukup
 Apache + MySQL bawaan XAMPP. Selalu akses lewat `http://localhost/...`,

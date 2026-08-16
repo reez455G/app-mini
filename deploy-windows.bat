@@ -9,7 +9,10 @@ REM  jalankan lewat cmd dengan foldernya sebagai argumen:
 REM      deploy-windows.bat D:\xampp
 REM
 REM  Script ini TIDAK pernah menyentuh data yang sudah ada: schema.sql
-REM  cuma diimport kalau database app_mini belum ada. Update aplikasi
+REM  cuma diimport kalau database app_mini belum ada. Kalau database sudah
+REM  ada, semua file backend\migration_*.sql dijalankan otomatis (aman
+REM  dijalankan berkali-kali - lihat isi file migrasinya) supaya perubahan
+REM  struktur tabel dari update aplikasi ikut diterapkan. Update aplikasi
 REM  berikutnya cukup jalankan ulang file ini.
 REM ====================================================================
 
@@ -40,7 +43,7 @@ if not exist "%MYSQL%" (
 REM --- 1. Salin file aplikasi -----------------------------------------
 REM /E salin semua subfolder, tanpa /MIR supaya tidak ada yang terhapus.
 REM .git dan .claude bukan bagian aplikasi, tidak perlu ikut ke htdocs.
-echo [1/3] Menyalin file aplikasi...
+echo [1/4] Menyalin file aplikasi...
 robocopy "%SRC%." "%TARGET%" /E /NFL /NDL /NJH /NJS /NP /XD ".git" ".claude" >nul
 REM Robocopy: kode 0-7 sukses, 8 ke atas beneran error.
 if %ERRORLEVEL% GEQ 8 (
@@ -51,7 +54,7 @@ if %ERRORLEVEL% GEQ 8 (
 echo       OK.
 
 REM --- 2. Database ------------------------------------------------------
-echo [2/3] Memeriksa database...
+echo [2/4] Memeriksa database...
 "%MYSQL%" -u root %PWARG% -e "SELECT 1" >nul 2>&1
 if errorlevel 1 (
   echo [GAGAL] Tidak bisa terhubung ke MySQL.
@@ -77,8 +80,26 @@ if errorlevel 1 (
   echo       Database app_mini sudah ada dan berisi data - tidak disentuh.
 )
 
-REM --- 3. Selesai -------------------------------------------------------
-echo [3/3] Selesai.
+REM --- 3. Migrasi database ------------------------------------------------
+REM Database baru dari schema.sql di atas sudah paling baru, jalankan juga
+REM migrasinya tidak masalah (isinya ADD COLUMN IF NOT EXISTS, no-op kalau
+REM sudah ada) -- lebih sederhana daripada mengecualikan kasus BARU.
+echo [3/4] Menerapkan migrasi database...
+set "ADAMIGRASI="
+for /f "delims=" %%f in ('dir /b /on "%TARGET%\backend\migration_*.sql" 2^>nul') do (
+  set "ADAMIGRASI=1"
+  echo       - %%f
+  "%MYSQL%" -u root %PWARG% < "%TARGET%\backend\%%f"
+  if errorlevel 1 (
+    echo [GAGAL] Migrasi %%f gagal.
+    goto :fail
+  )
+)
+if not defined ADAMIGRASI echo       Tidak ada file migrasi.
+echo       OK.
+
+REM --- 4. Selesai -------------------------------------------------------
+echo [4/4] Selesai.
 echo.
 echo   Buka: http://localhost/app-mini/
 echo   Dari komputer kasir lain: http://^<ip-komputer-ini^>/app-mini/
