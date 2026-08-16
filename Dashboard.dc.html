@@ -105,6 +105,16 @@
     .dialog-actions { justify-content: center; }
     .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }
+    /* Struk penjualan: kolom Barang mengambil SISA lebar, kolom angka tidak
+       pernah turun baris — tanpa ini nama panjang terjepit jadi 5 baris
+       padahal kolom angka di sebelahnya masih menyisakan ruang. */
+    #penj-invoice-print table.table th, #penj-invoice-print table.table td { white-space: nowrap; padding: 7px 4px; }
+    #penj-invoice-print table.table .inv-nama { white-space: normal; width: 100%; }
+    /* Nama panjang mengecil sendiri supaya tetap muat. CSS murni tidak bisa
+       mengukur panjang teks, jadi kelasnya ditentukan di penjLastInvoiceView
+       berdasarkan jumlah karakter nama barang. */
+    #penj-invoice-print .inv-nama-sm { font-size: 12px; }
+    #penj-invoice-print .inv-nama-xs { font-size: 11px; }
     @media print {
       /* body:has(#stok-print-sheet) — #stok-print-sheet cuma ADA di DOM saat
          stokPrintOpen true (dibungkus sc-if). Tanpa syarat :has() ini,
@@ -161,11 +171,17 @@
       #penj-invoice-print * { font-size: 12px !important; font-weight: 700 !important; }
       #penj-invoice-print h3 { font-size: 15px !important; }
       /* Padding horizontal dirapatkan sejak kolom Harga ditambahkan (5 kolom
-         di 76mm) -- nama barang tetap boleh turun baris, angka jangan. */
+         di 76mm). Aturan lebar/nowrap kolom & pengecilan nama panjang ada di
+         luar @media print (dipakai layar juga), di sini cuma ukuran cetaknya
+         -- pakai selector id+class supaya menang dari "#penj-invoice-print *"
+         yang !important di atas. */
       #penj-invoice-print table.table th, #penj-invoice-print table.table td { padding: 3px 2px !important; }
-      #penj-invoice-print table.table td:nth-child(3),
-      #penj-invoice-print table.table td:nth-child(4),
-      #penj-invoice-print table.table td:nth-child(5) { white-space: nowrap !important; }
+      #penj-invoice-print .inv-nama-sm { font-size: 11px !important; }
+      #penj-invoice-print .inv-nama-xs { font-size: 10px !important; }
+      /* Di 76mm tiap milimeter berharga: satuan "pcs" dan letter-spacing
+         header dibuang supaya lebar itu jatuh ke kolom nama barang. */
+      #penj-invoice-print .inv-pcs, #penj-invoice-print .inv-rp { display: none !important; }
+      #penj-invoice-print table.table th { letter-spacing: 0 !important; }
     }
 
     /* ── Responsif: tablet & Android ─────────────────────────────────
@@ -722,7 +738,7 @@
                   <thead><tr><th>No.</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr></thead>
                   <tbody>
                     <sc-for list="{{ penjLastInvoiceView.items }}" as="item" hint-placeholder-count="3">
-                      <tr><td>{{ item.no }}</td><td>{{ item.nama }}</td><td>{{ item.qty }} pcs</td><td>{{ item.unitPriceLabel }}</td><td>{{ item.subtotalLabel }}</td></tr>
+                      <tr><td>{{ item.no }}</td><td class="inv-nama {{ item.namaSizeClass }}">{{ item.nama }}</td><td>{{ item.qty }}<span class="inv-pcs"> pcs</span></td><td><span class="inv-rp">Rp </span>{{ item.unitPriceNum }}</td><td><span class="inv-rp">Rp </span>{{ item.subtotalNum }}</td></tr>
                     </sc-for>
                   </tbody>
                 </table>
@@ -2339,7 +2355,8 @@ const NAV_ACCESS = {
 
 const RETUR_REASONS = ['Rusak', 'Cacat', 'Salah Kirim', 'Lainnya'];
 
-function formatRp(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+function formatRp(n) { return 'Rp ' + formatAngka(n); }
+function formatAngka(n) { return Math.round(n).toLocaleString('id-ID'); }
 // Harga jual bisa beda antar suplier untuk barang yang sama, jadi kolom harga
 // di Data Barang/Laporan Stok menampilkan rentangnya kalau memang beda —
 // satu angka saja akan menyembunyikan bahwa ada harga lain yang juga berlaku.
@@ -4221,7 +4238,17 @@ ${this.laporanLengkapTableHtml(tab, false)}
         grandTotalLabel: formatRp(li.grandTotal), paymentMethod: li.paymentMethod === 'TUNAI' ? 'Tunai' : 'Transfer',
         amountPaidLabel: formatRp(li.amountPaid), kembalianLabel: formatRp(li.kembalian),
         waktuLabel: formatWaktuInvoice(li.completedAt),
-        items: li.items.map((i, idx) => ({ ...i, no: idx + 1, unitPriceLabel: formatRp(i.unitPrice), subtotalLabel: formatRp(i.subtotal) })),
+        // namaSizeClass: nama panjang dikecilkan sendiri biar tidak jadi
+        // tumpukan 5 baris di kolom sempit (76mm). Ambangnya dari jumlah
+        // karakter -- CSS tidak punya cara mengukur panjang teks sendiri.
+        items: li.items.map((i, idx) => ({
+          ...i, no: idx + 1,
+          namaSizeClass: i.nama.length > 34 ? 'inv-nama-xs' : i.nama.length > 20 ? 'inv-nama-sm' : '',
+          // Angka tanpa "Rp" — prefiksnya elemen sendiri di template supaya
+          // bisa disembunyikan khusus saat cetak (76mm terlalu sempit untuk
+          // mengulang "Rp" di tiap baris; Total di bawah struk tetap pakai).
+          unitPriceNum: formatAngka(i.unitPrice), subtotalNum: formatAngka(i.subtotal),
+        })),
         // Kasir yang memproses transaksi ini -- diambil saat transaksi selesai
         // (bukan saat cetak), jadi tetap benar walau layarnya dibiarkan terbuka.
         kasirLabel: li.kasir,
