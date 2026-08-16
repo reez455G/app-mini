@@ -14,11 +14,11 @@ if ($method === 'GET') {
         $header = $h->fetch();
         if (!$header) json_error('Pembelian tidak ditemukan.', 404);
         // b.pricelist: Pricelist/HET SAAT INI di Data Barang (bukan snapshot
-        // waktu pembelian) -- beda dari pi.pricelist (catatan manual per
-        // baris pembelian, snapshot histori, lihat komentar di sekitarnya).
+        // waktu pembelian -- barang bisa saja sudah diedit Pricelist/HET-nya
+        // sesudah faktur ini dibuat).
         $it = $pdo->prepare(
             'SELECT pi.kode_snapshot AS kode, pi.nama_snapshot AS nama, pi.kategori_snapshot AS kategori,
-                    pi.harga_faktur, pi.harga_netto, pi.pricelist, pi.qty, pi.subtotal, b.pricelist AS pricelist_het
+                    pi.harga_faktur, pi.harga_netto, pi.qty, pi.subtotal, b.pricelist AS pricelist_het
              FROM pembelian_item pi JOIN barang b ON b.id = pi.barang_id WHERE pi.pembelian_id = ?'
         );
         $it->execute([$id]);
@@ -131,11 +131,13 @@ try {
         $qty = (int)($line['qty'] ?? 0);
         $hargaFaktur = (float)($line['harga_faktur'] ?? 0);
         $hargaNetto = (float)($line['harga_netto'] ?? 0);
+        // pembelian_item.pricelist (catatan manual per baris pembelian) sudah
+        // tidak diisi dari Input Pembelian lagi -- diganti Pricelist/HET per
+        // barang (lihat barang.pricelist), jadi selalu 0 di sini sekarang.
         $pricelist = (float)($line['pricelist'] ?? 0);
         // Input Pembelian sekarang cuma minta SATU basis harga (Faktur ATAU
         // Netto, bukan dua-duanya) — jadi salah satu boleh 0, tapi keduanya
-        // 0 sekaligus tetap ditolak. Pricelist boleh 0/kosong — sebagian
-        // barang memang tidak perlu diisi pricelist-nya.
+        // 0 sekaligus tetap ditolak.
         if ($kode === '' || $qty < 1 || ($hargaFaktur <= 0 && $hargaNetto <= 0)) {
             throw new RuntimeException('Setiap item butuh kode, qty >= 1, dan salah satu harga faktur/netto.');
         }

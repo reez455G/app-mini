@@ -1126,10 +1126,6 @@
                     <input class="input {{ pembelianQtyInvalidClass }}" id="pb-qty" type="number" min="1" style="min-height:46px;font-size:15px;" value="{{ pembelianQty }}" onChange="{{ setPembelianQty }}" />
                   </div>
                 </div>
-                <div class="field" style="margin-top:16px;">
-                  <label for="pb-pricelist">Pricelist (catatan)</label>
-                  <input class="input {{ pembelianPricelistInvalidClass }}" id="pb-pricelist" type="number" min="0" style="min-height:46px;font-size:15px;" placeholder="0" value="{{ pembelianPricelist }}" onChange="{{ setPembelianPricelist }}" />
-                </div>
                 <button type="button" class="btn btn-primary" style="margin-top:14px;min-height:46px;" onClick="{{ addToPembelianCart }}">+ Tambah ke Daftar</button>
                 <sc-if value="{{ pembelianItemFormError }}">
                   <p style="margin:8px 0 0;font-size:12px;color:var(--color-accent-2-700);">{{ pembelianItemFormError }}</p>
@@ -1143,7 +1139,7 @@
                 </sc-if>
                 <sc-if value="{{ pembelianCartNotEmpty }}" hint-placeholder-val="{{ true }}">
                   <table class="table" style="margin-top:8px;">
-                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Beli</th><th>Pricelist (catatan)</th><th>Subtotal</th><th></th></tr></thead>
+                    <thead><tr><th>Kode</th><th></th><th>Nama Barang</th><th>Qty</th><th>Harga Beli</th><th>Pricelist/HET</th><th>Subtotal</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ pembelianCartView }}" as="item" hint-placeholder-count="3">
                         <tr>
@@ -2131,12 +2127,12 @@
             </div>
             <div style="max-height:320px;overflow-y:auto;">
               <table class="table">
-                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist (catatan)</th><th>Pricelist/HET</th><th>Subtotal</th></tr></thead>
+                <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Harga Beli</th><th>Pricelist/HET</th><th>Subtotal</th></tr></thead>
                 <tbody>
                   <sc-for list="{{ laporanPembelianDetail.items }}" as="it" hint-placeholder-count="3">
                     <tr>
                       <td>{{ it.kode }}</td><td>{{ it.nama }}</td><td>{{ it.qty }} pcs</td>
-                      <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistLabel }}</td><td>{{ it.pricelistHetLabel }}</td><td>{{ it.subtotalLabel }}</td>
+                      <td>{{ it.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ it.hargaBasisLabel }})</span></td><td>{{ it.pricelistHetLabel }}</td><td>{{ it.subtotalLabel }}</td>
                     </tr>
                   </sc-for>
                 </tbody>
@@ -2394,7 +2390,7 @@ const PEMBELIAN_DRAFT_KEY = 'app-mini:pembelianDraft';
 const PEMBELIAN_DRAFT_FIELDS = [
   'pembelianNoFaktur', 'pembelianSupplierNew', 'pembelianTanggal', 'pembelianJatuhTempo', 'pembelianPayment',
   'pembelianKategoriFilter', 'pembelianNewKode', 'pembelianNewNama',
-  'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianPricelist', 'pembelianQty',
+  'pembelianHargaBasis', 'pembelianHargaBeli', 'pembelianQty',
   'pembelianCart',
 ];
 
@@ -2541,7 +2537,6 @@ class Component extends DCLogic {
     pembelianQty: 1,
     pembelianHargaBasis: 'NETTO',
     pembelianHargaBeli: '',
-    pembelianPricelist: '',
     // Tanggal faktur fisik dari suplier -- bisa beda dari hari input (faktur
     // kemarin baru sempat diinput hari ini). Default hari ini, tapi bisa
     // diubah; ikut menentukan urutan batch FIFO di backend.
@@ -3714,7 +3709,6 @@ class Component extends DCLogic {
   setPembelianHargaBasisFaktur = () => this.setState({ pembelianHargaBasis: 'FAKTUR', ...this.clearPembelianItemError() });
   setPembelianHargaBasisNetto = () => this.setState({ pembelianHargaBasis: 'NETTO', ...this.clearPembelianItemError() });
   setPembelianHargaBeli = (e) => this.setState({ pembelianHargaBeli: e.target.value, ...this.clearPembelianItemError() });
-  setPembelianPricelist = (e) => this.setState({ pembelianPricelist: e.target.value, ...this.clearPembelianItemError() });
   setPembelianTanggal = (e) => this.setState({ pembelianTanggal: e.target.value });
   setPembelianJatuhTempo = (e) => this.setState({ pembelianJatuhTempo: e.target.value });
   setLaporanSearch = (e) => this.setState({ laporanSearch: e.target.value });
@@ -4022,7 +4016,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const product = isNewItem ? null : s.stokProducts.find((p) => p.kode === s.pembelianSelectedKode);
     const qty = parseInt(s.pembelianQty) || 0;
     const hargaBeli = parseFloat(s.pembelianHargaBeli) || 0;
-    const pricelist = parseFloat(s.pembelianPricelist) || 0;
 
     const missing = [];
     const missingKeys = [];
@@ -4036,7 +4029,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
     if (isNewItem && !s.pembelianNewNama.trim()) { missing.push('Nama Barang Baru'); missingKeys.push('newNama'); }
     if (!qty) { missing.push('Jumlah'); missingKeys.push('qty'); }
     if (!hargaBeli) { missing.push('Harga Beli'); missingKeys.push('hargaBeli'); }
-    // Pricelist boleh 0/kosong — sebagian barang memang tidak perlu diisi.
     if (missing.length) {
       this.setState({ pembelianItemFormError: 'Lengkapi dulu: ' + missing.join(', ') + '.', pembelianItemFieldErrors: missingKeys });
       return;
@@ -4057,9 +4049,9 @@ ${this.laporanLengkapTableHtml(tab, false)}
         kode, nama, kategori, isNew: isNewItem, qty, hargaBasis,
         hargaFaktur: hargaBasis === 'FAKTUR' ? hargaBeli : 0,
         hargaNetto: hargaBasis === 'NETTO' ? hargaBeli : 0,
-        pricelist, subtotal: qty * hargaBeli,
+        subtotal: qty * hargaBeli,
       }],
-      pembelianQty: 1, pembelianHargaBeli: '', pembelianPricelist: '', pembelianNewKode: '', pembelianNewNama: '',
+      pembelianQty: 1, pembelianHargaBeli: '', pembelianNewKode: '', pembelianNewNama: '',
       pembelianItemFormError: '', pembelianItemFieldErrors: [],
     }));
   };
@@ -4077,14 +4069,14 @@ ${this.laporanLengkapTableHtml(tab, false)}
     const supplierName = this.resolvePembelianSupplier(s);
     const noFaktur = s.pembelianNoFaktur.trim();
     if (!supplierName || !noFaktur || s.pembelianCart.length === 0) return;
-    const items = s.pembelianCart.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, pricelist: i.pricelist, qty: i.qty }));
+    const items = s.pembelianCart.map((i) => ({ kode: i.kode, nama: i.nama, kategori: i.kategori, harga_faktur: i.hargaFaktur, harga_netto: i.hargaNetto, qty: i.qty }));
     const justAddedNew = s.pembelianCart.filter((i) => i.isNew).map((i) => ({ kode: i.kode, nama: i.nama }));
     this.setState({ busy: true, pembelianSubmitError: '' });
     api('POST', 'pembelian.php', { suplier: supplierName, no_faktur: noFaktur, tanggal: s.pembelianTanggal, payment_type: s.pembelianPayment, jatuh_tempo: s.pembelianJatuhTempo || null, items }).then((res) => {
       clearPembelianDraft();
       this.setState({
         busy: false,
-        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianPricelist: '', pembelianTanggal: new Date().toISOString().slice(0, 10), pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
+        pembelianCart: [], pembelianNoFaktur: '', pembelianSupplierChoice: '', pembelianSupplierNew: '', pembelianQty: 1, pembelianHargaBasis: 'NETTO', pembelianHargaBeli: '', pembelianTanggal: new Date().toISOString().slice(0, 10), pembelianJatuhTempo: '', pembelianPayment: 'CASH', pembelianScanInput: '', pembelianScanReady: false, pembelianProductComboOpen: false, pembelianProductComboQuery: '', pembelianSupplierComboOpen: false, pembelianSupplierComboQuery: '',
         pembelianJustAddedNew: justAddedNew,
         pembelianLastSuccess: { noFaktur: res.no_faktur, totalBiayaLabel: formatRp(res.total_biaya) },
       });
@@ -4409,7 +4401,10 @@ ${this.laporanLengkapTableHtml(tab, false)}
       hargaBeliLabel: formatRp(item.hargaBasis === 'FAKTUR' ? item.hargaFaktur : item.hargaNetto),
       hargaBasisLabel: item.hargaBasis === 'FAKTUR' ? 'Faktur' : 'Netto',
       subtotalLabel: formatRp(item.subtotal),
-      pricelistLabel: item.pricelist > 0 ? formatRp(item.pricelist) : '—',
+      // Pricelist/HET bukan lagi catatan yang diketik per baris pembelian --
+      // ini live lookup ke barang.pricelist SAAT INI (barang baru yang belum
+      // tersimpan tampil '—', isinya diatur nanti lewat Ubah Barang).
+      pricelistLabel: item.isNew ? '—' : formatRp((s.stokProducts.find((p) => p.kode === item.kode) || {}).pricelist || 0),
       removeHandler: () => this.removeFromPembelianCart(idx),
       // Cetak Barcode langsung dari daftar keranjang — belum perlu tunggu
       // pembelian disimpan, berguna terutama buat barang baru yang kode/nama-nya
@@ -4456,7 +4451,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       pembelianHargaBasisIsFaktur: s.pembelianHargaBasis === 'FAKTUR', pembelianHargaBasisIsNetto: s.pembelianHargaBasis === 'NETTO',
       setPembelianHargaBasisFaktur: this.setPembelianHargaBasisFaktur, setPembelianHargaBasisNetto: this.setPembelianHargaBasisNetto,
       pembelianHargaBeli: s.pembelianHargaBeli, setPembelianHargaBeli: this.setPembelianHargaBeli,
-      pembelianPricelist: s.pembelianPricelist, setPembelianPricelist: this.setPembelianPricelist,
       pembelianTanggal: s.pembelianTanggal, setPembelianTanggal: this.setPembelianTanggal,
       pembelianJatuhTempo: s.pembelianJatuhTempo, setPembelianJatuhTempo: this.setPembelianJatuhTempo,
       payIsCash: s.pembelianPayment === 'CASH', payIsTop: s.pembelianPayment === 'TOP',
@@ -4468,7 +4462,6 @@ ${this.laporanLengkapTableHtml(tab, false)}
       pembelianNewNamaInvalidClass: s.pembelianItemFieldErrors.includes('newNama') ? 'input-invalid' : '',
       pembelianQtyInvalidClass: s.pembelianItemFieldErrors.includes('qty') ? 'input-invalid' : '',
       pembelianHargaBeliInvalidClass: s.pembelianItemFieldErrors.includes('hargaBeli') ? 'input-invalid' : '',
-      pembelianPricelistInvalidClass: s.pembelianItemFieldErrors.includes('pricelist') ? 'input-invalid' : '',
       pembelianCartEmpty: s.pembelianCart.length === 0, pembelianCartNotEmpty: s.pembelianCart.length > 0,
       pembelianCartView,
       pembelianTotalItems: totalItems, pembelianTotalQty: totalQty, pembelianTotalBiayaLabel: formatRp(totalBiaya),
@@ -4575,7 +4568,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
         ...it,
         hargaBeliLabel: formatRp(it.harga_netto > 0 ? it.harga_netto : it.harga_faktur),
         hargaBasisLabel: it.harga_netto > 0 ? 'Netto' : 'Faktur',
-        pricelistLabel: it.pricelist > 0 ? formatRp(it.pricelist) : '—', subtotalLabel: formatRp(it.subtotal),
+        subtotalLabel: formatRp(it.subtotal),
         pricelistHetLabel: formatRp(it.pricelist_het || 0),
       })),
     } : null;
