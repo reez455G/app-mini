@@ -867,14 +867,14 @@
                   </sc-if>
                   <div>
                     <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;opacity:0.55;">Suplier & Harga</div>
-                    <p style="margin:3px 0 2px;font-size:11px;opacity:0.6;">Stok dan harga cuma bisa diubah per suplier di sini — kasir wajib pilih suplier saat jual, ditolak kalau belum ada harganya.</p>
-                    <p style="margin:0 0 6px;font-size:11px;opacity:0.55;">Harga default barang (dipakai stok lama tanpa suplier & sumber tombol Salin): Harga Beli {{ stokDefaultHargaBeliLabel }} · Ecer {{ stokDefaultEcerLabel }} · Bengkel {{ stokDefaultBengkelLabel }} · Grosir {{ stokDefaultGrosirLabel }}</p>
+                    <p style="margin:3px 0 2px;font-size:11px;opacity:0.6;">Stok dan harga cuma bisa diubah per suplier di sini — kasir wajib pilih suplier saat jual, ditolak kalau belum ada harganya. Ubah field di bawah lalu klik Simpan di bawah dialog ini, semua baris tersimpan sekaligus.</p>
+                    <p style="margin:0 0 6px;font-size:11px;opacity:0.55;">Harga default barang (dipakai stok lama tanpa suplier): Harga Beli {{ stokDefaultHargaBeliLabel }} · Ecer {{ stokDefaultEcerLabel }} · Bengkel {{ stokDefaultBengkelLabel }} · Grosir {{ stokDefaultGrosirLabel }}</p>
                     <div style="overflow-x:auto;">
                       <table class="table" style="min-width:0;">
                         <thead><tr>
                           <th style="padding:4px 6px;">Suplier</th><th style="padding:4px 6px;">Pcs</th>
                           <th style="padding:4px 6px;">Basis</th><th style="padding:4px 6px;">Harga Beli</th>
-                          <th style="padding:4px 6px;">Ecer</th><th style="padding:4px 6px;">Bengkel</th><th style="padding:4px 6px;">Grosir</th><th style="padding:4px 6px;"></th>
+                          <th style="padding:4px 6px;">Ecer</th><th style="padding:4px 6px;">Bengkel</th><th style="padding:4px 6px;">Grosir</th>
                         </tr></thead>
                         <tbody>
                           <sc-for list="{{ stokSupplierPricesView }}" as="sp" hint-placeholder-count="2">
@@ -891,19 +891,7 @@
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.ecer }}" onChange="{{ sp.setEcer }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.bengkel }}" onChange="{{ sp.setBengkel }}" /></td>
                               <td style="padding:4px 6px;"><input class="input" type="number" style="min-height:34px;font-size:13px;width:62px;padding:4px 6px;" placeholder="0" value="{{ sp.grosir }}" onChange="{{ sp.setGrosir }}" /></td>
-                              <td style="padding:4px 6px;">
-                                <div style="display:flex;gap:4px;white-space:nowrap;">
-                                  <button type="button" class="btn btn-ghost" style="min-height:34px;font-size:11px;padding:4px 6px;" title="Salin dari harga default" onClick="{{ sp.copyDefaultHandler }}">Salin</button>
-                                  <button type="button" class="btn btn-secondary" style="min-height:34px;font-size:12px;padding:4px 8px;" disabled="{{ busy }}" onClick="{{ sp.saveHandler }}">Simpan</button>
-                                </div>
-                              </td>
                             </tr>
-                            <sc-if value="{{ sp.error }}" hint-placeholder-val="{{ false }}">
-                              <tr><td colspan="8" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-2-700);">{{ sp.error }}</td></tr>
-                            </sc-if>
-                            <sc-if value="{{ sp.saved }}" hint-placeholder-val="{{ false }}">
-                              <tr><td colspan="8" style="padding:2px 6px 8px;font-size:11px;color:var(--color-accent-700);">Tersimpan.</td></tr>
-                            </sc-if>
                           </sc-for>
                         </tbody>
                       </table>
@@ -3175,7 +3163,6 @@ class Component extends DCLogic {
             ecer: r.harga_ecer != null ? String(r.harga_ecer) : '',
             bengkel: r.harga_bengkel != null ? String(r.harga_bengkel) : '',
             grosir: r.harga_grosir != null ? String(r.harga_grosir) : '',
-            error: '', saved: false,
           };
         }),
       }));
@@ -3188,9 +3175,11 @@ class Component extends DCLogic {
 
   // Data Barang cuma mengubah barang yang sudah ada — barang baru didaftarkan
   // lewat Input Pembelian, jadi ini selalu PUT, tidak pernah bikin baris baru.
-  // Stok & harga jual TIDAK lagi lewat sini -- itu per suplier di tabel
-  // "Suplier & Harga" (saveStokSupplierPrice), supaya setiap koreksi selalu
-  // tertaut ke suplier yang jelas.
+  // Satu tombol Simpan ini menyimpan SEMUANYA sekaligus: info dasar barang
+  // (PUT barang.php) DAN tiap baris "Suplier & Harga" (POST
+  // barang_suplier_harga.php per suplier, lewat Promise.all) -- tidak ada
+  // lagi tombol Simpan terpisah per baris, supaya koreksi stok/harga tetap
+  // tertaut ke suplier yang jelas tapi tidak perlu diklik berkali-kali.
   saveStokForm = () => {
     const s = this.state;
     const f = s.stokForm;
@@ -3201,66 +3190,48 @@ class Component extends DCLogic {
 
     const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
     if (!editingId) { this.setState({ stokFormError: 'Barang tidak ditemukan.' }); return; }
+
+    // Validasi tiap baris suplier dulu SEBELUM kirim apa pun -- semua baris
+    // atau tidak sama sekali, supaya tidak ada baris yang setengah tersimpan
+    // gara-gara baris lain gagal validasi.
+    for (const row of s.stokSupplierPrices) {
+      const ecer = parseFloat(row.ecer), bengkel = parseFloat(row.bengkel), grosir = parseFloat(row.grosir);
+      if (!(ecer > 0) || !(bengkel > 0) || !(grosir > 0)) {
+        this.setState({ stokFormError: `Isi semua harga jual suplier ${row.suplier} dengan angka lebih dari 0.` });
+        return;
+      }
+      if (!(parseInt(row.stok) >= 0)) {
+        this.setState({ stokFormError: `Isi Pcs suplier ${row.suplier} dengan angka valid (minimal 0).` });
+        return;
+      }
+    }
+
+    this.setState({ busy: true, stokFormError: '' });
     const body = { nama, kategori: f.kategori, min_stok: minStok };
-    this.setState({ busy: true });
-    api('PUT', 'barang.php?id=' + editingId, body).then(() => {
+    // Satu tombol Simpan menyimpan SEMUANYA sekaligus -- info dasar barang +
+    // tiap baris suplier (harga jual, harga faktur/netto referensi, DAN Pcs).
+    // Basis+Harga Beli (satu kolom di layar) dipecah balik jadi harga_faktur/
+    // harga_netto (salah satunya 0) sebelum dikirim -- pola sama dengan
+    // Input Pembelian (lihat finalizePembelian), bukan dua kolom independen.
+    const supplierSaves = s.stokSupplierPrices.map((row) => {
+      const hargaBeli = parseFloat(row.hargaBeli) || 0;
+      return api('POST', 'barang_suplier_harga.php', {
+        barang_id: editingId, suplier_id: row.suplierId,
+        harga_faktur: row.hargaBasis === 'FAKTUR' ? hargaBeli : 0,
+        harga_netto: row.hargaBasis === 'NETTO' ? hargaBeli : 0,
+        harga_ecer: parseFloat(row.ecer), harga_bengkel: parseFloat(row.bengkel), harga_grosir: parseFloat(row.grosir),
+        stok: parseInt(row.stok),
+      });
+    });
+    Promise.all([api('PUT', 'barang.php?id=' + editingId, body), ...supplierSaves]).then(() => {
       this.setState({ busy: false, stokModalOpen: false, stokEditKode: null });
       this.refreshBarang();
     }).catch((e) => this.setState({ busy: false, stokFormError: e.message }));
   };
 
   setStokSupplierPriceField = (suplierId, field) => (e) => this.setState((s) => ({
-    stokSupplierPrices: s.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, [field]: e.target.value, error: '', saved: false } : r)),
+    stokSupplierPrices: s.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, [field]: e.target.value } : r)),
   }));
-  copyDefaultToSupplierPrice = (suplierId) => this.setState((s) => ({
-    stokSupplierPrices: s.stokSupplierPrices.map((r) => (r.suplierId === suplierId
-      ? {
-        ...r,
-        hargaBasis: (parseFloat(s.stokForm.hargaNetto) || 0) > 0 ? 'NETTO' : 'FAKTUR',
-        hargaBeli: (parseFloat(s.stokForm.hargaNetto) || 0) > 0 ? s.stokForm.hargaNetto : s.stokForm.hargaFaktur,
-        ecer: s.stokForm.ecer, bengkel: s.stokForm.bengkel, grosir: s.stokForm.grosir,
-        error: '', saved: false,
-      }
-      : r)),
-  }));
-  // Satu tombol Simpan per baris mengirim SEMUANYA sekaligus (harga jual,
-  // harga faktur/netto referensi, DAN Pcs) -- inilah satu-satunya jalur
-  // sekarang untuk mengoreksi stok, selalu tertaut ke suplier yang jelas
-  // (lihat backend/api/barang_suplier_harga.php, lot_sync_stok_suplier).
-  saveStokSupplierPrice = (suplierId) => {
-    const s = this.state;
-    const row = s.stokSupplierPrices.find((r) => r.suplierId === suplierId);
-    if (!row) return;
-    const ecer = parseFloat(row.ecer), bengkel = parseFloat(row.bengkel), grosir = parseFloat(row.grosir);
-    const stok = parseInt(row.stok);
-    if (!(ecer > 0) || !(bengkel > 0) || !(grosir > 0)) {
-      this.setState((s2) => ({ stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: 'Isi semua harga jual dengan angka lebih dari 0.' } : r)) }));
-      return;
-    }
-    if (!(stok >= 0)) {
-      this.setState((s2) => ({ stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: 'Isi Pcs dengan angka valid (minimal 0).' } : r)) }));
-      return;
-    }
-    const editingId = (s.stokProducts.find((p) => p.kode === s.stokEditKode) || {}).id;
-    if (!editingId) return;
-    // Basis+Harga Beli (satu kolom di layar) dipecah balik jadi harga_faktur/
-    // harga_netto (salah satunya 0) sebelum dikirim -- pola sama dengan
-    // Input Pembelian (lihat finalizePembelian), bukan dua kolom independen.
-    const hargaBeli = parseFloat(row.hargaBeli) || 0;
-    const hargaFaktur = row.hargaBasis === 'FAKTUR' ? hargaBeli : 0;
-    const hargaNetto = row.hargaBasis === 'NETTO' ? hargaBeli : 0;
-    this.setState({ busy: true });
-    api('POST', 'barang_suplier_harga.php', {
-      barang_id: editingId, suplier_id: suplierId,
-      harga_faktur: hargaFaktur, harga_netto: hargaNetto,
-      harga_ecer: ecer, harga_bengkel: bengkel, harga_grosir: grosir, stok,
-    }).then(() => {
-      this.setState((s2) => ({ busy: false, stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: '', saved: true } : r)) }));
-      this.refreshBarang();
-    }).catch((e) => {
-      this.setState((s2) => ({ busy: false, stokSupplierPrices: s2.stokSupplierPrices.map((r) => (r.suplierId === suplierId ? { ...r, error: e.message, saved: false } : r)) }));
-    });
-  };
 
   requestDeleteStok = (kode) => this.setState({ stokDeleteTarget: kode });
   cancelDeleteStok = () => this.setState({ stokDeleteTarget: null });
@@ -4128,15 +4099,13 @@ ${this.laporanLengkapTableHtml(tab, false)}
       stokSupplierPricesView: s.stokSupplierPrices.map((r) => ({
         suplierId: r.suplierId, suplier: r.suplier,
         stok: r.stok, hargaBasis: r.hargaBasis, hargaBeli: r.hargaBeli,
-        ecer: r.ecer, bengkel: r.bengkel, grosir: r.grosir, error: r.error, saved: r.saved,
+        ecer: r.ecer, bengkel: r.bengkel, grosir: r.grosir,
         setStok: this.setStokSupplierPriceField(r.suplierId, 'stok'),
         setHargaBasis: this.setStokSupplierPriceField(r.suplierId, 'hargaBasis'),
         setHargaBeli: this.setStokSupplierPriceField(r.suplierId, 'hargaBeli'),
         setEcer: this.setStokSupplierPriceField(r.suplierId, 'ecer'),
         setBengkel: this.setStokSupplierPriceField(r.suplierId, 'bengkel'),
         setGrosir: this.setStokSupplierPriceField(r.suplierId, 'grosir'),
-        copyDefaultHandler: () => this.copyDefaultToSupplierPrice(r.suplierId),
-        saveHandler: () => this.saveStokSupplierPrice(r.suplierId),
       })),
       setStokKode: this.setStokFormField('kode'), setStokNama: this.setStokFormField('nama'),
       setStokKategori: this.setStokFormField('kategori'),
