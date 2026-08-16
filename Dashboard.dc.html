@@ -154,8 +154,12 @@
         gap: 6px !important; box-shadow: none !important; border-radius: 0 !important;
       }
       #penj-invoice-print img { width: 40px !important; }
-      #penj-invoice-print * { font-size: 11px !important; }
-      #penj-invoice-print h3 { font-size: 14px !important; }
+      /* Printer thermal cetak hitam-putih murni (tidak ada abu-abu) — font
+         tipis/anti-aliased dari render browser sering jatuh di bawah ambang
+         hitam printer dan tercetak pudar walau strukturnya benar. Font tebal
+         (700) jauh lebih tahan terhadap ini dibanding font-weight normal. */
+      #penj-invoice-print * { font-size: 12px !important; font-weight: 700 !important; }
+      #penj-invoice-print h3 { font-size: 15px !important; }
       #penj-invoice-print table.table th, #penj-invoice-print table.table td { padding: 3px 4px !important; }
     }
 
