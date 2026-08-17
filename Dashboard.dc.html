@@ -167,8 +167,25 @@
       /* Printer thermal cetak hitam-putih murni (tidak ada abu-abu) — font
          tipis/anti-aliased dari render browser sering jatuh di bawah ambang
          hitam printer dan tercetak pudar walau strukturnya benar. Font tebal
-         (700) jauh lebih tahan terhadap ini dibanding font-weight normal. */
-      #penj-invoice-print * { font-size: 12px !important; font-weight: 700 !important; }
+         (700) jauh lebih tahan terhadap ini dibanding font-weight normal.
+
+         color+opacity: diukur dari PDF hasil cetak, 70% tinta struk ini
+         sebenarnya ABU-ABU, bukan hitam — label Pelanggan/Tanggal/dst pakai
+         opacity 0.6, teks Dibayar/Kembalian 0.7, header tabel abu. Printer
+         thermal tidak punya abu-abu sama sekali, jadi warna itu terpaksa
+         di-dither jadi titik-titik jarang dan di kertas kelihatan pudar.
+
+         SENGAJA cuma dua properti ini. Versi sebelumnya (commit e899091,
+         sudah di-revert) sekalian menimpa background/box-shadow/text-shadow/
+         filter untuk SEMUA elemen, dan di printer KASMINI MP-80M asli
+         hasilnya Chrome menolak dengan "Print failed" begitu drivernya
+         dipilih. Belum diketahui properti mana persisnya yang bikin gagal —
+         jadi kalau nanti mau menambah lagi, tambahkan SATU per satu dan uji
+         cetak fisik tiap kali, jangan diborong sekaligus seperti dulu. */
+      #penj-invoice-print * {
+        font-size: 12px !important; font-weight: 700 !important;
+        color: #000 !important; opacity: 1 !important;
+      }
       #penj-invoice-print h3 { font-size: 15px !important; }
       /* Padding horizontal dirapatkan sejak kolom Harga ditambahkan (5 kolom
          di 76mm). Aturan lebar/nowrap kolom & pengecilan nama panjang ada di
