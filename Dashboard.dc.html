@@ -3943,9 +3943,26 @@ tr { page-break-inside: avoid; }
       );
     }
     if (tab === 'penjualan') {
+      // 1 baris per BARANG, pola sama dengan tab Pembelian di atas -- kolom
+      // invoice (Waktu/No. Invoice/Pelanggan/Payment/Total Invoice) diulang di
+      // tiap barisnya supaya kelihatan barang apa saja yang terjual, harga
+      // satuan, dan tingkat harganya (Ecer/Bengkel/Grosir).
+      const rows = [];
+      v.penjualanRowsView.forEach((r) => {
+        const items = r.items.length ? r.items : [{ kode: '', nama: '(tidak ada rincian barang)', tier: '', qty: '', unit_price: 0, subtotal: 0 }];
+        items.forEach((it) => {
+          rows.push([
+            r.waktuLabel, r.invoiceNo, r.custName, r.paymentLabel, it.kode, it.nama,
+            it.tier ? it.tier.charAt(0).toUpperCase() + it.tier.slice(1) : '—',
+            it.qty, it.unit_price ? formatRp(it.unit_price) : '—',
+            it.subtotal ? formatRp(it.subtotal) : '—',
+            r.grandTotalLabel,
+          ]);
+        });
+      });
       return this.laporanLengkapOneTable(
-        ['Waktu', 'No. Invoice', 'Pelanggan', 'Payment', 'Qty', 'Total'],
-        v.penjualanRowsView.map((r) => [r.waktuLabel, r.invoiceNo, r.custName, r.paymentLabel, r.totalQty, r.grandTotalLabel]),
+        ['Waktu', 'No. Invoice', 'Pelanggan', 'Payment', 'Kode', 'Nama Barang', 'Tingkat Harga', 'Qty', 'Harga Satuan', 'Subtotal Barang', 'Total Invoice'],
+        rows,
         border,
       );
     }
@@ -4707,6 +4724,10 @@ ${this.laporanLengkapTableHtml(tab, false)}
       penjualanRowsView: byCreatedAt(pj.rows, s.lapSort.penjualan).map((r) => ({
         invoiceNo: r.invoice_no, custName: r.cust_name, paymentLabel: r.payment_method === 'TRANSFER' ? 'Transfer' : 'Tunai',
         totalQty: r.total_qty, grandTotalLabel: formatRp(r.grand_total), waktuLabel: formatWaktu(r.created_at),
+        // Rincian barang per invoice -- dipakai export (Excel/PDF), bukan
+        // tabel ringkasan di layar (yang tetap 1 baris per invoice, klik
+        // nomor invoice buat lihat rinciannya di layar).
+        items: r.items || [],
         detailHandler: () => this.openLaporanPenjualanDetail(r.id),
       })).filter((r) => matches(r.invoiceNo, r.custName)),
       // total_revenue dari server sudah BERSIH (sesudah retur); omzet kotor

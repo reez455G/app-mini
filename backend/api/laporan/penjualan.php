@@ -14,6 +14,30 @@ $stmt = $pdo->prepare(
 $stmt->execute([$from, $to]);
 $data = $stmt->fetchAll();
 
+// Rincian barang per invoice -- dipakai export Laporan Penjualan (1 baris per
+// barang, bukan cuma 1 baris ringkasan per invoice), pola sama dengan
+// laporan/pembelian.php. Aman untuk Karyawan juga: isinya harga JUAL, bukan
+// harga beli/suplier yang memang disembunyikan dari mereka.
+$itemStmt = $pdo->prepare(
+    'SELECT pi.penjualan_id, b.kode, pi.nama_snapshot AS nama, pi.tier, pi.qty, pi.unit_price, pi.subtotal
+     FROM penjualan_item pi
+     JOIN penjualan p ON p.id = pi.penjualan_id
+     JOIN barang b ON b.id = pi.barang_id
+     WHERE p.tanggal BETWEEN ? AND ? ORDER BY pi.id'
+);
+$itemStmt->execute([$from, $to]);
+$itemsByPenjualan = [];
+foreach ($itemStmt->fetchAll() as $it) {
+    $itemsByPenjualan[(int)$it['penjualan_id']][] = [
+        'kode' => $it['kode'], 'nama' => $it['nama'], 'tier' => $it['tier'],
+        'qty' => (int)$it['qty'], 'unit_price' => (float)$it['unit_price'], 'subtotal' => (float)$it['subtotal'],
+    ];
+}
+$data = array_map(function ($r) use ($itemsByPenjualan) {
+    $r['items'] = $itemsByPenjualan[(int)$r['id']] ?? [];
+    return $r;
+}, $data);
+
 $perCustomer = [];
 foreach ($data as $r) {
     $c = $r['cust_name'];
