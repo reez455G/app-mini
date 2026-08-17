@@ -115,32 +115,6 @@
        berdasarkan jumlah karakter nama barang. */
     #penj-invoice-print .inv-nama-sm { font-size: 12px; }
     #penj-invoice-print .inv-nama-xs { font-size: 11px; }
-    /* Kelas pengukur — dipasang sekejap oleh printPage() (di luar layar) untuk
-       mengukur TINGGI struk dalam bentuk 76mm-nya, supaya @page bisa dibuat
-       pas dengan isinya alih-alih memaksa 297mm dan membuang belasan sentimeter
-       kertas tiap struk. Isinya menyalin geometri dari blok @media print di
-       bawah: kalau salah satu diubah, UBAH DUA-DUANYA, kalau tidak tinggi
-       hasil ukur tidak lagi cocok dengan yang benar-benar tercetak. */
-    #penj-invoice-print.inv-ukur {
-      position: absolute !important; left: -9999px !important; top: 0 !important;
-      max-width: 76mm !important; width: 76mm !important; padding: 3mm !important; gap: 6px !important;
-    }
-    #penj-invoice-print.inv-ukur * { font-size: 12px !important; font-weight: 700 !important; }
-    #penj-invoice-print.inv-ukur h3 { font-size: 15px !important; }
-    #penj-invoice-print.inv-ukur img { width: 40px !important; }
-    /* min-width:0 WAJIB ikut disalin: tanpa ini tabel meluber jauh melebihi
-       76mm (kolom angka nowrap memaksa lebar isi), nama barang tidak jadi
-       turun baris, dan tinggi hasil ukur keluar jauh lebih pendek dari yang
-       benar-benar tercetak — struk pun terpotong ke halaman kedua. */
-    #penj-invoice-print.inv-ukur table.table { min-width: 0 !important; }
-    #penj-invoice-print.inv-ukur table.table th { letter-spacing: 0 !important; }
-    #penj-invoice-print.inv-ukur table.table th,
-    #penj-invoice-print.inv-ukur table.table td { padding: 3px 2px !important; }
-    #penj-invoice-print.inv-ukur .inv-nama-sm { font-size: 11px !important; }
-    #penj-invoice-print.inv-ukur .inv-nama-xs { font-size: 10px !important; }
-    #penj-invoice-print.inv-ukur .inv-pcs,
-    #penj-invoice-print.inv-ukur .inv-rp,
-    #penj-invoice-print.inv-ukur .no-print { display: none !important; }
     @media print {
       /* body:has(#stok-print-sheet) — #stok-print-sheet cuma ADA di DOM saat
          stokPrintOpen true (dibungkus sc-if). Tanpa syarat :has() ini,
@@ -4086,34 +4060,14 @@ ${this.laporanLengkapTableHtml(tab, false)}
   // bawah (lihat komentar setStokPrintPageSize) — makanya ukuran kertas
   // struk 80mm disisipkan sendiri di sini sekali (idempotent lewat id),
   // aman karena printPage cuma dipakai tombol Cetak invoice ini.
-  // Tinggi @page dihitung dari isi struk yang sebenarnya, bukan dipatok 297mm.
-  // Dulu dipatok karena "size: 80mm auto" bukan sintaks @page yang valid, dengan
-  // anggapan printer roll akan memotong sendiri sesuai isi -- ternyata tidak
-  // semua driver begitu: yang memperlakukannya sebagai halaman tetap akan
-  // memuntahkan 297mm penuh, jadi struk 2 barang (~117mm) membuang ~180mm
-  // kertas. Diukur di luar layar lewat kelas .inv-ukur yang meniru geometri
-  // cetak, karena tinggi versi layar (520px) beda jauh dari versi 76mm.
   printPage = () => {
     const id = 'penj-invoice-page-style';
-    let el = document.getElementById(id);
-    if (!el) {
-      el = document.createElement('style');
+    if (!document.getElementById(id)) {
+      const el = document.createElement('style');
       el.id = id;
+      el.textContent = '@media print { @page { size: 80mm 297mm; margin: 0; } }';
       document.head.appendChild(el);
     }
-    const card = document.getElementById('penj-invoice-print');
-    let tinggiMm = 297;
-    if (card) {
-      card.classList.add('inv-ukur');
-      // 96 CSS px = 1 inci = 25.4mm. +5mm sisa supaya baris terakhir tidak
-      // terpotong gara-gara pembulatan/perbedaan kecil rendering printer.
-      tinggiMm = Math.ceil(card.getBoundingClientRect().height / 96 * 25.4) + 5;
-      card.classList.remove('inv-ukur');
-      // Jaga-jaga kalau pengukuran gagal (elemen tersembunyi, tinggi 0):
-      // lebih baik kembali ke perilaku lama daripada mencetak struk terpotong.
-      if (!(tinggiMm > 20)) tinggiMm = 297;
-    }
-    el.textContent = '@media print { @page { size: 80mm ' + tinggiMm + 'mm; margin: 0; } }';
     window.print();
   };
 
