@@ -164,27 +164,10 @@
         gap: 6px !important; box-shadow: none !important; border-radius: 0 !important;
       }
       #penj-invoice-print img { width: 40px !important; }
-      /* Printer thermal 1-bit: tiap titik cuma bisa HITAM atau tidak dicetak
-         sama sekali, tidak ada abu-abu. Warna abu-abu apa pun terpaksa
-         di-dither jadi titik-titik jarang — di kertas hasilnya kelihatan
-         pudar dan "pecah" seperti gambar di-zoom, bukan huruf utuh.
-         Diukur dari PDF hasil cetak: 45% teks struk sebenarnya abu-abu
-         (label Pelanggan/Tanggal/dst opacity 0.6, header tabel, teks
-         sekunder) dan latarnya abu muda #f2f2f2, bukan putih. Di layar
-         semua itu enak dilihat; di printer thermal justru sumber masalah.
-         Jadi khusus saat cetak: semua tinta dipaksa hitam murni, semua
-         transparansi dimatikan, latar dipaksa putih. Font tebal (700) juga
-         membantu — garis tipis anti-aliased gampang jatuh di bawah ambang
-         panas printer. */
-      #penj-invoice-print, #penj-invoice-print * {
-        color: #000 !important; opacity: 1 !important;
-        background: transparent !important; box-shadow: none !important;
-        text-shadow: none !important; filter: none !important;
-      }
-      #penj-invoice-print { background: #fff !important; }
-      /* Garis pemisah ikut dipertegas: border abu tipis pun kena dither. */
-      #penj-invoice-print table.table th, #penj-invoice-print table.table td,
-      #penj-invoice-print [style*="border-bottom"] { border-color: #000 !important; }
+      /* Printer thermal cetak hitam-putih murni (tidak ada abu-abu) — font
+         tipis/anti-aliased dari render browser sering jatuh di bawah ambang
+         hitam printer dan tercetak pudar walau strukturnya benar. Font tebal
+         (700) jauh lebih tahan terhadap ini dibanding font-weight normal. */
       #penj-invoice-print * { font-size: 12px !important; font-weight: 700 !important; }
       #penj-invoice-print h3 { font-size: 15px !important; }
       /* Padding horizontal dirapatkan sejak kolom Harga ditambahkan (5 kolom
