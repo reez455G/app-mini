@@ -841,7 +841,12 @@
                       </sc-if>
                     </td>
                     <td>{{ item.pricelistLabel }}</td>
-                    <td>{{ item.hargaBeliLabel }} <span style="opacity:0.55;font-size:12px;">({{ item.hargaBasisLabel }})</span></td>
+                    <!-- Tanpa label basis (Faktur/Netto) lagi: kolom ini sekarang
+                         bisa berisi RENTANG dari beberapa suplier yang basisnya
+                         bisa beda-beda, jadi satu label tidak lagi mewakili.
+                         Basisnya tetap terlihat & bisa diubah per suplier di
+                         dialog Ubah Barang. -->
+                    <td>{{ item.hargaBeliLabel }}</td>
                     <td>{{ item.ecerLabel }}</td>
                     <td>{{ item.bengkelLabel }}</td>
                     <td>{{ item.grosirLabel }}</td>
@@ -2506,6 +2511,9 @@ function normalizeBarang(r) {
     bengkelMin: Number(r.bengkel_min ?? r.harga_bengkel), bengkelMax: Number(r.bengkel_max ?? r.harga_bengkel),
     grosirMin: Number(r.grosir_min ?? r.harga_grosir), grosirMax: Number(r.grosir_max ?? r.harga_grosir),
     pricelist: Number(r.pricelist || 0), minStok: r.min_stok ?? 10, pendingSetup: !!r.pending_setup,
+    // Harga beli yang BERLAKU per suplier (bukan snapshot pembelian terakhir),
+    // jadi hasil edit di Ubah Barang langsung kelihatan di kolomnya.
+    hargaBeliMin: Number(r.harga_beli_min ?? r.harga_netto ?? 0), hargaBeliMax: Number(r.harga_beli_max ?? r.harga_netto ?? 0),
   };
 }
 function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
@@ -4359,10 +4367,11 @@ ${this.laporanLengkapTableHtml(tab, false)}
   stokVals(s) {
     const filtered = this.stokFilteredProducts(s);
     const stokRows = filtered.map((p) => {
-      // Harga Beli beda dari Pricelist/HET: Harga Beli dihitung otomatis dari
-      // faktur/netto pembelian terakhir, sedangkan Pricelist/HET adalah angka
-      // yang diisi manual per barang (patokan harga jual, boleh 0).
-      const hargaBeliValue = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
+      // Harga Beli beda dari Pricelist/HET: Harga Beli adalah harga yang
+      // BERLAKU per suplier (ikut berubah begitu diedit di Ubah Barang, dan
+      // ditampilkan sebagai rentang kalau antar-suplier beda — pola sama
+      // dengan kolom Ecer/Bengkel/Grosir di sebelahnya), sedangkan
+      // Pricelist/HET satu angka per barang yang diisi manual.
       return {
         ...p,
         ecerLabel: p.pendingSetup ? '—' : formatRpRange(p.ecerMin, p.ecerMax),
@@ -4374,8 +4383,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
         hasSupplierTanpaHarga: p.supplierTanpaHarga.length > 0,
         supplierTanpaHargaLabel: p.supplierTanpaHarga.join(', '),
         pricelistLabel: formatRp(p.pricelist || 0),
-        hargaBasisLabel: p.hargaNetto > 0 ? 'Netto' : 'Faktur',
-        hargaBeliLabel: hargaBeliValue ? formatRp(hargaBeliValue) : '—',
+        hargaBeliLabel: p.hargaBeliMax > 0 ? formatRpRange(p.hargaBeliMin, p.hargaBeliMax) : '—',
         statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
         printHandler: () => this.openStokPrint(p.kode, p.nama),

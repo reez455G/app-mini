@@ -83,12 +83,13 @@ if ($method === 'GET') {
     //     barangnya diam-diam hilang dari daftar kasir.
     $lotStmt = $pdo->query(
         'SELECT bl.barang_id, bl.suplier_id, s.nama AS suplier, s.kode AS suplier_kode_lot, SUM(bl.qty_sisa) AS sisa,
-                h.harga_ecer, h.harga_bengkel, h.harga_grosir
+                h.harga_ecer, h.harga_bengkel, h.harga_grosir, h.harga_faktur, h.harga_netto
          FROM barang_lot bl
          LEFT JOIN suplier s ON s.id = bl.suplier_id
          LEFT JOIN barang_suplier_harga h ON h.barang_id = bl.barang_id AND h.suplier_id = bl.suplier_id
          WHERE bl.qty_sisa > 0
-         GROUP BY bl.barang_id, bl.suplier_id, s.nama, s.kode, h.harga_ecer, h.harga_bengkel, h.harga_grosir
+         GROUP BY bl.barang_id, bl.suplier_id, s.nama, s.kode, h.harga_ecer, h.harga_bengkel, h.harga_grosir,
+                  h.harga_faktur, h.harga_netto
          ORDER BY s.nama'
     );
     $stokPerSuplier = [];
@@ -103,6 +104,13 @@ if ($method === 'GET') {
         $lots = $stokPerSuplier[(int)$r['id']] ?? [];
         $namaSuplier = []; $kodeSuplier = []; $tanpaHarga = []; $kodeTanpaHarga = []; $nilaiJual = 0.0; $adaStokTanpaSuplier = false;
         $rentang = ['ecer' => [], 'bengkel' => [], 'grosir' => []];
+        // Harga beli juga diturunkan dari harga per suplier, bukan dari snapshot
+        // barang.harga_faktur/harga_netto. Dulu kolom "Harga Beli" di Data Barang
+        // membaca snapshot itu, padahal Ubah Barang menyimpan harga beli ke
+        // barang_suplier_harga — jadi harga yang baru diedit Owner tersimpan
+        // dengan benar tapi kolomnya tetap menampilkan angka lama dari pembelian
+        // terakhir, seolah-olah simpanannya gagal.
+        $hargaBeli = [];
         foreach ($lots as $l) {
             $sisa = (int)$l['sisa'];
             // Batch tanpa suplier = hasil koreksi stok manual; harga default
@@ -111,6 +119,14 @@ if ($method === 'GET') {
             foreach ($rentang as $tier => $_) {
                 $rentang[$tier][] = (float)($punyaHarga ? $l['harga_' . $tier] : $r['harga_' . $tier]);
             }
+            // Netto diutamakan, fallback Faktur — sama seperti di seluruh
+            // aplikasi (lihat pembelian.php & laporan/laba.php). Suplier yang
+            // harga belinya belum pernah diisi ikut memakai snapshot barang.
+            $hbSuplier = (float)$l['harga_netto'] > 0 ? (float)$l['harga_netto'] : (float)$l['harga_faktur'];
+            if ($hbSuplier <= 0) {
+                $hbSuplier = (float)$r['harga_netto'] > 0 ? (float)$r['harga_netto'] : (float)$r['harga_faktur'];
+            }
+            if ($hbSuplier > 0) $hargaBeli[] = $hbSuplier;
             $nilaiJual += $sisa * (float)($punyaHarga ? $l['harga_ecer'] : $r['harga_ecer']);
             if ($l['suplier'] !== null) {
                 $namaSuplier[] = $l['suplier'];
@@ -153,8 +169,15 @@ if ($method === 'GET') {
             'pricelist' => (float)$r['pricelist'],
         ];
         if (!$isOwner) return $base;
+        // harga_beli_min/max: harga beli yang BERLAKU sekarang per suplier.
+        // Kalau stoknya habis (tidak ada lot sama sekali), tidak ada suplier
+        // yang bisa dijadikan acuan — jatuh balik ke snapshot pembelian
+        // terakhir supaya kolomnya tidak mendadak kosong.
+        $hbFallback = (float)$r['harga_netto'] > 0 ? (float)$r['harga_netto'] : (float)$r['harga_faktur'];
         return $base + [
             'harga_faktur' => (float)$r['harga_faktur'], 'harga_netto' => (float)$r['harga_netto'],
+            'harga_beli_min' => $hargaBeli ? min($hargaBeli) : $hbFallback,
+            'harga_beli_max' => $hargaBeli ? max($hargaBeli) : $hbFallback,
             'min_stok' => (int)$r['min_stok'], 'pending_setup' => (bool)$r['pending_setup'],
         ];
     }, $rows);
