@@ -3814,13 +3814,19 @@ class Component extends DCLogic {
             // tidak terjadi, tiap barang selalu lahir dari Input Pembelian) --
             // tetap 1 baris pakai harga default, bukan hilang dari laporan.
             const cells = [p.kode, p.nama, p.kategori, p.supplier || '', p.stok, p.ecer, p.bengkel, p.grosir, p.status];
-            if (isOwner) cells.push((p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur) || '');
+            if (isOwner) cells.push(p.hargaBeliMax || '');
             lines.push(cells);
             return;
           }
           supplierRows.forEach((sup) => {
             const cells = [p.kode, p.nama, p.kategori, sup.suplier, sup.stok_sisa, sup.harga_ecer ?? '', sup.harga_bengkel ?? '', sup.harga_grosir ?? '', p.status];
-            if (isOwner) cells.push(sup.harga_beli ?? '');
+            // Harga Beli = harga referensi yang diedit Owner di Ubah Barang
+            // (barang_suplier_harga.harga_faktur/harga_netto), BUKAN
+            // sup.harga_beli (harga_lot aktual dari batch terakhir) --
+            // dua-duanya beda sumber, dan kolom ini harus konsisten dengan
+            // "Harga Beli" di Data Barang supaya hasil edit langsung
+            // kelihatan di sini juga.
+            if (isOwner) cells.push((sup.harga_netto > 0 ? sup.harga_netto : sup.harga_faktur) || '');
             lines.push(cells);
           });
           if (res.stok_tanpa_suplier > 0) {
@@ -3847,7 +3853,7 @@ class Component extends DCLogic {
   laporanTableHtml = (includeOwnerCols) => {
     const rows = this.laporanFilteredRows(this.state);
     const header = ['Kode', 'Nama Barang', 'Kategori', 'Suplier', 'Stok', 'Harga Ecer', 'Harga Bengkel', 'Harga Grosir', 'Status'];
-    if (includeOwnerCols) header.push('Multi Suplier', 'Harga Beli', 'Basis Harga Beli');
+    if (includeOwnerCols) header.push('Multi Suplier', 'Harga Beli');
     const headHtml = '<thead><tr>' + header.map((h) => `<th>${escHtml(h)}</th>`).join('') + '</tr></thead>';
     const bodyHtml = '<tbody>' + rows.map((p) => {
       const cells = [
@@ -3856,11 +3862,13 @@ class Component extends DCLogic {
         p.status,
       ];
       if (includeOwnerCols) {
-        const hargaBeli = p.hargaNetto > 0 ? p.hargaNetto : p.hargaFaktur;
+        // Sama seperti kolom Harga Beli di Data Barang: harga per suplier
+        // yang berlaku sekarang, bukan snapshot pembelian terakhir. Tanpa
+        // kolom basis lagi -- rentang antar-suplier bisa beda basis, satu
+        // label tidak lagi mewakili (lihat juga fix kolom Data Barang).
         cells.push(
           p.supplierCount > 1 ? `Ya (${p.supplierCount} suplier)` : 'Tidak',
-          hargaBeli || 0,
-          hargaBeli ? (p.hargaNetto > 0 ? 'Netto' : 'Faktur') : '',
+          p.hargaBeliMax > 0 ? formatRpRange(p.hargaBeliMin, p.hargaBeliMax) : 0,
         );
       }
       return '<tr>' + cells.map((v) => `<td>${escHtml(v)}</td>`).join('') + '</tr>';
