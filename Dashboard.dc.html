@@ -1247,7 +1247,12 @@
                           <td>{{ h.totalBiayaLabel }}</td>
                           <td><span class="tag {{ h.paymentTagClass }}" style="font-size:11px;">{{ h.paymentLabel }}</span></td>
                           <td>
-                            <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus pembelian" title="Hapus pembelian" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                            <div style="display:flex;gap:6px;">
+                              <sc-if value="{{ h.canEdit }}">
+                                <button type="button" class="btn btn-ghost btn-icon" aria-label="Ubah" title="Ubah pembelian" onClick="{{ h.editHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><path d="M160 40 L216 96 L88 224 L32 224 L32 168 Z" fill="currentColor" opacity="0.35"></path><path d="M136 64 L192 120" stroke="currentColor" stroke-width="14" fill="none"></path></svg></button>
+                              </sc-if>
+                              <button type="button" class="btn btn-ghost btn-icon" aria-label="Hapus pembelian" title="Hapus pembelian" onClick="{{ h.deleteHandler }}"><svg width="15" height="15" viewBox="0 0 256 256"><rect x="60" y="76" width="136" height="152" rx="10" fill="currentColor" opacity="0.3"></rect><rect x="40" y="48" width="176" height="20" rx="6" fill="currentColor"></rect><rect x="104" y="20" width="48" height="20" rx="6" fill="currentColor"></rect></svg></button>
+                            </div>
                           </td>
                         </tr>
                       </sc-for>
@@ -1255,6 +1260,78 @@
                   </table>
                 </div>
               </div>
+
+          <sc-if value="{{ pembelianEditOpen }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop">
+              <div class="dialog" style="width:min(720px,100%);">
+                <div class="dialog-title">Ubah Pembelian</div>
+                <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px;">
+                  <p style="margin:0;font-size:12px;opacity:0.6;">Suplier dan jumlah baris barang tidak bisa diubah di sini — kalau itu yang salah, hapus fakturnya lalu input ulang.</p>
+                  <div class="rg" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="field">
+                      <label for="pbe-no-faktur">No. Faktur</label>
+                      <input class="input" id="pbe-no-faktur" style="min-height:42px;font-size:14px;" value="{{ pembelianEditNoFaktur }}" onChange="{{ setPembelianEditNoFaktur }}" />
+                    </div>
+                    <div class="field">
+                      <label for="pbe-tanggal">Tanggal Faktur</label>
+                      <input class="input" id="pbe-tanggal" type="date" style="min-height:42px;font-size:14px;" value="{{ pembelianEditTanggal }}" onChange="{{ setPembelianEditTanggal }}" />
+                    </div>
+                    <div class="field">
+                      <label for="pbe-jatuhtempo">Tgl Jatuh Tempo</label>
+                      <input class="input" id="pbe-jatuhtempo" type="date" style="min-height:42px;font-size:14px;" value="{{ pembelianEditJatuhTempo }}" onChange="{{ setPembelianEditJatuhTempo }}" disabled="{{ payIsCashPembelianEdit }}" />
+                    </div>
+                    <div class="field">
+                      <label id="pbe-payment-label">Payment</label>
+                      <div class="seg" role="radiogroup" aria-labelledby="pbe-payment-label" style="width:100%;">
+                        <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                          <input type="radio" name="pbe-payment" checked="{{ payIsCashPembelianEdit }}" onChange="{{ setPembelianEditCash }}" />Cash
+                        </label>
+                        <label class="seg-opt" style="flex:1;justify-content:center;padding:9px;font-size:13px;">
+                          <input type="radio" name="pbe-payment" checked="{{ payIsTopPembelianEdit }}" onChange="{{ setPembelianEditTop }}" />TOP
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="overflow-x:auto;">
+                    <table class="table" style="min-width:0;">
+                      <thead><tr>
+                        <th style="padding:4px 6px;">Kode</th><th style="padding:4px 6px;">Nama</th>
+                        <th style="padding:4px 6px;">Qty</th><th style="padding:4px 6px;">Basis</th>
+                        <th style="padding:4px 6px;">Harga Beli</th><th style="padding:4px 6px;">Pricelist/HET</th>
+                        <th style="padding:4px 6px;">Subtotal</th>
+                      </tr></thead>
+                      <tbody>
+                        <sc-for list="{{ pembelianEditItemsView }}" as="it" hint-placeholder-count="2">
+                          <tr>
+                            <td style="padding:4px 6px;white-space:nowrap;">{{ it.kode }}</td>
+                            <td style="padding:4px 6px;white-space:nowrap;">{{ it.nama }}</td>
+                            <td style="padding:4px 6px;"><input class="input" type="number" min="1" style="min-height:34px;font-size:13px;width:56px;padding:4px 6px;" value="{{ it.qty }}" onChange="{{ it.setQty }}" /></td>
+                            <td style="padding:4px 6px;">
+                              <select class="input" style="min-height:34px;font-size:12px;width:72px;padding:4px 2px;" value="{{ it.hargaBasis }}" onChange="{{ it.setHargaBasis }}">
+                                <option value="FAKTUR">Faktur</option>
+                                <option value="NETTO">Netto</option>
+                              </select>
+                            </td>
+                            <td style="padding:4px 6px;"><input class="input" type="number" min="0" style="min-height:34px;font-size:13px;width:80px;padding:4px 6px;" value="{{ it.hargaBeli }}" onChange="{{ it.setHargaBeli }}" /></td>
+                            <td style="padding:4px 6px;"><input class="input" type="number" min="0" style="min-height:34px;font-size:13px;width:80px;padding:4px 6px;" value="{{ it.pricelist }}" onChange="{{ it.setPricelist }}" /></td>
+                            <td style="padding:4px 6px;white-space:nowrap;">{{ it.subtotalLabel }}</td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style="margin:0;font-size:13px;font-weight:600;">Total: {{ pembelianEditTotalLabel }}</p>
+                  <sc-if value="{{ pembelianEditError }}">
+                    <p style="margin:0;font-size:13px;color:var(--color-accent-2-700);">{{ pembelianEditError }}</p>
+                  </sc-if>
+                </div>
+                <div class="dialog-actions">
+                  <button type="button" class="btn btn-ghost" onClick="{{ closePembelianEdit }}">Batal</button>
+                  <button type="button" class="btn btn-primary" disabled="{{ busy }}" onClick="{{ savePembelianEdit }}">Simpan</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
           </div>
         </sc-if>
 
@@ -2514,12 +2591,13 @@ function normalizeBarang(r) {
     // Harga beli yang BERLAKU per suplier (bukan snapshot pembelian terakhir),
     // jadi hasil edit di Ubah Barang langsung kelihatan di kolomnya.
     hargaBeliMin: Number(r.harga_beli_min ?? r.harga_netto ?? 0), hargaBeliMax: Number(r.harga_beli_max ?? r.harga_netto ?? 0),
+    hargaBeliBasis: r.harga_beli_basis || null,
   };
 }
+function normalizeUser(r) { return { id: r.id, username: r.username, role: r.role }; }
 function normalizeSuplier(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
 function normalizePelanggan(r) { return { id: r.id, kode: r.kode, nama: r.nama, alamat: r.alamat, noHp: r.no_hp }; }
-function normalizeUser(r) { return { id: r.id, username: r.username, role: r.role }; }
-function normalizePembelian(r) { return { id: r.id, noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya), paymentType: r.payment_type, jatuhTempo: r.jatuh_tempo }; }
+function normalizePembelian(r) { return { id: r.id, noFaktur: r.no_faktur, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, supplier: r.suplier, totalItems: r.total_items, totalQty: r.total_qty, totalBiaya: Number(r.total_biaya), paymentType: r.payment_type, jatuhTempo: r.jatuh_tempo, canEdit: !!r.can_edit }; }
 function normalizePenjualan(r) { return { id: r.id, invoiceNo: r.invoice_no, tanggal: formatTanggal(r.tanggal), tanggalISO: r.tanggal, custName: r.cust_name, totalQty: r.total_qty, grandTotal: Number(r.grand_total), paymentMethod: r.payment_method }; }
 function normalizeReturPj(r) { return { id: r.id, noRetur: r.no_retur, invoice: r.original_invoice_no, customer: r.customer_name, tanggal: r.tanggal, totalQty: r.total_qty }; }
 function normalizeReturPb(r) { return { id: r.id, noRetur: r.no_retur, invoice: r.original_invoice_no, supplier: r.suplier, tanggal: r.tanggal, totalQty: r.total_qty }; }
@@ -2602,6 +2680,17 @@ class Component extends DCLogic {
     pembelianSubmitError: '',
     pembelianItemFormError: '',
     pembelianItemFieldErrors: [],
+    // Ubah Pembelian: cuma bisa dipakai kalau faktur belum tersentuh
+    // penjualan/retur sama sekali (lihat pembelianHistoryView.canEdit,
+    // ditentukan backend). Koreksi salah basis/qty tanpa hapus-input ulang.
+    pembelianEditOpen: false,
+    pembelianEditId: null,
+    pembelianEditNoFaktur: '',
+    pembelianEditTanggal: '',
+    pembelianEditPayment: 'CASH',
+    pembelianEditJatuhTempo: '',
+    pembelianEditItems: [],
+    pembelianEditError: '',
     laporanSearch: '',
     laporanKategoriFilter: 'ALL',
     laporanSupplierFilter: 'ALL',
@@ -4180,6 +4269,79 @@ ${this.laporanLengkapTableHtml(tab, false)}
     }).catch((e) => this.setState({ busy: false, pembelianSubmitError: e.message }));
   };
 
+  // Ubah Pembelian: koreksi faktur yang salah input (basis Faktur/Netto
+  // ketuker, qty salah ketik, dsb) TANPA hapus+input ulang -- tapi cuma
+  // untuk faktur yang belum tersentuh penjualan/retur (h.canEdit dari
+  // backend, guard yang sama dengan tombol Hapus). Suplier & jumlah baris
+  // barang sengaja TIDAK bisa diubah di sini -- itu identitas transaksi,
+  // kalau salah tetap harus hapus lalu input ulang.
+  openPembelianEdit = (id) => {
+    this.setState({
+      pembelianEditOpen: true, pembelianEditId: id, pembelianEditError: '',
+      pembelianEditNoFaktur: '', pembelianEditTanggal: '', pembelianEditPayment: 'CASH', pembelianEditJatuhTempo: '',
+      pembelianEditItems: [],
+    });
+    api('GET', 'pembelian.php?id=' + id).then((h) => {
+      this.setState((s) => (s.pembelianEditId !== id ? {} : {
+        pembelianEditNoFaktur: h.no_faktur, pembelianEditTanggal: h.tanggal,
+        pembelianEditPayment: h.payment_type, pembelianEditJatuhTempo: h.jatuh_tempo || '',
+        pembelianEditItems: h.items.map((it) => ({
+          pembelianItemId: it.pembelian_item_id, kode: it.kode, nama: it.nama,
+          qty: String(it.qty),
+          hargaBasis: Number(it.harga_netto) > 0 ? 'NETTO' : 'FAKTUR',
+          hargaBeli: String(Number(it.harga_netto) > 0 ? it.harga_netto : it.harga_faktur),
+          pricelist: String(it.pricelist_het || 0),
+        })),
+      }));
+    }).catch((e) => this.setState({ pembelianEditError: e.message }));
+  };
+
+  closePembelianEdit = () => this.setState({ pembelianEditOpen: false, pembelianEditId: null, pembelianEditError: '' });
+  setPembelianEditNoFaktur = (e) => this.setState({ pembelianEditNoFaktur: e.target.value });
+  setPembelianEditTanggal = (e) => this.setState({ pembelianEditTanggal: e.target.value });
+  setPembelianEditJatuhTempo = (e) => this.setState({ pembelianEditJatuhTempo: e.target.value });
+  setPembelianEditCash = () => this.setState({ pembelianEditPayment: 'CASH' });
+  setPembelianEditTop = () => this.setState({ pembelianEditPayment: 'TOP' });
+  setPembelianEditItemField = (pembelianItemId, field) => (e) => this.setState((s) => ({
+    pembelianEditItems: s.pembelianEditItems.map((r) => (r.pembelianItemId === pembelianItemId ? { ...r, [field]: e.target.value } : r)),
+  }));
+
+  savePembelianEdit = () => {
+    const s = this.state;
+    const noFaktur = s.pembelianEditNoFaktur.trim();
+    if (!noFaktur) { this.setState({ pembelianEditError: 'No. Faktur wajib diisi.' }); return; }
+    if (s.pembelianEditPayment === 'TOP' && !s.pembelianEditJatuhTempo) {
+      this.setState({ pembelianEditError: 'Isi Tgl Jatuh Tempo untuk pembayaran TOP.' });
+      return;
+    }
+    for (const it of s.pembelianEditItems) {
+      const qty = parseInt(it.qty), hargaBeli = parseFloat(it.hargaBeli);
+      if (!(qty >= 1) || !(hargaBeli > 0)) {
+        this.setState({ pembelianEditError: `Isi Qty dan Harga Beli "${it.nama}" dengan angka valid.` });
+        return;
+      }
+    }
+    this.setState({ busy: true, pembelianEditError: '' });
+    const items = s.pembelianEditItems.map((it) => {
+      const hargaBeli = parseFloat(it.hargaBeli) || 0;
+      return {
+        pembelian_item_id: it.pembelianItemId,
+        qty: parseInt(it.qty) || 0,
+        harga_faktur: it.hargaBasis === 'FAKTUR' ? hargaBeli : 0,
+        harga_netto: it.hargaBasis === 'NETTO' ? hargaBeli : 0,
+        pricelist: parseFloat(it.pricelist) || 0,
+      };
+    });
+    api('PUT', 'pembelian.php?id=' + s.pembelianEditId, {
+      no_faktur: noFaktur, tanggal: s.pembelianEditTanggal, payment_type: s.pembelianEditPayment,
+      jatuh_tempo: s.pembelianEditPayment === 'TOP' ? s.pembelianEditJatuhTempo : null, items,
+    }).then(() => {
+      this.setState({ busy: false, pembelianEditOpen: false, pembelianEditId: null });
+      this.refreshBarang();
+      this.refreshPembelianHistory();
+    }).catch((e) => this.setState({ busy: false, pembelianEditError: e.message }));
+  };
+
   doLogin = () => {
     const { username, password } = this.state;
     if (!username.trim()) { this.setState({ loginError: 'Isi nama pengguna terlebih dahulu.' }); return; }
@@ -4391,7 +4553,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
         hasSupplierTanpaHarga: p.supplierTanpaHarga.length > 0,
         supplierTanpaHargaLabel: p.supplierTanpaHarga.join(', '),
         pricelistLabel: formatRp(p.pricelist || 0),
-        hargaBeliLabel: p.hargaBeliMax > 0 ? formatRpRange(p.hargaBeliMin, p.hargaBeliMax) : '—',
+        hargaBeliLabel: p.hargaBeliMax > 0 ? formatRpRange(p.hargaBeliMin, p.hargaBeliMax) + (p.hargaBeliBasis ? ' (' + (p.hargaBeliBasis === 'NETTO' ? 'Netto' : 'Faktur') + ')' : '') : '—',
         statusIsKritis: !p.pendingSetup && p.status === 'Kritis', statusIsMenipis: !p.pendingSetup && p.status === 'Menipis', statusIsAman: !p.pendingSetup && p.status === 'Aman',
         editHandler: () => this.openStokEdit(p.kode), deleteHandler: () => this.requestDeleteStok(p.kode),
         printHandler: () => this.openStokPrint(p.kode, p.nama),
@@ -4584,6 +4746,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       pembelianHistoryView: s.pembelianHistory.map((h) => ({
         ...h,
         deleteHandler: () => this.requestDeleteTransaksi('pembelian', h.id, h.noFaktur),
+        editHandler: () => this.openPembelianEdit(h.id),
         detailHandler: () => this.openLaporanPembelianDetail(h.id),
         totalBiayaLabel: formatRp(h.totalBiaya),
         tanggalPendek: formatTanggalPendek(h.tanggalISO),
@@ -4592,6 +4755,23 @@ ${this.laporanLengkapTableHtml(tab, false)}
           ? (h.jatuhTempo ? 'TOP j.tempo ' + formatTanggalPendek(h.jatuhTempo) : 'TOP')
           : 'Cash',
         paymentTagClass: h.paymentType === 'TOP' ? 'tag-accent' : 'tag-neutral',
+      })),
+      pembelianEditOpen: s.pembelianEditOpen, closePembelianEdit: this.closePembelianEdit,
+      pembelianEditNoFaktur: s.pembelianEditNoFaktur, setPembelianEditNoFaktur: this.setPembelianEditNoFaktur,
+      pembelianEditTanggal: s.pembelianEditTanggal, setPembelianEditTanggal: this.setPembelianEditTanggal,
+      pembelianEditJatuhTempo: s.pembelianEditJatuhTempo, setPembelianEditJatuhTempo: this.setPembelianEditJatuhTempo,
+      payIsCashPembelianEdit: s.pembelianEditPayment === 'CASH', payIsTopPembelianEdit: s.pembelianEditPayment === 'TOP',
+      setPembelianEditCash: this.setPembelianEditCash, setPembelianEditTop: this.setPembelianEditTop,
+      pembelianEditError: s.pembelianEditError, savePembelianEdit: this.savePembelianEdit,
+      pembelianEditTotalLabel: formatRp(s.pembelianEditItems.reduce((a, it) => a + (parseInt(it.qty) || 0) * (parseFloat(it.hargaBeli) || 0), 0)),
+      pembelianEditItemsView: s.pembelianEditItems.map((it) => ({
+        pembelianItemId: it.pembelianItemId, kode: it.kode, nama: it.nama,
+        qty: it.qty, hargaBasis: it.hargaBasis, hargaBeli: it.hargaBeli, pricelist: it.pricelist,
+        subtotalLabel: formatRp((parseInt(it.qty) || 0) * (parseFloat(it.hargaBeli) || 0)),
+        setQty: this.setPembelianEditItemField(it.pembelianItemId, 'qty'),
+        setHargaBasis: this.setPembelianEditItemField(it.pembelianItemId, 'hargaBasis'),
+        setHargaBeli: this.setPembelianEditItemField(it.pembelianItemId, 'hargaBeli'),
+        setPricelist: this.setPembelianEditItemField(it.pembelianItemId, 'pricelist'),
       })),
       finalizePembelian: this.finalizePembelian,
       pembelianLastSuccess: s.pembelianLastSuccess, dismissPembelianLastSuccess: this.dismissPembelianLastSuccess,
