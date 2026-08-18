@@ -343,3 +343,43 @@ INSERT INTO penjualan_item (penjualan_id, barang_id, nama_snapshot, tier, qty, u
   (2, 7, 'Busi NGK CPR8EA-9',                  'grosir',  20, 28000,  560000),
   (2, 6, 'Ban Motor FDR Sportivo 90/80-17',    'ecer',    2,  320000, 640000),
   (3, 8, 'Oli Yamalube Sport 1L',              'ecer',    5,  65000,  325000);
+
+-- ── Batch stok + harga jual per suplier untuk data seed ───────────────
+-- Setiap pcs di barang.stok WAJIB punya batch pendukung di barang_lot
+-- (SUM(qty_sisa) == stok). Tanpa ini Transaksi Penjualan tampil kosong dan
+-- penjualan ditolak "Data batch tidak sinkron" (lihat penjualan.php).
+
+-- 1. Satu batch per baris pembelian, sama seperti yang dibuat pembelian.php.
+INSERT INTO barang_lot (barang_id, pembelian_item_id, suplier_id, harga_beli, qty_awal, qty_sisa, tanggal)
+SELECT pi.barang_id, pi.id, p.suplier_id,
+       IF(pi.harga_netto > 0, pi.harga_netto, pi.harga_faktur), pi.qty, pi.qty, p.tanggal
+FROM pembelian_item pi
+JOIN pembelian p ON p.id = pi.pembelian_id
+WHERE NOT EXISTS (SELECT 1 FROM barang_lot bl WHERE bl.pembelian_item_id = pi.id);
+
+-- 2. Barang yang stok seed-nya tidak berasal dari pembelian di atas tetap
+--    butuh batch, atas nama suplier terakhirnya — kasir wajib memilih
+--    suplier saat menjual (penjualan.php), jadi batch tanpa suplier tidak
+--    akan pernah bisa dijual lewat layar kasir.
+INSERT INTO barang_lot (barang_id, pembelian_item_id, suplier_id, harga_beli, qty_awal, qty_sisa, tanggal)
+SELECT b.id, NULL, b.suplier_id,
+       IF(b.harga_netto > 0, b.harga_netto, b.harga_faktur), b.stok, b.stok, CURDATE()
+FROM barang b
+WHERE b.stok > 0 AND b.suplier_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM barang_lot bl WHERE bl.barang_id = b.id);
+
+-- 3. Batch adalah sumber kebenaran: stok agregat diselaraskan ke batch.
+UPDATE barang b
+SET b.stok = COALESCE((SELECT SUM(bl.qty_sisa) FROM barang_lot bl WHERE bl.barang_id = b.id), 0);
+
+-- 4. Harga jual per (barang, suplier) — tanpa baris ini barangnya tetap
+--    tidak muncul di kasir walau stoknya ada (ditandai "harga belum diisi").
+INSERT INTO barang_suplier_harga (barang_id, suplier_id, harga_faktur, harga_netto, harga_ecer, harga_bengkel, harga_grosir)
+SELECT DISTINCT bl.barang_id, bl.suplier_id, b.harga_faktur, b.harga_netto,
+       b.harga_ecer, b.harga_bengkel, b.harga_grosir
+FROM barang_lot bl
+JOIN barang b ON b.id = bl.barang_id
+WHERE bl.suplier_id IS NOT NULL
+  AND b.harga_ecer > 0 AND b.harga_bengkel > 0 AND b.harga_grosir > 0
+  AND NOT EXISTS (SELECT 1 FROM barang_suplier_harga h
+                  WHERE h.barang_id = bl.barang_id AND h.suplier_id = bl.suplier_id);

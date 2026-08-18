@@ -132,10 +132,12 @@ try {
             $hp->execute([$barang['id'], $suplierId]);
             $hargaSuplier = $hp->fetch();
             if (!$hargaSuplier) {
-                $sName = $pdo->prepare('SELECT nama FROM suplier WHERE id = ?');
+                $sName = $pdo->prepare('SELECT nama, kode FROM suplier WHERE id = ?');
                 $sName->execute([$suplierId]);
-                $suplierNama = $sName->fetchColumn() ?: 'ini';
-                throw new RuntimeException("Suplier \"$suplierNama\" belum ada harga jual untuk barang {$barang['nama']}. Isi dulu di Ubah Barang.");
+                $sRow = $sName->fetch();
+                // Karyawan cuma boleh lihat kode suplier, termasuk di pesan error.
+                $suplierLabel = $sRow ? ($me['role'] === 'owner' ? $sRow['nama'] : $sRow['kode']) : 'ini';
+                throw new RuntimeException("Suplier \"$suplierLabel\" belum ada harga jual untuk barang {$barang['nama']}. Isi dulu di Ubah Barang.");
             }
             $unitPrice = (float)$hargaSuplier['harga_' . $tier];
             $lotWhere = 'barang_id = ? AND suplier_id = ? AND qty_sisa > 0';

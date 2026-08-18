@@ -109,6 +109,8 @@ $invoice = trim($in['original_invoice_no'] ?? '');
 // dan ?? cuma menangkap null. Tanpa ini '' masuk ke kolom DATE dan ditolak
 // MySQL (sql_mode STRICT) sebagai error mentah, bukan jatuh ke hari ini.
 $tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) json_error('Tanggal retur tidak valid.');
+if ($tanggal > date('Y-m-d')) json_error('Tanggal retur tidak boleh di masa depan.');
 $items = $in['items'] ?? [];
 if ($customer === '' || $invoice === '' || !$items) json_error('Pelanggan, no. invoice asal, dan minimal 1 barang wajib diisi.');
 

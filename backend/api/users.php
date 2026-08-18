@@ -29,8 +29,18 @@ if ($method === 'POST') {
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_error('id wajib diisi.');
 
+// Owner terakhir tidak boleh dihapus atau diturunkan: tanpa satu pun owner,
+// Master Data (termasuk kelola akun) jadi tidak bisa dibuka siapa pun lagi.
+function is_last_owner(PDO $pdo, int $id): bool {
+    $s = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+    $s->execute([$id]);
+    if ($s->fetchColumn() !== 'owner') return false;
+    return (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'owner'")->fetchColumn() <= 1;
+}
+
 if ($method === 'PUT') {
     $in = body();
+    if (!empty($in['role']) && $in['role'] !== 'owner' && is_last_owner($pdo, $id)) json_error('Owner terakhir tidak bisa diubah jadi Karyawan.');
     $fields = []; $params = [];
     if (!empty($in['username'])) { $fields[] = 'username = ?'; $params[] = trim($in['username']); }
     if (!empty($in['role'])) { $fields[] = 'role = ?'; $params[] = $in['role'] === 'owner' ? 'owner' : 'karyawan'; }
@@ -50,6 +60,7 @@ if ($method === 'PUT') {
 
 if ($method === 'DELETE') {
     if ($id === $me['id']) json_error('Tidak bisa menghapus akun sendiri.');
+    if (is_last_owner($pdo, $id)) json_error('Owner terakhir tidak bisa dihapus.');
     delete_row($pdo, 'users', $id, 'Pengguna');
     json_ok(['deleted' => $id]);
 }

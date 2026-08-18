@@ -121,10 +121,14 @@ ACCESS CONTROL MATRIX):
 | Endpoint | Owner | Karyawan |
 |---|:---:|:---:|
 | `auth/*` | ✅ | ✅ |
-| `kategori.php`, `suplier.php`, `pelanggan.php` — **GET** | ✅ | ✅ |
+| `kategori.php`, `pelanggan.php` — **GET** | ✅ | ✅ |
+| `suplier.php` (semua method) | ✅ | ❌ |
 | `kategori.php`, `suplier.php`, `pelanggan.php`, `users.php` — tulis | ✅ | ❌ |
-| `barang.php` — **GET** | ✅ (semua field) | ✅ (tanpa harga beli) |
-| `barang.php` — tulis, `?history=1` | ✅ | ❌ |
+| `barang.php` — **GET** | ✅ (semua field) | ✅ (tanpa harga beli & nama suplier) |
+| `barang.php` — tulis | ✅ | ❌ |
+| `barang.php?history=1` | ✅ | ✅ (tanpa harga beli & nama suplier) |
+| `barang_suplier_harga.php` — **GET** | ✅ (semua field) | ✅ (kode suplier, tanpa harga faktur/netto/beli) |
+| `barang_suplier_harga.php` — tulis | ✅ | ❌ |
 | `pembelian.php` (semua method) | ✅ | ❌ |
 | `penjualan.php` (semua method) | ✅ | ✅ |
 | `retur_penjualan.php` | ✅ | ✅ |
@@ -193,9 +197,11 @@ DELETE /api/users.php?id=1   — tidak bisa hapus akun sendiri
 GET /api/barang.php?kategori=BAN&search=ban
 ```
 Karyawan dapat: `id, kode, nama, kategori, suplier, stok, harga_ecer,
-harga_bengkel, harga_grosir, status` — suplier bukan data finansial (dipakai
-filter di Laporan Stok, yang bisa diakses Karyawan). Owner dapat tambahan:
-`harga_faktur, harga_netto, price_list_basis, min_stok, pending_setup`.
+harga_bengkel, harga_grosir, status` — `suplier`/`suplier_tanpa_harga` dikirim
+dalam bentuk KODE (bukan nama) ke Karyawan, karena nama suplier adalah
+identitas bisnis private; filter Suplier di Laporan Stok sendiri owner-only.
+Owner dapat tambahan: `harga_faktur, harga_netto, price_list_basis, min_stok,
+pending_setup`, dan `suplier`/`suplier_tanpa_harga` berisi nama lengkap.
 `status` dihitung otomatis: `stok <= min_stok/2` → `Kritis`, `<= min_stok` →
 `Menipis`, selain itu `Aman`.
 
@@ -279,7 +285,6 @@ Semua laporan pakai query string `from`/`to` (format `YYYY-MM-DD`, opsional —
 default dari awal waktu s/d hari ini).
 
 ```
-GET /api/laporan/stok.php?kategori=&suplier=&status=&search=      (Owner & Karyawan)
 GET /api/laporan/penjualan.php?from=&to=                          (Owner & Karyawan)
 GET /api/laporan/top_produk.php?from=&to=&limit=5                  (Owner & Karyawan — profit disembunyikan utk Karyawan)
 GET /api/laporan/pembelian.php?from=&to=                          (Owner only)

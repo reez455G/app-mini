@@ -87,6 +87,8 @@ $supplierName = trim($in['suplier'] ?? '');
 $invoice = trim($in['original_invoice_no'] ?? '');
 // ?: bukan ?? — lihat komentar yang sama di retur_penjualan.php.
 $tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) json_error('Tanggal retur tidak valid.');
+if ($tanggal > date('Y-m-d')) json_error('Tanggal retur tidak boleh di masa depan.');
 $items = $in['items'] ?? [];
 if ($supplierName === '' || $invoice === '' || !$items) json_error('Suplier, no. faktur asal, dan minimal 1 barang wajib diisi.');
 

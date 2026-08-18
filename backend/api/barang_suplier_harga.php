@@ -64,34 +64,47 @@ if ($method === 'GET') {
     // sebenarnya sudah diketahui (dari Input Pembelian) tidak perlu diketik
     // ulang. Cuma salah satu (faktur ATAU netto) yang > 0, sama seperti
     // basis yang dipilih saat Input Pembelian dulu -- lihat pembelian.php.
-    $latestPurchase = $pdo->prepare(
-        'SELECT p.suplier_id, pi.harga_faktur, pi.harga_netto
-         FROM pembelian_item pi JOIN pembelian p ON p.id = pi.pembelian_id
-         WHERE pi.barang_id = ? ORDER BY p.tanggal DESC, p.id DESC, pi.id DESC'
-    );
-    $latestPurchase->execute([$barangId]);
+    // Hanya diperlukan Owner: harga faktur/netto adalah data finansial.
     $latestBySuplier = [];
-    foreach ($latestPurchase->fetchAll() as $r) {
-        $sid = (int)$r['suplier_id'];
-        if (!isset($latestBySuplier[$sid])) $latestBySuplier[$sid] = $r; // baris pertama = paling baru
+    if ($isOwner) {
+        $latestPurchase = $pdo->prepare(
+            'SELECT p.suplier_id, pi.harga_faktur, pi.harga_netto
+             FROM pembelian_item pi JOIN pembelian p ON p.id = pi.pembelian_id
+             WHERE pi.barang_id = ? ORDER BY p.tanggal DESC, p.id DESC, pi.id DESC'
+        );
+        $latestPurchase->execute([$barangId]);
+        foreach ($latestPurchase->fetchAll() as $r) {
+            $sid = (int)$r['suplier_id'];
+            if (!isset($latestBySuplier[$sid])) $latestBySuplier[$sid] = $r; // baris pertama = paling baru
+        }
     }
 
     $out = array_map(function ($s) use ($stokBySuplier, $hargaBySuplier, $hargaBeliBySuplier, $isOwner, $latestBySuplier) {
         $sid = (int)$s['id'];
         $h = $hargaBySuplier[$sid] ?? null;
-        $sudahDisimpan = $h && ((float)$h['harga_faktur'] > 0 || (float)$h['harga_netto'] > 0);
-        $lp = $latestBySuplier[$sid] ?? null;
+        // Karyawan tidak pernah menerima NAMA suplier -- cuma kodenya. Field
+        // 'suplier' tetap ada supaya pemakainya di frontend tidak perlu
+        // bercabang; isinya kode untuk non-owner.
         $row = [
-            'suplier_id' => $sid, 'suplier' => $s['nama'], 'suplier_kode' => $s['kode'],
+            'suplier_id' => $sid,
+            'suplier' => $isOwner ? $s['nama'] : $s['kode'],
+            'suplier_kode' => $s['kode'],
             'stok_sisa' => $stokBySuplier[$sid] ?? 0,
-            'harga_faktur' => $sudahDisimpan ? (float)$h['harga_faktur'] : ($lp ? (float)$lp['harga_faktur'] : null),
-            'harga_netto' => $sudahDisimpan ? (float)$h['harga_netto'] : ($lp ? (float)$lp['harga_netto'] : null),
             'harga_ecer' => $h ? (float)$h['harga_ecer'] : null,
             'harga_bengkel' => $h ? (float)$h['harga_bengkel'] : null,
             'harga_grosir' => $h ? (float)$h['harga_grosir'] : null,
         ];
-        if ($isOwner) $row['harga_beli'] = $hargaBeliBySuplier[$sid] ?? null;
-        return $row;
+        if (!$isOwner) return $row;
+        // Harga beli (faktur/netto referensi + modal batch terakhir) data
+        // finansial: dibuang total dari response non-owner, bukan cuma
+        // disembunyikan di layar.
+        $sudahDisimpan = $h && ((float)$h['harga_faktur'] > 0 || (float)$h['harga_netto'] > 0);
+        $lp = $latestBySuplier[$sid] ?? null;
+        return $row + [
+            'harga_faktur' => $sudahDisimpan ? (float)$h['harga_faktur'] : ($lp ? (float)$lp['harga_faktur'] : null),
+            'harga_netto' => $sudahDisimpan ? (float)$h['harga_netto'] : ($lp ? (float)$lp['harga_netto'] : null),
+            'harga_beli' => $hargaBeliBySuplier[$sid] ?? null,
+        ];
     }, $suppliers);
 
     // Stok hasil koreksi manual (tidak tertaut suplier mana pun) -- dipakai

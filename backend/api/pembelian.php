@@ -98,7 +98,6 @@ $noFaktur = trim($in['no_faktur'] ?? '');
 $items = $in['items'] ?? [];
 if ($supplierName === '' || $noFaktur === '' || !$items) json_error('Suplier, No. Faktur, dan minimal 1 barang wajib diisi.');
 $paymentType = ($in['payment_type'] ?? 'CASH') === 'TOP' ? 'TOP' : 'CASH';
-$jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : null;
 // Tanggal faktur fisik dari suplier, bukan tanggal input — faktur tanggal 10
 // yang baru sempat diinput tanggal 15 harus tetap tercatat tanggal 10, kalau
 // tidak Laporan Pembelian tidak bisa dicocokkan dengan faktur fisik. Dipakai
@@ -108,6 +107,18 @@ $jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : null;
 $tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) json_error('Tanggal faktur tidak valid.');
 if ($tanggal > date('Y-m-d')) json_error('Tanggal faktur tidak boleh di masa depan.');
+
+// Cash = lunas saat itu juga, jadi "jatuh tempo"-nya ya tanggal faktur itu
+// sendiri (bukan NULL) -- riwayat/laporan tetap punya tanggal acuan yang
+// masuk akal, dan konsisten dengan field ini di-disable untuk Cash di UI.
+$jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : $tanggal;
+// TOP tanpa tanggal jatuh tempo = utang tanpa tenggat: ditolak, bukan
+// disimpan NULL diam-diam.
+if ($paymentType === 'TOP') {
+    if (!$jatuhTempo || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $jatuhTempo)) {
+        json_error('Tgl Jatuh Tempo wajib diisi untuk pembayaran TOP.');
+    }
+}
 
 $pdo->beginTransaction();
 try {

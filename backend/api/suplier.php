@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 
-require_login();
+require_owner(); // sudah memanggil require_login() -- suplier adalah data private Owner (nama, alamat, no HP)
 $method = $_SERVER['REQUEST_METHOD'];
 $pdo = db();
 
@@ -10,7 +10,6 @@ if ($method === 'GET') {
     json_ok($pdo->query('SELECT id, kode, nama, alamat, no_hp FROM suplier ORDER BY nama')->fetchAll());
 }
 
-require_owner();
 
 if ($method === 'POST') {
     $in = body();

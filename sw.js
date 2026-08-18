@@ -7,7 +7,7 @@
 // yang sudah install mengambil ulang salinan baru -- kalau tidak, versi
 // lama yang sudah tersimpan akan terus dipakai sampai cache-nya kedaluwarsa
 // sendiri lewat pengecekan network-first di bawah.
-const CACHE_NAME = 'app-mini-v1';
+const CACHE_NAME = 'app-mini-v2';
 const SHELL_FILES = [
   'Dashboard.dc.html',
   'support.js',

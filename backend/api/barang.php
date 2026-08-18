@@ -95,10 +95,9 @@ if ($method === 'GET') {
     $stokPerSuplier = [];
     foreach ($lotStmt->fetchAll() as $r) $stokPerSuplier[(int)$r['barang_id']][] = $r;
 
-    // Karyawan tidak boleh lihat harga beli (data finansial) — tapi nama
-    // suplier bukan data finansial (dipakai filter di Laporan Stok, yang
-    // memang bisa diakses Karyawan) jadi tetap dikirim ke semua role. Lihat
-    // docs/BACKEND.md § Access control.
+    // Karyawan hanya menerima KODE suplier, tidak pernah nama (identitas
+    // bisnis private) — harga beli juga tetap disembunyikan seperti dulu.
+    // Lihat docs/BACKEND.md § Access control.
     $isOwner = $me['role'] === 'owner';
     $out = array_map(function ($r) use ($isOwner, $stokPerSuplier) {
         $lots = $stokPerSuplier[(int)$r['id']] ?? [];
@@ -150,11 +149,11 @@ if ($method === 'GET') {
         $base = [
             'id' => (int)$r['id'], 'kode' => $r['kode'], 'nama' => $r['nama'],
             'kategori' => $r['kategori_nama'],
-            'suplier' => $suplierLabel,
+            'suplier' => $isOwner ? $suplierLabel : $kodeSuplierLabel,
             'suplier_kode_label' => $kodeSuplierLabel,
             'suplier_kode' => $r['suplier_kode'], 'suplier_count' => (int)$r['suplier_count'],
             'suplier_stok_count' => count($namaSuplier),
-            'suplier_tanpa_harga' => $tanpaHarga,
+            'suplier_tanpa_harga' => $isOwner ? $tanpaHarga : $kodeTanpaHarga,
             'suplier_kode_tanpa_harga' => $kodeTanpaHarga,
             'stok' => (int)$r['stok'],
             'harga_ecer' => (float)$r['harga_ecer'], 'harga_bengkel' => (float)$r['harga_bengkel'], 'harga_grosir' => (float)$r['harga_grosir'],
