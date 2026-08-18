@@ -17,7 +17,7 @@ if ($method === 'GET') {
         // waktu pembelian -- barang bisa saja sudah diedit Pricelist/HET-nya
         // sesudah faktur ini dibuat).
         $it = $pdo->prepare(
-            'SELECT pi.kode_snapshot AS kode, pi.nama_snapshot AS nama, pi.kategori_snapshot AS kategori,
+            'SELECT pi.id AS pembelian_item_id, pi.barang_id, pi.kode_snapshot AS kode, pi.nama_snapshot AS nama, pi.kategori_snapshot AS kategori,
                     pi.harga_faktur, pi.harga_netto, pi.qty, pi.subtotal, b.pricelist AS pricelist_het
              FROM pembelian_item pi JOIN barang b ON b.id = pi.barang_id WHERE pi.pembelian_id = ?'
         );
@@ -25,8 +25,15 @@ if ($method === 'GET') {
         $header['items'] = $it->fetchAll();
         json_ok($header);
     }
+    // can_edit: SEMUA batch dari faktur ini masih utuh (belum ada yang
+    // terjual/diretur) -- aturan yang sama dengan guard "Hapus" di bawah,
+    // dipakai frontend buat munculkan/sembunyikan tombol Ubah.
     $rows = $pdo->query(
-        'SELECT p.id, p.no_faktur, p.tanggal, s.nama AS suplier, p.payment_type, p.jatuh_tempo, p.total_items, p.total_qty, p.total_biaya
+        'SELECT p.id, p.no_faktur, p.tanggal, s.nama AS suplier, p.payment_type, p.jatuh_tempo, p.total_items, p.total_qty, p.total_biaya,
+                NOT EXISTS (
+                    SELECT 1 FROM pembelian_item pi JOIN barang_lot bl ON bl.pembelian_item_id = pi.id
+                    WHERE pi.pembelian_id = p.id AND bl.qty_sisa <> bl.qty_awal
+                ) AS can_edit
          FROM pembelian p JOIN suplier s ON s.id = p.suplier_id ORDER BY p.tanggal DESC, p.id DESC'
     )->fetchAll();
     json_ok($rows);
@@ -84,6 +91,127 @@ if ($method === 'DELETE') {
 
         $pdo->commit();
         json_ok(['deleted' => $id]);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_error($e->getMessage(), 400);
+    }
+}
+
+if ($method === 'PUT') {
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_error('id wajib diisi.', 400);
+    $in = body();
+    $noFaktur = trim($in['no_faktur'] ?? '');
+    $itemsIn = $in['items'] ?? [];
+    if ($noFaktur === '' || !$itemsIn) json_error('No. Faktur dan minimal 1 barang wajib diisi.');
+    $paymentType = ($in['payment_type'] ?? 'CASH') === 'TOP' ? 'TOP' : 'CASH';
+    $tanggal = ($in['tanggal'] ?? '') ?: date('Y-m-d');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) json_error('Tanggal faktur tidak valid.');
+    if ($tanggal > date('Y-m-d')) json_error('Tanggal faktur tidak boleh di masa depan.');
+    $jatuhTempo = $paymentType === 'TOP' ? ($in['jatuh_tempo'] ?? null) : $tanggal;
+    if ($paymentType === 'TOP') {
+        if (!$jatuhTempo || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $jatuhTempo)) {
+            json_error('Tgl Jatuh Tempo wajib diisi untuk pembayaran TOP.');
+        }
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $h = $pdo->prepare('SELECT suplier_id FROM pembelian WHERE id = ? FOR UPDATE');
+        $h->execute([$id]);
+        $header = $h->fetch();
+        if (!$header) throw new RuntimeException('Pembelian tidak ditemukan.');
+        $suplierId = (int)$header['suplier_id'];
+
+        // Suplier & jumlah baris barang TIDAK bisa diubah lewat Ubah Pembelian
+        // -- ganti suplier/barang berarti transaksi berbeda, bukan koreksi.
+        // Kalau itu yang salah, tetap harus hapus lalu input ulang.
+        $origItems = $pdo->prepare(
+            'SELECT pi.id AS pembelian_item_id, pi.barang_id, pi.qty AS qty_lama, pi.nama_snapshot FROM pembelian_item pi WHERE pi.pembelian_id = ?'
+        );
+        $origItems->execute([$id]);
+        $origRows = $origItems->fetchAll();
+        if (count($itemsIn) !== count($origRows)) {
+            throw new RuntimeException('Jumlah baris barang tidak bisa diubah lewat Ubah Pembelian -- hapus dan input ulang kalau perlu tambah/kurangi barang.');
+        }
+
+        // Guard per-lot (sama persis dengan guard "Hapus" di atas): faktur
+        // ini cuma boleh diubah selama BELUM ada satu pcs pun yang tertarik
+        // (terjual/diretur) dari batch-batchnya -- kalau sudah, koreksi bisa
+        // bikin laporan laba yang sudah terlanjur dihitung jadi tidak
+        // konsisten dengan modal barunya.
+        $lotByItemId = [];
+        foreach ($origRows as $it) {
+            $lot = $pdo->prepare('SELECT id, qty_awal, qty_sisa FROM barang_lot WHERE pembelian_item_id = ? FOR UPDATE');
+            $lot->execute([$it['pembelian_item_id']]);
+            $lotRow = $lot->fetch();
+            if ($lotRow && (int)$lotRow['qty_sisa'] !== (int)$lotRow['qty_awal']) {
+                throw new RuntimeException("Batch {$it['nama_snapshot']} dari pembelian ini sudah ada yang terjual/diretur, tidak bisa diubah.");
+            }
+            $lotByItemId[(int)$it['pembelian_item_id']] = $lotRow;
+        }
+
+        // Cocokkan tiap baris kiriman ke pembelian_item aslinya lewat id --
+        // bukan posisi array, supaya urutan dari frontend tidak berpengaruh.
+        $itemsInById = [];
+        foreach ($itemsIn as $line) {
+            $pid = (int)($line['pembelian_item_id'] ?? 0);
+            if (!$pid) throw new RuntimeException('pembelian_item_id wajib diisi tiap baris.');
+            $itemsInById[$pid] = $line;
+        }
+
+        $totalQty = 0; $totalBiaya = 0;
+        foreach ($origRows as $orig) {
+            $pid = (int)$orig['pembelian_item_id'];
+            $line = $itemsInById[$pid] ?? null;
+            if (!$line) throw new RuntimeException('Baris barang tidak cocok dengan faktur ini -- hapus dan input ulang kalau perlu tambah/kurangi barang.');
+
+            $qty = (int)($line['qty'] ?? 0);
+            $hargaFaktur = (float)($line['harga_faktur'] ?? 0);
+            $hargaNetto = (float)($line['harga_netto'] ?? 0);
+            $pricelist = (float)($line['pricelist'] ?? 0);
+            if ($qty < 1 || ($hargaFaktur <= 0 && $hargaNetto <= 0)) {
+                throw new RuntimeException("Baris \"{$orig['nama_snapshot']}\" butuh qty >= 1 dan salah satu harga faktur/netto.");
+            }
+            $hargaBeli = $hargaNetto > 0 ? $hargaNetto : $hargaFaktur;
+            $subtotal = $qty * $hargaBeli;
+            $totalQty += $qty; $totalBiaya += $subtotal;
+
+            $pdo->prepare('UPDATE pembelian_item SET harga_faktur = ?, harga_netto = ?, pricelist = ?, qty = ?, subtotal = ? WHERE id = ?')
+                ->execute([$hargaFaktur, $hargaNetto, $pricelist, $qty, $subtotal, $pid]);
+
+            $lotRow = $lotByItemId[$pid];
+            if ($lotRow) {
+                $pdo->prepare('UPDATE barang_lot SET qty_awal = ?, qty_sisa = ?, harga_beli = ?, tanggal = ? WHERE id = ?')
+                    ->execute([$qty, $qty, $hargaBeli, $tanggal, $lotRow['id']]);
+            }
+            $deltaQty = $qty - (int)$orig['qty_lama'];
+            if ($deltaQty !== 0) {
+                $pdo->prepare('UPDATE barang SET stok = stok + ? WHERE id = ?')->execute([$deltaQty, $orig['barang_id']]);
+            }
+            // Snapshot harga_faktur/harga_netto di level barang ikut disamakan
+            // pola merge yang sama seperti pembelian baru (POST di bawah) --
+            // supaya "Harga default barang" di Ubah Barang tidak nyangkut di
+            // basis lama yang baru saja dikoreksi di sini.
+            $pdo->prepare(
+                'UPDATE barang SET harga_faktur = IF(? > 0, ?, harga_faktur), harga_netto = IF(? > 0, ?, harga_netto),
+                    pricelist = IF(? > 0, ?, pricelist) WHERE id = ?'
+            )->execute([$hargaFaktur, $hargaFaktur, $hargaNetto, $hargaNetto, $pricelist, $pricelist, $orig['barang_id']]);
+        }
+
+        try {
+            $pdo->prepare(
+                'UPDATE pembelian SET no_faktur = ?, tanggal = ?, payment_type = ?, jatuh_tempo = ?, total_qty = ?, total_biaya = ? WHERE id = ?'
+            )->execute([$noFaktur, $tanggal, $paymentType, $jatuhTempo, $totalQty, $totalBiaya, $id]);
+        } catch (PDOException $e) {
+            if ($e->getCode() === '23000') {
+                throw new RuntimeException("No. Faktur \"$noFaktur\" sudah dipakai faktur lain untuk suplier ini.");
+            }
+            throw $e;
+        }
+
+        $pdo->commit();
+        json_ok(['updated' => $id]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         json_error($e->getMessage(), 400);

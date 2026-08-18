@@ -109,7 +109,7 @@ if ($method === 'GET') {
         // barang_suplier_harga — jadi harga yang baru diedit Owner tersimpan
         // dengan benar tapi kolomnya tetap menampilkan angka lama dari pembelian
         // terakhir, seolah-olah simpanannya gagal.
-        $hargaBeli = [];
+        $hargaBeli = []; $hargaBeliBasis = [];
         foreach ($lots as $l) {
             $sisa = (int)$l['sisa'];
             // Batch tanpa suplier = hasil koreksi stok manual; harga default
@@ -121,11 +121,15 @@ if ($method === 'GET') {
             // Netto diutamakan, fallback Faktur — sama seperti di seluruh
             // aplikasi (lihat pembelian.php & laporan/laba.php). Suplier yang
             // harga belinya belum pernah diisi ikut memakai snapshot barang.
-            $hbSuplier = (float)$l['harga_netto'] > 0 ? (float)$l['harga_netto'] : (float)$l['harga_faktur'];
+            $nettoLot = (float)$l['harga_netto']; $fakturLot = (float)$l['harga_faktur'];
+            $hbSuplier = $nettoLot > 0 ? $nettoLot : $fakturLot;
+            $hbBasis = $nettoLot > 0 ? 'NETTO' : 'FAKTUR';
             if ($hbSuplier <= 0) {
-                $hbSuplier = (float)$r['harga_netto'] > 0 ? (float)$r['harga_netto'] : (float)$r['harga_faktur'];
+                $nettoDef = (float)$r['harga_netto']; $fakturDef = (float)$r['harga_faktur'];
+                $hbSuplier = $nettoDef > 0 ? $nettoDef : $fakturDef;
+                $hbBasis = $nettoDef > 0 ? 'NETTO' : 'FAKTUR';
             }
-            if ($hbSuplier > 0) $hargaBeli[] = $hbSuplier;
+            if ($hbSuplier > 0) { $hargaBeli[] = $hbSuplier; $hargaBeliBasis[] = $hbBasis; }
             $nilaiJual += $sisa * (float)($punyaHarga ? $l['harga_ecer'] : $r['harga_ecer']);
             if ($l['suplier'] !== null) {
                 $namaSuplier[] = $l['suplier'];
@@ -173,10 +177,16 @@ if ($method === 'GET') {
         // yang bisa dijadikan acuan — jatuh balik ke snapshot pembelian
         // terakhir supaya kolomnya tidak mendadak kosong.
         $hbFallback = (float)$r['harga_netto'] > 0 ? (float)$r['harga_netto'] : (float)$r['harga_faktur'];
+        $hbFallbackBasis = (float)$r['harga_netto'] > 0 ? 'NETTO' : 'FAKTUR';
+        // Basis cuma dikirim kalau SEMUA suplier yang menyumbang rentang harga
+        // beli ini pakai basis yang sama -- campuran (ada yang Faktur ada yang
+        // Netto) sengaja tidak dilabeli daripada nunjukin label menyesatkan.
+        $basisSeragam = $hargaBeli ? (count(array_unique($hargaBeliBasis)) === 1 ? $hargaBeliBasis[0] : null) : $hbFallbackBasis;
         return $base + [
             'harga_faktur' => (float)$r['harga_faktur'], 'harga_netto' => (float)$r['harga_netto'],
             'harga_beli_min' => $hargaBeli ? min($hargaBeli) : $hbFallback,
             'harga_beli_max' => $hargaBeli ? max($hargaBeli) : $hbFallback,
+            'harga_beli_basis' => $basisSeragam,
             'min_stok' => (int)$r['min_stok'], 'pending_setup' => (bool)$r['pending_setup'],
         ];
     }, $rows);

@@ -1235,7 +1235,15 @@
                      ditumpuk. Dibatasi tinggi + scroll sendiri supaya card tidak
                      memanjang terus seiring bertambahnya riwayat. -->
                 <div style="max-height:340px;overflow-y:auto;margin-top:8px;">
-                  <table class="table">
+                <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                  <input class="input" style="width:200px;min-height:36px;font-size:13px;" placeholder="Cari Faktur/Suplier..." value="{{ pembelianHistorySearch }}" onChange="{{ setPembelianHistorySearch }}" />
+                  <select class="input" style="min-height:36px;font-size:13px;width:100px;" value="{{ pembelianHistoryLimit }}" onChange="{{ setPembelianHistoryLimit }}">
+                    <option value="5">5 baris</option>
+                    <option value="10">10 baris</option>
+                    <option value="20">20 baris</option>
+                  </select>
+                </div>
+                <table class="table">
                     <thead><tr><th>No. Faktur</th><th>Tanggal</th><th>Suplier</th><th>Jumlah</th><th>Total</th><th>Payment</th><th></th></tr></thead>
                     <tbody>
                       <sc-for list="{{ pembelianHistoryView }}" as="h" hint-placeholder-count="4">
@@ -2691,6 +2699,8 @@ class Component extends DCLogic {
     pembelianEditJatuhTempo: '',
     pembelianEditItems: [],
     pembelianEditError: '',
+    pembelianHistorySearch: '',
+    pembelianHistoryLimit: 10,
     laporanSearch: '',
     laporanKategoriFilter: 'ALL',
     laporanSupplierFilter: 'ALL',
@@ -4296,6 +4306,9 @@ ${this.laporanLengkapTableHtml(tab, false)}
     }).catch((e) => this.setState({ pembelianEditError: e.message }));
   };
 
+  setPembelianHistorySearch = (e) => this.setState({ pembelianHistorySearch: e.target.value });
+  setPembelianHistoryLimit = (e) => this.setState({ pembelianHistoryLimit: parseInt(e.target.value) });
+
   closePembelianEdit = () => this.setState({ pembelianEditOpen: false, pembelianEditId: null, pembelianEditError: '' });
   setPembelianEditNoFaktur = (e) => this.setState({ pembelianEditNoFaktur: e.target.value });
   setPembelianEditTanggal = (e) => this.setState({ pembelianEditTanggal: e.target.value });
@@ -4743,19 +4756,24 @@ ${this.laporanLengkapTableHtml(tab, false)}
       // Label riwayat dirakit di sini (bukan di template) supaya barisnya tetap
       // dua baris ringkas tanpa sc-if bercabang di dalam tabel.
       pembelianHistoryEmpty: s.pembelianHistory.length === 0, goLaporanPembelian: this.goLaporanPembelian,
-      pembelianHistoryView: s.pembelianHistory.map((h) => ({
-        ...h,
-        deleteHandler: () => this.requestDeleteTransaksi('pembelian', h.id, h.noFaktur),
-        editHandler: () => this.openPembelianEdit(h.id),
-        detailHandler: () => this.openLaporanPembelianDetail(h.id),
-        totalBiayaLabel: formatRp(h.totalBiaya),
-        tanggalPendek: formatTanggalPendek(h.tanggalISO),
-        isiLabel: `${h.totalItems} jenis · ${h.totalQty} pcs`,
-        paymentLabel: h.paymentType === 'TOP'
-          ? (h.jatuhTempo ? 'TOP j.tempo ' + formatTanggalPendek(h.jatuhTempo) : 'TOP')
-          : 'Cash',
-        paymentTagClass: h.paymentType === 'TOP' ? 'tag-accent' : 'tag-neutral',
-      })),
+      pembelianHistorySearch: s.pembelianHistorySearch, setPembelianHistorySearch: this.setPembelianHistorySearch,
+      pembelianHistoryLimit: s.pembelianHistoryLimit, setPembelianHistoryLimit: this.setPembelianHistoryLimit,
+      pembelianHistoryView: s.pembelianHistory
+        .filter((h) => !s.pembelianHistorySearch || h.noFaktur.toLowerCase().includes(s.pembelianHistorySearch.toLowerCase()) || h.supplier.toLowerCase().includes(s.pembelianHistorySearch.toLowerCase()))
+        .slice(0, s.pembelianHistoryLimit)
+        .map((h) => ({
+          ...h,
+          deleteHandler: () => this.requestDeleteTransaksi('pembelian', h.id, h.noFaktur),
+          editHandler: () => this.openPembelianEdit(h.id),
+          detailHandler: () => this.openLaporanPembelianDetail(h.id),
+          totalBiayaLabel: formatRp(h.totalBiaya),
+          tanggalPendek: formatTanggalPendek(h.tanggalISO),
+          isiLabel: `${h.totalItems} jenis · ${h.totalQty} pcs`,
+          paymentLabel: h.paymentType === 'TOP'
+            ? (h.jatuhTempo ? 'TOP j.tempo ' + formatTanggalPendek(h.jatuhTempo) : 'TOP')
+            : 'Cash',
+          paymentTagClass: h.paymentType === 'TOP' ? 'tag-accent' : 'tag-neutral',
+        })),
       pembelianEditOpen: s.pembelianEditOpen, closePembelianEdit: this.closePembelianEdit,
       pembelianEditNoFaktur: s.pembelianEditNoFaktur, setPembelianEditNoFaktur: this.setPembelianEditNoFaktur,
       pembelianEditTanggal: s.pembelianEditTanggal, setPembelianEditTanggal: this.setPembelianEditTanggal,
