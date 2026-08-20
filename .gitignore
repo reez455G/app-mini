@@ -1,1 +1,9 @@
 .claude/
+
+# Installer QZ Tray (~99MB) -- sengaja TIDAK ikut di-commit/push ke GitHub,
+# mepet batas ukuran file GitHub (100MB) dan akan membengkakkan repo
+# permanen kalau ikut ter-track. File-nya tetap ada di folder ini (lihat
+# installers/README.txt) dan tetap ikut ter-copy ke PC client oleh
+# deploy-windows.bat -- pindahkan foldernya lewat USB/zip/copy-paste, bukan
+# git clone, kalau butuh instalasi offline yang bawa file ini juga.
+installers/*.exe

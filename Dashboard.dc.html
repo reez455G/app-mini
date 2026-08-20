@@ -58,6 +58,9 @@
 <script src="vendor/react/react-dom.production.min.js"></script>
 <script src="vendor/barcode/qrcode-generator.js"></script>
 <script src="vendor/barcode/jsbarcode.min.js"></script>
+<script src="vendor/printer/qz-tray.js"></script>
+<script src="printer-manager.js"></script>
+<script src="escpos-encoder.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -787,9 +790,24 @@
                 <div style="display:flex;justify-content:space-between;font-size:14px;opacity:0.7;">
                   <span>Kembalian</span><span>{{ penjLastInvoiceView.kembalianLabel }}</span>
                 </div>
-                <div class="no-print" style="display:flex;flex-direction:column;gap:16px;">
+                <div class="no-print" style="display:flex;flex-direction:column;gap:10px;">
+                  <div style="display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="tag tag-outline">{{ printModeLabel }}</span>
+                    <sc-if value="{{ printStatusIsPrinting }}">
+                      <span class="tag tag-outline">Menghubungkan ke printer…</span>
+                    </sc-if>
+                    <sc-if value="{{ printStatusIsFailed }}">
+                      <span class="tag tag-accent-2">Gagal cetak: {{ printErrorLabel }}</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ printStatusIsFailed }}">
+                    <div style="display:flex;gap:8px;">
+                      <button type="button" class="btn btn-secondary" style="flex:1;min-height:44px;" onClick="{{ retryPrintCurrent }}">Coba Cetak Lagi</button>
+                      <button type="button" class="btn btn-secondary" style="flex:1;min-height:44px;" onClick="{{ useBrowserPrintCurrent }}">Gunakan Browser Print</button>
+                    </div>
+                  </sc-if>
                   <button type="button" class="btn btn-primary btn-block" style="min-height:48px;" onClick="{{ newTransaction }}">Transaksi Baru</button>
-                  <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ printPage }}">Cetak</button>
+                  <button type="button" class="btn btn-secondary btn-block" style="min-height:48px;" onClick="{{ manualPrint }}">Cetak</button>
                   <button type="button" class="btn btn-ghost btn-block" style="min-height:48px;" onClick="{{ backToPenjualanCart }}">Kembali</button>
                 </div>
               </div>
@@ -1885,6 +1903,7 @@
             <button type="button" class="btn {{ masterTabKategori_class }}" style="min-height:44px;" onClick="{{ setMasterTabKategori }}">Kategori Barang</button>
             <button type="button" class="btn {{ masterTabUser_class }}" style="min-height:44px;" onClick="{{ setMasterTabUser }}">Pengguna</button>
             <button type="button" class="btn {{ masterTabToko_class }}" style="min-height:44px;" onClick="{{ setMasterTabToko }}">Toko</button>
+            <button type="button" class="btn {{ masterTabPrinter_class }}" style="min-height:44px;" onClick="{{ setMasterTabPrinter }}">Printer</button>
             <button type="button" class="btn {{ masterTabCleansing_class }}" style="min-height:44px;" onClick="{{ setMasterTabCleansing }}">Cleansing Data</button>
           </div>
 
@@ -2012,6 +2031,81 @@
                   <p style="margin:0;font-size:13px;color:var(--color-accent-700);">Tersimpan.</p>
                 </sc-if>
                 <button type="button" class="btn btn-primary" style="min-height:46px;align-self:flex-start;padding:0 24px;" disabled="{{ busy }}" onClick="{{ saveTokoProfil }}">Simpan</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Setelan printer disimpan per-PC lewat localStorage (bukan
+               database, bukan per-user) -- printer fisik menempel ke satu
+               PC/meja kasir, kasir yang gantian PC harus tetap cetak ke
+               printer PC itu. Owner-only sama seperti tab Toko, karena ini
+               setup sekali-di-awal per PC, bukan hal yang perlu diubah tiap
+               shift. -->
+          <sc-if value="{{ masterTabIsPrinter }}" hint-placeholder-val="{{ false }}">
+            <div class="card elev-sm" style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <div class="card-kicker">Setelan Printer</div>
+                <p style="margin:6px 0 0;font-size:13px;opacity:0.65;">Berlaku untuk PC/browser ini saja -- tiap PC kasir diatur sendiri-sendiri.</p>
+              </div>
+
+              <div class="field">
+                <label id="printer-mode-label">Mode Cetak</label>
+                <div class="seg" role="radiogroup" aria-labelledby="printer-mode-label" style="width:100%;">
+                  <label class="seg-opt" style="flex:1;justify-content:center;padding:12px;font-size:14px;">
+                    <input type="radio" name="printer-mode" checked="{{ printerModeIsQz }}" onChange="{{ printerModeSelectQz }}" />QZ Tray / ESC-POS
+                  </label>
+                  <label class="seg-opt" style="flex:1;justify-content:center;padding:12px;font-size:14px;">
+                    <input type="radio" name="printer-mode" checked="{{ printerModeIsBrowser }}" onChange="{{ printerModeSelectBrowser }}" />Browser Print
+                  </label>
+                </div>
+              </div>
+
+              <sc-if value="{{ printerModeIsQz }}" hint-placeholder-val="{{ false }}">
+                <div class="field">
+                  <label for="printer-select">Printer</label>
+                  <div style="display:flex;gap:8px;">
+                    <select class="input" id="printer-select" style="min-height:46px;font-size:15px;flex:1;" value="{{ printerSettingsName }}" onChange="{{ setPrinterName }}">
+                      <option value="">(default QZ Tray)</option>
+                      <sc-for list="{{ printerScanOptions }}" as="p" hint-placeholder-count="2">
+                        <option value="{{ p.name }}">{{ p.name }}</option>
+                      </sc-for>
+                    </select>
+                    <button type="button" class="btn btn-secondary" style="min-height:46px;white-space:nowrap;" disabled="{{ printerScanBusy }}" onClick="{{ scanPrinters }}">Cari Printer</button>
+                  </div>
+                  <sc-if value="{{ printerScanErrorLabel }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:6px 0 0;font-size:13px;color:var(--color-accent-2-700);">QZ Tray tidak tersedia: {{ printerScanErrorLabel }}</p>
+                  </sc-if>
+                </div>
+
+                <div class="field">
+                  <label>Kertas</label>
+                  <div style="font-size:14px;opacity:0.7;">80mm (lebar cetak 72mm)</div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ printerSettingsAutoCut }}" onChange="{{ setPrinterAutoCut }}" />Auto Cut (kalau printer punya cutter)</label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ printerSettingsCashDrawer }}" onChange="{{ setPrinterCashDrawer }}" />Buka Cash Drawer saat pembayaran Tunai</label>
+                </div>
+
+                <div class="field" style="width:120px;">
+                  <label for="printer-copies">Jumlah Salinan</label>
+                  <input class="input" id="printer-copies" type="number" min="1" style="min-height:44px;font-size:15px;" value="{{ printerSettingsCopies }}" onChange="{{ setPrinterCopies }}" />
+                </div>
+              </sc-if>
+
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ printerSettingsAutoPrint }}" onChange="{{ setPrinterAutoPrint }}" />Cetak Otomatis setelah transaksi selesai</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;"><input type="checkbox" checked="{{ printerSettingsFallback }}" onChange="{{ setPrinterFallback }}" />Fallback ke Browser Print kalau QZ Tray gagal</label>
+              </div>
+
+              <div>
+                <button type="button" class="btn btn-secondary" style="min-height:44px;" disabled="{{ printStatusIsPrinting }}" onClick="{{ testPrintSample }}">Uji Cetak</button>
+                <sc-if value="{{ printStatusIsPrinting }}">
+                  <p style="margin:8px 0 0;font-size:13px;opacity:0.65;">Menghubungkan ke printer… (sampai 5 detik kalau QZ Tray belum jalan)</p>
+                </sc-if>
+                <sc-if value="{{ printStatusIsFailed }}">
+                  <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">Gagal cetak: {{ printErrorLabel }}</p>
+                </sc-if>
               </div>
             </div>
           </sc-if>
@@ -2346,9 +2440,16 @@
               <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:6px;"><span style="opacity:0.6;">Jumlah Bayar</span><span>{{ laporanPenjualanDetail.amountPaidLabel }}</span></div>
               <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="opacity:0.6;">Kembalian</span><span>{{ laporanPenjualanDetail.kembalianLabel }}</span></div>
             </sc-if>
+            <sc-if value="{{ printStatusIsPrinting }}">
+              <p style="margin:8px 0 0;font-size:13px;opacity:0.65;">Menghubungkan ke printer…</p>
+            </sc-if>
+            <sc-if value="{{ printStatusIsFailed }}">
+              <p style="margin:8px 0 0;font-size:13px;color:var(--color-accent-2-700);">Gagal cetak: {{ printErrorLabel }} — <a href="#" onClick="{{ retryPrintCurrent }}">Coba Cetak Lagi</a> atau <a href="#" onClick="{{ useBrowserPrintCurrent }}">Gunakan Browser Print</a>.</p>
+            </sc-if>
           </sc-if>
         </div>
         <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" onClick="{{ reprintPenjualan }}">Cetak Ulang</button>
           <button type="button" class="btn btn-primary" onClick="{{ closeLaporanPenjualanDetail }}">Tutup</button>
         </div>
       </div>
@@ -2569,6 +2670,67 @@ function savePembelianDraft(state) {
   try { localStorage.setItem(PEMBELIAN_DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
 }
 
+// ── Printer (QZ Tray + ESC/POS) ──────────────────────────────────────
+// Setelan printer disimpan per-PC lewat localStorage, BUKAN di database dan
+// BUKAN per akun user — printer fisik menempel ke satu PC/meja kasir, kalau
+// disimpan per user maka kasir yang gantian di PC yang sama akan salah
+// kirim print job ke printer PC lain yang pernah dipakainya login.
+const PRINTER_SETTINGS_KEY = 'app-mini:printerSettings';
+// mode 'browser' default -- instalasi baru/PC yang belum di-setup QZ Tray
+// tetap bisa cetak seperti sebelumnya (window.print()), tidak ada yang rusak.
+const PRINTER_SETTINGS_DEFAULT = {
+  mode: 'browser', printerName: '', autoPrint: false, autoCut: true,
+  cashDrawer: false, copies: 1, fallbackBrowser: true,
+};
+
+function loadPrinterSettings() {
+  try {
+    const raw = localStorage.getItem(PRINTER_SETTINGS_KEY);
+    if (!raw) return { ...PRINTER_SETTINGS_DEFAULT };
+    return { ...PRINTER_SETTINGS_DEFAULT, ...JSON.parse(raw) };
+  } catch (e) { return { ...PRINTER_SETTINGS_DEFAULT }; }
+}
+
+function savePrinterSettings(next) {
+  try { localStorage.setItem(PRINTER_SETTINGS_KEY, JSON.stringify(next)); } catch (e) {}
+}
+
+// Satu bentuk data struk untuk SEMUA jalur cetak (kartu HTML browser-print,
+// ESC/POS, reprint) -- supaya tidak ada dua sumber kebenaran yang bisa
+// berbeda. kind:'local' dari completeTransaction() (baru saja selesai,
+// belum reload), kind:'server' dari GET penjualan.php?id= (dipakai reprint,
+// kasirUsername-nya dari JOIN users lewat created_by, bukan state login).
+function buildReceiptData(kind, raw, toko) {
+  const t = toko || {};
+  const tokoInfo = { nama: t.nama || '', alamat: t.alamat || '', noHp: t.no_hp || '' };
+  if (kind === 'local') {
+    return {
+      invoiceNo: raw.invoiceNo, waktuLabel: formatWaktuInvoice(raw.completedAt),
+      custName: raw.custName || 'Umum', kasirUsername: raw.kasir || '-',
+      paymentMethod: raw.paymentMethod, totalQty: raw.totalQty, grandTotal: raw.grandTotal,
+      amountPaid: raw.amountPaid, kembalian: raw.kembalian, toko: tokoInfo,
+      items: raw.items.map((i) => ({ nama: i.nama, qty: i.qty, unitPrice: i.unitPrice, subtotal: i.subtotal })),
+    };
+  }
+  const waktu = raw.created_at ? new Date(raw.created_at.replace(' ', 'T')) : null;
+  return {
+    invoiceNo: raw.invoice_no, waktuLabel: waktu ? formatWaktuInvoice(waktu) : formatTanggal(raw.tanggal),
+    custName: raw.cust_name || 'Umum', kasirUsername: raw.kasir_username || '-',
+    paymentMethod: raw.payment_method, totalQty: raw.total_qty, grandTotal: Number(raw.grand_total),
+    amountPaid: Number(raw.amount_paid || 0), kembalian: Number(raw.kembalian || 0), toko: tokoInfo,
+    items: (raw.items || []).map((i) => ({ nama: i.nama, qty: i.qty, unitPrice: Number(i.unit_price), subtotal: Number(i.subtotal) })),
+  };
+}
+
+// Struk contoh statis untuk Uji Cetak -- TIDAK PERNAH menyentuh penjualan.php
+// atau database, murni untuk mengetes jalur QZ Tray/ESC-POS dari Setelan Printer.
+const SAMPLE_RECEIPT_DATA = {
+  invoiceNo: 'CONTOH-0001', waktuLabel: '01/01/2026 12:00:00', custName: 'Pelanggan Contoh',
+  kasirUsername: 'Contoh', paymentMethod: 'TUNAI', totalQty: 2, grandTotal: 50000,
+  amountPaid: 50000, kembalian: 0, toko: { nama: 'PUTRA JAYA MOTOR', alamat: '-', noHp: '-' },
+  items: [{ nama: 'Barang Contoh (Uji Cetak)', qty: 2, unitPrice: 25000, subtotal: 50000 }],
+};
+
 function clearPembelianDraft() {
   try { localStorage.removeItem(PEMBELIAN_DRAFT_KEY); } catch (e) {}
 }
@@ -2659,6 +2821,14 @@ class Component extends DCLogic {
     penjCompleted: false,
     penjLastInvoice: null,
     penjSubmitError: '',
+    printerSettings: loadPrinterSettings(),
+    // printStatus: 'idle' | 'printing' | 'ok' | 'failed' -- status jalur
+    // cetak yang lagi aktif (struk baru ATAU reprint), TERPISAH dari
+    // globalError karena ini bukan error level halaman, cuma status satu aksi
+    // cetak yang masih bisa dicoba lagi tanpa mengulang transaksinya.
+    printStatus: 'idle',
+    printError: '',
+    printerScanBusy: false, printerScanError: '', printerScanList: [],
     penjHistory: [],
     stokProducts: [],
     stokSearch: '',
@@ -2964,6 +3134,16 @@ class Component extends DCLogic {
 
   closeLaporanPenjualanDetail = () => this.setState({ laporanPenjualanDetailOpen: false, laporanPenjualanDetail: null, laporanPenjualanDetailError: '' });
 
+  // Cetak Ulang: SELALU dari data yang barusan diambil dari DB (server GET
+  // penjualan.php?id=, sudah terbuka di dialog ini), BUKAN dari state
+  // transaksi terakhir -- jadi tetap jalan untuk transaksi lama & sesudah
+  // reload browser. Murni cetak ulang: tidak menyentuh stok/total/invoice.
+  reprintPenjualan = () => {
+    if (!this.state.laporanPenjualanDetail) return;
+    const receiptData = buildReceiptData('server', this.state.laporanPenjualanDetail, this.state.tokoProfil);
+    this.printReceiptData(receiptData);
+  };
+
   loadModuleData = (key) => {
     if (key === 'pembelian') this.refreshPembelianHistory();
     else if (key === 'penjualan') this.refreshPenjHistory();
@@ -3073,7 +3253,73 @@ class Component extends DCLogic {
       this.refreshBarang();
       this.refreshPenjHistory();
       this.refreshPelanggan();
+      // Cetak murni side-effect SESUDAH transaksi tersimpan (state di atas
+      // sudah di-set) -- kegagalan cetak apa pun tidak pernah mengubah
+      // status "Transaksi berhasil disimpan" yang sudah terjadi.
+      const receiptData = buildReceiptData('local', newInvoice, s.tokoProfil);
+      this._lastReceiptData = receiptData;
+      if (this.state.printerSettings.autoPrint) this.printReceiptData(receiptData);
     }).catch((e) => this.setState({ busy: false, penjSubmitError: e.message }));
+  };
+
+  // Orkestrasi cetak satu-satunya jalur: mode 'qz' -> ESC/POS lewat QZ Tray,
+  // gagal -> otomatis fallback window.print() kalau fallbackBrowser aktif
+  // (BUKAN transaksi gagal, BUKAN confirm() yang memblokir). mode 'browser'
+  // -> langsung window.print() seperti sebelum fitur ini ada.
+  printReceiptData = (receiptData, opts) => {
+    const isRetry = !!(opts && opts.isRetry);
+    const settings = this.state.printerSettings;
+    this._lastReceiptData = receiptData;
+    if (settings.mode !== 'qz') {
+      this.printPage();
+      this.setState({ printStatus: 'ok', printError: '' });
+      return;
+    }
+    this.setState({ printStatus: 'printing', printError: '' });
+    const bytes = EscPosEncoder.build(receiptData, {
+      width: 48, autoCut: settings.autoCut,
+      cashDrawer: settings.cashDrawer && receiptData.paymentMethod === 'TUNAI',
+    });
+    PrinterManager.print(bytes, settings.printerName, settings.copies).then(() => {
+      this.setState({ printStatus: 'ok', printError: '' });
+    }).catch((e) => {
+      this.setState({ printStatus: 'failed', printError: e.message });
+      if (settings.fallbackBrowser && !isRetry) this.printPage();
+    });
+  };
+
+  manualPrint = () => this.printReceiptData(this._lastReceiptData);
+  retryPrintCurrent = () => this.printReceiptData(this._lastReceiptData, { isRetry: true });
+  useBrowserPrintCurrent = () => { this.printPage(); this.setState({ printStatus: 'ok', printError: '' }); };
+
+  // Uji Cetak: lewat jalur print SAMA PERSIS seperti struk sungguhan, tapi
+  // datanya statis (SAMPLE_RECEIPT_DATA) -- tidak pernah memanggil
+  // penjualan.php atau menyentuh database.
+  testPrintSample = () => this.printReceiptData(SAMPLE_RECEIPT_DATA);
+
+  // Satu setter untuk semua field Setelan Printer -- simpan ke localStorage
+  // SEKALIGUS ke state supaya UI langsung ikut berubah tanpa reload.
+  setPrinterSetting = (key, value) => this.setState((s) => {
+    const next = { ...s.printerSettings, [key]: value };
+    savePrinterSettings(next);
+    return { printerSettings: next };
+  });
+  setPrinterMode = (mode) => () => this.setPrinterSetting('mode', mode);
+  setPrinterName = (e) => this.setPrinterSetting('printerName', e.target.value);
+  setPrinterAutoPrint = (e) => this.setPrinterSetting('autoPrint', e.target.checked);
+  setPrinterAutoCut = (e) => this.setPrinterSetting('autoCut', e.target.checked);
+  setPrinterCashDrawer = (e) => this.setPrinterSetting('cashDrawer', e.target.checked);
+  setPrinterFallback = (e) => this.setPrinterSetting('fallbackBrowser', e.target.checked);
+  setPrinterCopies = (e) => this.setPrinterSetting('copies', Math.max(1, parseInt(e.target.value, 10) || 1));
+
+  // Cari printer via QZ Tray -- kalau QZ Tray belum jalan/tidak terinstal,
+  // findPrinters() gagal dan pesannya ditampilkan apa adanya di UI, bukan
+  // dianggap error halaman (globalError).
+  scanPrinters = () => {
+    this.setState({ printerScanBusy: true, printerScanError: '' });
+    PrinterManager.findPrinters().then((list) => {
+      this.setState({ printerScanBusy: false, printerScanList: list || [] });
+    }).catch((e) => this.setState({ printerScanBusy: false, printerScanError: e.message }));
   };
 
   setLaporanLengkapTab = (key) => {
@@ -3183,6 +3429,10 @@ class Component extends DCLogic {
   };
 
   setMasterTab = (key) => this.setState({ masterTab: key });
+
+  // Beda dari tab lain: tidak perlu fetch API apa pun, printerSettings
+  // sudah dimuat dari localStorage sejak awal (lihat state awal & loadPrinterSettings()).
+  setMasterTabPrinter = () => this.setMasterTab('printer');
 
   // Profil toko: selalu 1 baris, dimuat baru saat tab-nya dibuka (bukan
   // dieagerkan di loadCoreData seperti suplier/pelanggan) karena tidak
@@ -4560,6 +4810,11 @@ ${this.laporanLengkapTableHtml(tab, false)}
       penjNotCompleted: !s.penjCompleted, penjCompletedFlag: s.penjCompleted,
       penjLastInvoiceView, newTransaction: this.newTransaction, backToPenjualanCart: this.backToPenjualanCart,
       tokoNama: toko ? toko.nama : '', tokoAlamat: toko ? toko.alamat : '', tokoNoHp: toko ? toko.no_hp : '',
+      manualPrint: this.manualPrint, retryPrintCurrent: this.retryPrintCurrent,
+      useBrowserPrintCurrent: this.useBrowserPrintCurrent, reprintPenjualan: this.reprintPenjualan,
+      printModeLabel: 'Mode: ' + (s.printerSettings.mode === 'qz' ? 'QZ Tray (ESC/POS)' : 'Browser Print'),
+      printStatusIsPrinting: s.printStatus === 'printing',
+      printStatusIsFailed: s.printStatus === 'failed', printErrorLabel: s.printError,
       penjHistoryEmpty: s.penjHistory.length === 0,
       penjHistoryView: s.penjHistory.map((h) => ({
         ...h,
@@ -5122,18 +5377,30 @@ ${this.laporanLengkapTableHtml(tab, false)}
       masterTabIsSuplier: s.masterTab === 'suplier', masterTabIsPelanggan: s.masterTab === 'pelanggan',
       masterTabIsKategori: s.masterTab === 'kategori', masterTabIsUser: s.masterTab === 'user',
       masterTabIsToko: s.masterTab === 'toko', masterTabIsCleansing: s.masterTab === 'cleansing',
+      masterTabIsPrinter: s.masterTab === 'printer',
       setMasterTabSuplier: () => this.setMasterTab('suplier'), setMasterTabPelanggan: () => this.setMasterTab('pelanggan'),
       setMasterTabKategori: () => this.setMasterTab('kategori'), setMasterTabUser: () => this.setMasterTab('user'),
       setMasterTabToko: this.setMasterTabToko, setMasterTabCleansing: this.setMasterTabCleansing,
+      setMasterTabPrinter: this.setMasterTabPrinter,
       masterTabSuplier_class: s.masterTab === 'suplier' ? 'btn-primary' : 'btn-secondary',
       masterTabPelanggan_class: s.masterTab === 'pelanggan' ? 'btn-primary' : 'btn-secondary',
       masterTabKategori_class: s.masterTab === 'kategori' ? 'btn-primary' : 'btn-secondary',
       masterTabUser_class: s.masterTab === 'user' ? 'btn-primary' : 'btn-secondary',
       masterTabToko_class: s.masterTab === 'toko' ? 'btn-primary' : 'btn-secondary',
       masterTabCleansing_class: s.masterTab === 'cleansing' ? 'btn-primary' : 'btn-secondary',
+      masterTabPrinter_class: s.masterTab === 'printer' ? 'btn-primary' : 'btn-secondary',
       tokoForm: s.tokoForm, tokoFormError: s.tokoFormError, tokoSaved: s.tokoSaved,
       setTokoNama: this.setTokoFormField('nama'), setTokoAlamat: this.setTokoFormField('alamat'), setTokoNoHp: this.setTokoFormField('noHp'),
       saveTokoProfil: this.saveTokoProfil,
+
+      printerModeIsQz: s.printerSettings.mode === 'qz', printerModeIsBrowser: s.printerSettings.mode !== 'qz',
+      printerModeSelectQz: this.setPrinterMode('qz'), printerModeSelectBrowser: this.setPrinterMode('browser'),
+      printerSettingsName: s.printerSettings.printerName,
+      printerSettingsAutoPrint: s.printerSettings.autoPrint, printerSettingsAutoCut: s.printerSettings.autoCut,
+      printerSettingsCashDrawer: s.printerSettings.cashDrawer, printerSettingsFallback: s.printerSettings.fallbackBrowser,
+      printerSettingsCopies: s.printerSettings.copies,
+      printerScanBusy: s.printerScanBusy, printerScanErrorLabel: s.printerScanError,
+      printerScanOptions: s.printerScanList.map((name) => ({ name })),
 
       suplierRows: s.suplierList.map((x) => ({ ...x, editHandler: () => this.openMasterEdit('suplier', x.kode), deleteHandler: () => this.requestDeleteMaster('suplier', x.kode) })),
       pelangganRows: s.pelangganList.map((x) => ({ ...x, editHandler: () => this.openMasterEdit('pelanggan', x.kode), deleteHandler: () => this.requestDeleteMaster('pelanggan', x.kode) })),

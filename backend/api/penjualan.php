@@ -16,7 +16,17 @@ function tier_for_qty(int $qty): string {
 if ($method === 'GET') {
     if (!empty($_GET['id'])) {
         $id = (int)$_GET['id'];
-        $h = $pdo->prepare('SELECT * FROM penjualan WHERE id = ?');
+        // LEFT JOIN (bukan INNER): created_by nullable, dan user lama yang
+        // sudah dihapus tidak boleh bikin reprint gagal -- kasirUsername
+        // dipakai struk Cetak Ulang (Dashboard.dc.html: buildReceiptData),
+        // supaya nama kasir yang benar-benar memproses transaksi itu yang
+        // tercetak, bukan kasir yang lagi login sekarang.
+        $h = $pdo->prepare(
+            'SELECT pj.*, u.username AS kasir_username
+             FROM penjualan pj
+             LEFT JOIN users u ON u.id = pj.created_by
+             WHERE pj.id = ?'
+        );
         $h->execute([$id]);
         $header = $h->fetch();
         if (!$header) json_error('Penjualan tidak ditemukan.', 404);

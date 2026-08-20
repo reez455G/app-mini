@@ -7,14 +7,17 @@
 // yang sudah install mengambil ulang salinan baru -- kalau tidak, versi
 // lama yang sudah tersimpan akan terus dipakai sampai cache-nya kedaluwarsa
 // sendiri lewat pengecekan network-first di bawah.
-const CACHE_NAME = 'app-mini-v2';
+const CACHE_NAME = 'app-mini-v3';
 const SHELL_FILES = [
   'Dashboard.dc.html',
   'support.js',
+  'printer-manager.js',
+  'escpos-encoder.js',
   'vendor/react/react.production.min.js',
   'vendor/react/react-dom.production.min.js',
   'vendor/barcode/qrcode-generator.js',
   'vendor/barcode/jsbarcode.min.js',
+  'vendor/printer/qz-tray.js',
   'manifest.json',
   'assets/icons/icon-192.png',
   'assets/icons/icon-512.png',
