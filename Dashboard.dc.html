@@ -144,23 +144,38 @@
       body:has(#penj-invoice-print) #app-sidebar,
       body:has(#penj-invoice-print) header,
       body:has(#penj-invoice-print) .no-print { display: none !important; }
+      /* #app-shell punya min-height:100vh dan <main> punya padding 24/48px +
+         gap 30px — dipakai supaya layar aplikasi penuh setinggi jendela. Saat
+         mencetak, "100vh" jadi setinggi SATU HALAMAN penuh, jadi struk yang
+         isinya cuma ~115mm tetap memaksa halaman penuh, DAN padding <main>
+         nambah ~19mm di atasnya sehingga totalnya melewati batas halaman dan
+         tumpah jadi halaman kedua yang isinya kosong. Dimatikan khusus saat
+         cetak invoice supaya tinggi kertas benar-benar ikut tinggi struknya. */
+      body:has(#penj-invoice-print) #app-shell { min-height: 0 !important; }
+      body:has(#penj-invoice-print) main { padding: 0 !important; gap: 0 !important; }
       /* Lebar kertas cetak (di bawah 900px CSS px) juga memicu aturan
          "table.table { min-width: 640px }" yang aslinya untuk tampilan HP —
          di dalam kartu invoice yang cuma 520px lebar, itu bikin tabelnya
          lebih lebar dari kartunya sendiri, jadi kolom Subtotal kepotong di
          tepi kertas. Dibatalkan khusus untuk tabel di kartu invoice ini. */
       #penj-invoice-print table.table { min-width: 0 !important; }
-      /* Printer struk 80mm: kartu invoice dipersempit ke lebar kertasnya
-         (sedikit sisa jarak aman dari 80mm), padding & semua font
-         diperkecil biar muat, logo dikecilkan supaya tidak numpuk sama kop
-         teks. Lebar halaman diset 80mm lewat @page yang disisipkan
-         printPage() — tingginya dibuat lebih dari cukup (297mm) karena
-         "size: 80mm auto" bukan sintaks @page yang valid; printer struk
-         yang di-set sebagai kertas roll/continuous di driver Windows akan
-         motong sendiri sesuai panjang isi, sisa halaman kosong tidak
-         ikut tercetak. */
+      /* Printer struk roll 80mm: kartu invoice dipersempit ke lebar CETAKnya,
+         padding & semua font diperkecil biar muat, logo dikecilkan supaya
+         tidak numpuk sama kop teks. Ukuran halaman TIDAK ditentukan di sini —
+         lihat printPage().
+
+         72mm, bukan 80mm dan bukan 76mm seperti dulu: di printer struk 80mm
+         lebar KERTAS-nya memang 80mm, tapi lebar yang benar-benar bisa
+         dicetak kepala thermalnya cuma 72,1mm (576 titik @203dpi) — ini
+         standar yang sama di semua merek printer struk 80mm, banyak driver
+         Windows bahkan menamai kertasnya "80(72.1) x 297mm". Yang di luar
+         72,1mm itu kepotong diam-diam, dan yang kepotong adalah tepi kanan =
+         kolom Subtotal. Angka 76mm yang dulu kebetulan lolos di printer lama,
+         tapi tidak aman dibawa pindah merek. Padding ikut turun 3mm -> 2mm
+         supaya lebar isi yang hilang cuma 2mm (70mm -> 68mm), sekaligus jadi
+         jarak aman kalau ada driver yang area cetaknya sedikit lebih sempit. */
       #penj-invoice-print {
-        max-width: 76mm !important; width: 76mm !important; padding: 3mm !important;
+        max-width: 72mm !important; width: 72mm !important; padding: 2mm !important;
         gap: 6px !important; box-shadow: none !important; border-radius: 0 !important;
       }
       #penj-invoice-print img { width: 40px !important; }
@@ -4172,15 +4187,29 @@ ${this.laporanLengkapTableHtml(tab, false)}
   };
 
   // @page tidak bisa disyaratkan lewat body:has() seperti aturan lain di
-  // bawah (lihat komentar setStokPrintPageSize) — makanya ukuran kertas
-  // struk 80mm disisipkan sendiri di sini sekali (idempotent lewat id),
+  // atas (lihat komentar setStokPrintPageSize) — makanya margin kertas
+  // struk disisipkan sendiri di sini sekali (idempotent lewat id),
   // aman karena printPage cuma dipakai tombol Cetak invoice ini.
+  //
+  // SENGAJA cuma "margin: 0", tanpa "size". Dulu di sini ada
+  // "size: 80mm 297mm": isi struk 1 barang cuma ~108mm, jadi ~189mm kertas
+  // kosong ikut kefeed tiap cetak. "size: 80mm auto" bukan sintaks yang
+  // valid, dan menghitung tingginya sendiri sudah pernah dicoba (commit
+  // 1dad721, sudah di-revert) — di printer KASMINI MP-80M asli, Chrome
+  // menolak dengan "Print failed" begitu drivernya dipilih, kemungkinan
+  // besar karena ukuran halaman hasil hitungan itu bukan salah satu form
+  // kertas yang dikenal drivernya. Tanpa "size", Chrome memakai ukuran
+  // kertas dari driver printernya sendiri — selalu ukuran yang valid, jadi
+  // tidak bisa ditolak — dan panjang kertas jadi urusan setelan driver
+  // (pilih paper roll/continuous di sana kalau mau motong sesuai isi).
+  // margin: 0 tetap perlu, tanpa itu margin bawaan Chrome (~10mm kiri-kanan)
+  // bikin kartu 72mm tidak muat di kertas 80mm.
   printPage = () => {
     const id = 'penj-invoice-page-style';
     if (!document.getElementById(id)) {
       const el = document.createElement('style');
       el.id = id;
-      el.textContent = '@media print { @page { size: 80mm 297mm; margin: 0; } }';
+      el.textContent = '@media print { @page { margin: 0; } }';
       document.head.appendChild(el);
     }
     window.print();
