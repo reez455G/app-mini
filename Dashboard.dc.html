@@ -2808,14 +2808,14 @@ class Component extends DCLogic {
       this._kategoriIds = {};
       rows.forEach((r) => { this._kategoriIds[r.nama] = r.id; });
       this.setState({ kategoriList: rows.map((r) => r.nama) });
-    }).catch((e) => this.setState({ globalError: e.message }));
-    api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.setState({ globalError: e.message }));
+    }).catch((e) => this.failGlobal(e.message));
+    api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.failGlobal(e.message));
     // Dipakai kop struk di Transaksi Penjualan — dimuat untuk semua role
     // (bukan cuma di setMasterTabToko) karena Karyawan juga bertransaksi.
-    api('GET', 'toko.php').then((data) => this.setState({ tokoProfil: data })).catch((e) => this.setState({ globalError: e.message }));
+    api('GET', 'toko.php').then((data) => this.setState({ tokoProfil: data })).catch((e) => this.failGlobal(e.message));
     if (this.state.role === 'owner') {
-      api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
-      api('GET', 'users.php').then((rows) => this.setState({ userList: rows.map(normalizeUser) })).catch((e) => this.setState({ globalError: e.message }));
+      api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.failGlobal(e.message));
+      api('GET', 'users.php').then((rows) => this.setState({ userList: rows.map(normalizeUser) })).catch((e) => this.failGlobal(e.message));
     }
     this.refreshBarang();
   };
@@ -2828,7 +2828,7 @@ class Component extends DCLogic {
       pembelianSelectedKode: (s.pembelianSelectedKode === '__NEW__' || list.some((p) => p.kode === s.pembelianSelectedKode)) ? s.pembelianSelectedKode : '',
     });
     this.refreshPenjSellableOptions(list);
-  }).catch((e) => this.setState({ globalError: e.message }));
+  }).catch((e) => this.failGlobal(e.message));
 
   // Combobox "Cari Barang" di Transaksi Penjualan menampilkan SATU baris per
   // (barang, suplier) yang masih ada stok & harganya -- bukan 1 baris per
@@ -2879,19 +2879,32 @@ class Component extends DCLogic {
       });
   };
 
-  refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.setState({ globalError: e.message }));
-  refreshPenjHistory = () => api('GET', 'penjualan.php').then((rows) => this.setState({ penjHistory: rows.map(normalizePenjualan) })).catch((e) => this.setState({ globalError: e.message }));
-  refreshSuplier = () => api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.setState({ globalError: e.message }));
-  refreshPelanggan = () => api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.setState({ globalError: e.message }));
-  refreshReturPj = () => api('GET', 'retur_penjualan.php').then((rows) => this.setState({ returPjHistory: rows.map(normalizeReturPj) })).catch((e) => this.setState({ globalError: e.message }));
-  refreshReturPb = () => api('GET', 'retur_pembelian.php').then((rows) => this.setState({ returPbHistory: rows.map(normalizeReturPb) })).catch((e) => this.setState({ globalError: e.message }));
+  // Semua pesan error global lewat sini, bukan setState({ globalError }) satu
+  // per satu, supaya semuanya punya perilaku yang sama: hilang sendiri setelah
+  // 8 detik. Dulu banner-nya nyangkut sampai ditekan "Tutup" — kasir jarang
+  // menekannya, jadi pesan lama masih nempel di layar (dan sempat ikut
+  // tercetak di struk sebelum banner-nya ditandai no-print). Timer lama selalu
+  // dibatalkan dulu supaya error yang datang beruntun tidak saling memotong
+  // waktu tampil error berikutnya.
+  failGlobal = (msg) => {
+    clearTimeout(this._globalErrorTimer);
+    this.setState({ globalError: msg });
+    this._globalErrorTimer = setTimeout(() => this.setState({ globalError: '' }), 8000);
+  };
+
+  refreshPembelianHistory = () => api('GET', 'pembelian.php').then((rows) => this.setState({ pembelianHistory: rows.map(normalizePembelian) })).catch((e) => this.failGlobal(e.message));
+  refreshPenjHistory = () => api('GET', 'penjualan.php').then((rows) => this.setState({ penjHistory: rows.map(normalizePenjualan) })).catch((e) => this.failGlobal(e.message));
+  refreshSuplier = () => api('GET', 'suplier.php').then((rows) => this.setState({ suplierList: rows.map(normalizeSuplier) })).catch((e) => this.failGlobal(e.message));
+  refreshPelanggan = () => api('GET', 'pelanggan.php').then((rows) => this.setState({ pelangganList: rows.map(normalizePelanggan) })).catch((e) => this.failGlobal(e.message));
+  refreshReturPj = () => api('GET', 'retur_penjualan.php').then((rows) => this.setState({ returPjHistory: rows.map(normalizeReturPj) })).catch((e) => this.failGlobal(e.message));
+  refreshReturPb = () => api('GET', 'retur_pembelian.php').then((rows) => this.setState({ returPbHistory: rows.map(normalizeReturPb) })).catch((e) => this.failGlobal(e.message));
 
   loadDashboardWidgets = () => {
     const today = new Date().toISOString().slice(0, 10);
     const firstOfMonth = today.slice(0, 8) + '01';
 
-    api('GET', 'laporan/top_produk.php?limit=5').then((data) => this.setState({ dashboardTopProducts: data.by_qty })).catch((e) => this.setState({ globalError: e.message }));
-    api('GET', 'laporan/penjualan.php?from=' + today + '&to=' + today).then((data) => this.setState({ dashboardToday: data })).catch((e) => this.setState({ globalError: e.message }));
+    api('GET', 'laporan/top_produk.php?limit=5').then((data) => this.setState({ dashboardTopProducts: data.by_qty })).catch((e) => this.failGlobal(e.message));
+    api('GET', 'laporan/penjualan.php?from=' + today + '&to=' + today).then((data) => this.setState({ dashboardToday: data })).catch((e) => this.failGlobal(e.message));
 
     if (this.state.role === 'owner') {
       // Riwayat Aktivitas — pakai daftar transaksi yang sudah ada endpoint-nya
@@ -2900,9 +2913,9 @@ class Component extends DCLogic {
       this.refreshPembelianHistory();
       this.refreshReturPj();
       this.refreshReturPb();
-      api('GET', 'laporan/tren_penjualan.php?days=14').then((rows) => this.setState({ dashboardTrend: rows })).catch((e) => this.setState({ globalError: e.message }));
-      api('GET', 'laporan/pembelian.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardPembelianBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
-      api('GET', 'laporan/laba.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardLabaBulanIni: data })).catch((e) => this.setState({ globalError: e.message }));
+      api('GET', 'laporan/tren_penjualan.php?days=14').then((rows) => this.setState({ dashboardTrend: rows })).catch((e) => this.failGlobal(e.message));
+      api('GET', 'laporan/pembelian.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardPembelianBulanIni: data })).catch((e) => this.failGlobal(e.message));
+      api('GET', 'laporan/laba.php?from=' + firstOfMonth + '&to=' + today).then((data) => this.setState({ dashboardLabaBulanIni: data })).catch((e) => this.failGlobal(e.message));
     }
   };
 
@@ -2917,7 +2930,7 @@ class Component extends DCLogic {
       laris: () => api('GET', 'laporan/top_produk.php?' + qs).then((data) => this.setState({ remoteLaporanTop: data })),
       retur: () => api('GET', 'laporan/retur.php?' + qs).then((data) => this.setState({ remoteLaporanRetur: data })),
     };
-    (setters[tab] || setters.global)().catch((e) => this.setState({ globalError: e.message }));
+    (setters[tab] || setters.global)().catch((e) => this.failGlobal(e.message));
   };
 
   // GET pembelian.php?id= sudah mengirim header + tiap item (kode, harga
@@ -3433,10 +3446,8 @@ class Component extends DCLogic {
     if (match) {
       this.setState({ stokSearch: '', stokKategoriFilter: 'ALL' }, () => this.openStokEdit(match.kode));
     } else {
-      this.setState({
-        stokSearch: code, stokKategoriFilter: 'ALL',
-        globalError: `Kode "${code}" belum terdaftar. Tambahkan barang baru lewat Input Pembelian.`,
-      });
+      this.setState({ stokSearch: code, stokKategoriFilter: 'ALL' });
+      this.failGlobal(`Kode "${code}" belum terdaftar. Tambahkan barang baru lewat Input Pembelian.`);
     }
   };
 
@@ -5279,7 +5290,7 @@ ${this.laporanLengkapTableHtml(tab, false)}
       supplierHistoryForLabel: s.supplierHistoryFor ? (s.supplierHistoryFor.kode + ' — ' + s.supplierHistoryFor.nama) : '',
       supplierHistoryLoading, supplierHistoryError: s.supplierHistoryError, supplierHistoryRows,
       supplierHistoryEmpty: s.supplierHistory && s.supplierHistory.length === 0,
-      dismissGlobalError: () => this.setState({ globalError: '' }),
+      dismissGlobalError: () => { clearTimeout(this._globalErrorTimer); this.setState({ globalError: '' }); },
       busy: s.busy,
       isOwner, isKaryawan: !isOwner,
       storeName, assetV: ASSET_V,
