@@ -179,7 +179,7 @@
          jarak aman kalau ada driver yang area cetaknya sedikit lebih sempit. */
       #penj-invoice-print {
         max-width: 72mm !important; width: 72mm !important; padding: 2mm !important;
-        gap: 6px !important; box-shadow: none !important; border-radius: 0 !important;
+        gap: 4px !important; box-shadow: none !important; border-radius: 0 !important;
       }
       #penj-invoice-print img { width: 40px !important; }
       /* Printer thermal cetak hitam-putih murni (tidak ada abu-abu) — font
@@ -201,18 +201,26 @@
          jadi kalau nanti mau menambah lagi, tambahkan SATU per satu dan uji
          cetak fisik tiap kali, jangan diborong sekaligus seperti dulu. */
       #penj-invoice-print * {
-        font-size: 12px !important; font-weight: 700 !important;
+        font-size: 11px !important; font-weight: 700 !important;
         color: #000 !important; opacity: 1 !important;
       }
-      #penj-invoice-print h3 { font-size: 15px !important; }
+      #penj-invoice-print h3 { font-size: 14px !important; }
       /* Padding horizontal dirapatkan sejak kolom Harga ditambahkan (5 kolom
          di 76mm). Aturan lebar/nowrap kolom & pengecilan nama panjang ada di
          luar @media print (dipakai layar juga), di sini cuma ukuran cetaknya
          -- pakai selector id+class supaya menang dari "#penj-invoice-print *"
-         yang !important di atas. */
-      #penj-invoice-print table.table th, #penj-invoice-print table.table td { padding: 3px 2px !important; }
-      #penj-invoice-print .inv-nama-sm { font-size: 11px !important; }
-      #penj-invoice-print .inv-nama-xs { font-size: 10px !important; }
+         yang !important di atas. Vertical padding dirapatkan lagi (3px->2px)
+         atas permintaan Owner supaya struk lebih hemat kertas. */
+      #penj-invoice-print table.table th, #penj-invoice-print table.table td { padding: 2px 2px !important; }
+      /* Nama barang panjang: sans-serif + diperkecil khusus saat cetak
+         (bukan di layar) supaya lebih hemat baris dan lebih jelas di
+         thermal -- goresan halus serif (font default aplikasi) gampang
+         hilang/dot-nya kurang di printer titik pada ukuran kecil. Diuji
+         dengan render CSS cetak asli: "Oli SHELL ADV AX3 20W-50 0,8 L"
+         (30 karakter) turun dari 3 baris jadi 2 baris. */
+      #penj-invoice-print .inv-nama { font-family: system-ui, sans-serif !important; }
+      #penj-invoice-print .inv-nama-sm { font-size: 10px !important; }
+      #penj-invoice-print .inv-nama-xs { font-size: 9px !important; }
       /* Di 76mm tiap milimeter berharga: satuan "pcs" dan letter-spacing
          header dibuang supaya lebar itu jatuh ke kolom nama barang. */
       #penj-invoice-print .inv-pcs, #penj-invoice-print .inv-rp { display: none !important; }
@@ -764,14 +772,17 @@
                 </sc-if>
                 <div>
                   <div class="card-kicker">Transaksi Berhasil</div>
-                  <h3 style="margin:6px 0 0;">{{ penjLastInvoiceView.invoiceNo }}</h3>
+                  <h3 style="margin:4px 0 0;">{{ penjLastInvoiceView.invoiceNo }}</h3>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Pelanggan</span><span>{{ penjLastInvoiceView.custName }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Tanggal</span><span>{{ penjLastInvoiceView.waktuLabel }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Jumlah Barang</span><span>{{ penjLastInvoiceView.totalQtyLabel }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Metode Bayar</span><span>{{ penjLastInvoiceView.paymentMethod }}</span></div>
-                  <div style="display:flex;justify-content:space-between;"><span style="opacity:0.6;">Kasir</span><span>{{ penjLastInvoiceView.kasirLabel }}</span></div>
+                <!-- Optimasi layout struk (compact, hemat kertas): baris info
+                     digabung 2 kolom per baris (Pelanggan+Kasir, Tanggal+
+                     Metode), "Jumlah Barang" dibuang (sudah kebaca dari
+                     jumlah baris tabel) -- selaras dengan layout ESC/POS di
+                     escpos-encoder.js supaya fallback browser-print tidak
+                     terasa beda jauh dari hasil cetak thermal langsung. -->
+                <div style="display:flex;flex-direction:column;gap:3px;font-size:13px;">
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span><span style="opacity:0.6;">Pelanggan </span>{{ penjLastInvoiceView.custName }}</span><span><span style="opacity:0.6;">Kasir </span>{{ penjLastInvoiceView.kasirLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">{{ penjLastInvoiceView.waktuLabel }}</span><span><span style="opacity:0.6;">Bayar </span>{{ penjLastInvoiceView.paymentMethod }}</span></div>
                 </div>
                 <table class="table">
                   <thead><tr><th>No.</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr></thead>
@@ -781,15 +792,17 @@
                     </sc-for>
                   </tbody>
                 </table>
-                <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:20px;">
+                <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
                   <span>Total</span><span>{{ penjLastInvoiceView.grandTotalLabel }}</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:14px;opacity:0.7;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;opacity:0.7;">
                   <span>Dibayar</span><span>{{ penjLastInvoiceView.amountPaidLabel }}</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:14px;opacity:0.7;">
-                  <span>Kembalian</span><span>{{ penjLastInvoiceView.kembalianLabel }}</span>
-                </div>
+                <sc-if value="{{ penjLastInvoiceView.isTunai }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;justify-content:space-between;font-size:13px;opacity:0.7;">
+                    <span>Kembalian</span><span>{{ penjLastInvoiceView.kembalianLabel }}</span>
+                  </div>
+                </sc-if>
                 <div class="no-print" style="display:flex;flex-direction:column;gap:10px;">
                   <div style="display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span class="tag tag-outline">{{ printModeLabel }}</span>
@@ -4755,6 +4768,9 @@ ${this.laporanLengkapTableHtml(tab, false)}
       penjLastInvoiceView = {
         invoiceNo: li.invoiceNo, custName: li.custName || '-', totalQtyLabel: li.totalQty + ' pcs',
         grandTotalLabel: formatRp(li.grandTotal), paymentMethod: li.paymentMethod === 'TUNAI' ? 'Tunai' : 'Transfer',
+        // Kembalian cuma relevan untuk Tunai (Transfer selalu 0) -- baris ini
+        // disembunyikan khusus Transfer, selaras dengan escpos-encoder.js.
+        isTunai: li.paymentMethod === 'TUNAI',
         amountPaidLabel: formatRp(li.amountPaid), kembalianLabel: formatRp(li.kembalian),
         waktuLabel: formatWaktuInvoice(li.completedAt),
         // namaSizeClass: nama panjang dikecilkan sendiri biar tidak jadi
