@@ -443,8 +443,12 @@
         <span class="tag {{ roleTagClass }}" style="font-size:12px;padding:5px 12px;flex:none;">{{ roleLabel }}</span>
       </header>
 
+      <!-- no-print: banner ini sibling <main>, jadi tidak ikut tersembunyi
+           oleh aturan cetak yang menyembunyikan sidebar/header. Tanpa kelas
+           ini, pesan error yang kebetulan masih tampil (mis. "Kode X belum
+           terdaftar" dari scan barang) ikut tercetak di atas struk. -->
       <sc-if value="{{ globalError }}">
-        <div style="margin:16px 40px 0;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div class="no-print" style="margin:16px 40px 0;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
           <span>{{ globalError }}</span>
           <button type="button" class="btn btn-ghost" style="padding:2px 8px;min-height:0;" onClick="{{ dismissGlobalError }}">Tutup</button>
         </div>
