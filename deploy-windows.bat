@@ -131,7 +131,15 @@ REM Total baris across semua tabel transaksi/master -- dibandingkan lagi
 REM sesudah migrasi di langkah 4. Query yang sama dipakai dua kali supaya
 REM angkanya benar-benar sebanding (bukan query yang "mirip").
 set "ROWCOUNT_SQL=SELECT (SELECT COUNT(*) FROM app_mini.users)+(SELECT COUNT(*) FROM app_mini.barang)+(SELECT COUNT(*) FROM app_mini.barang_lot)+(SELECT COUNT(*) FROM app_mini.penjualan)+(SELECT COUNT(*) FROM app_mini.penjualan_item)+(SELECT COUNT(*) FROM app_mini.penjualan_item_lot)+(SELECT COUNT(*) FROM app_mini.pembelian)+(SELECT COUNT(*) FROM app_mini.pembelian_item)+(SELECT COUNT(*) FROM app_mini.retur_penjualan)+(SELECT COUNT(*) FROM app_mini.retur_penjualan_item)+(SELECT COUNT(*) FROM app_mini.retur_pembelian)+(SELECT COUNT(*) FROM app_mini.retur_pembelian_item)+(SELECT COUNT(*) FROM app_mini.pelanggan)+(SELECT COUNT(*) FROM app_mini.suplier)+(SELECT COUNT(*) FROM app_mini.kategori)+(SELECT COUNT(*) FROM app_mini.toko_profil)"
-for /f %%c in ('"%MYSQL%" -N -u root %PWARG% -e "%ROWCOUNT_SQL%"') do set "ROWCOUNT_BEFORE=%%c"
+set "ROWCOUNT_FILE=%TEMP%\app-mini-rowcount.txt"
+REM DIJALANKAN LANGSUNG + redirect ke file, BUKAN "for /f ('perintah')" --
+REM for/f dengan perintah yang diawali path berkutip ("%MYSQL%") adalah
+REM jebakan klasik cmd.exe, isi tanda kutipnya kacau diparse dan perintahnya
+REM dianggap "not recognized". Pola redirect-ke-file ini sama seperti
+REM mysqldump di atas yang sudah terbukti aman.
+set "ROWCOUNT_BEFORE="
+"%MYSQL%" -N -u root %PWARG% -e "%ROWCOUNT_SQL%" > "%ROWCOUNT_FILE%"
+set /p ROWCOUNT_BEFORE=<"%ROWCOUNT_FILE%"
 if not defined ROWCOUNT_BEFORE (
   echo [GAGAL] Tidak bisa menghitung jumlah baris sebelum migrasi. Migrasi DIBATALKAN.
   goto :fail
@@ -162,7 +170,9 @@ REM (DBADA) -- migrasi cuma boleh MENAMBAH struktur, kalau baris berkurang
 REM berarti ada yang tidak beres, deployment dihentikan dan backup dari
 REM langkah 3 tetap tersimpan apa adanya (jalur :fail tidak menghapus apa pun).
 if not defined DBADA goto :afterverify
-for /f %%c in ('"%MYSQL%" -N -u root %PWARG% -e "%ROWCOUNT_SQL%"') do set "ROWCOUNT_AFTER=%%c"
+set "ROWCOUNT_AFTER="
+"%MYSQL%" -N -u root %PWARG% -e "%ROWCOUNT_SQL%" > "%ROWCOUNT_FILE%"
+set /p ROWCOUNT_AFTER=<"%ROWCOUNT_FILE%"
 if not defined ROWCOUNT_AFTER (
   echo [GAGAL] DEPLOYMENT FAILED: tidak bisa menghitung jumlah baris sesudah migrasi.
   echo         Backup masih tersimpan di: %BACKUPFILE%
