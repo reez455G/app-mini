@@ -11,15 +11,42 @@
 // provision-qz-signing.bat (override.crt + allowed.dat) -- itu langkah
 // TERPISAH di luar kode ini, lihat installers/README.txt.
 //
-// fetchCertificate()/signData() memanggil api() (didefinisikan di
-// Dashboard.dc.html lewat support.js) -- SENGAJA tidak dipanggil di level
-// atas modul ini (baru dieksekusi belakangan, di dalam callback), karena
-// printer-manager.js dimuat SEBELUM support.js selesai memproses halaman
-// (urutan <script> di <head>), jadi api() belum tentu ada di titik file
-// ini pertama kali dijalankan -- cuma boleh dipanggil lewat referensi
-// lambat (di dalam fungsi), bukan langsung saat modul dimuat.
+// fetchCertificate()/signData() SENGAJA punya fetch helper sendiri
+// (callApi di bawah), TIDAK memakai api() dari Dashboard.dc.html --
+// function itu didefinisikan di dalam blok <script data-dc-script> yang
+// diproses support.js dalam scope tertutup sendiri, bukan jadi fungsi
+// global window.api. printer-manager.js dimuat sebagai <script src> biasa
+// (scope global asli), jadi TIDAK PERNAH bisa menjangkau api() itu sama
+// sekali -- ini bug nyata yang sempat kejadian (ReferenceError: api is not
+// defined, baru kelihatan saat benar-benar dites di QZ Tray fisik karena
+// exception di dalam Promise executor tidak selalu kelihatan tanpa buka
+// Console). Modul ini sekarang berdiri sendiri, tidak bergantung sama
+// sekali ke bagaimana Dashboard.dc.html/support.js menyusun scope-nya.
 (function () {
   'use strict';
+
+  var API_BASE = 'backend/api/';
+
+  // Sengaja duplikat kecil dari pola api() di Dashboard.dc.html (envelope
+  // {ok,data|error} yang sama, dipakai backend/response.php di semua
+  // endpoint) -- BUKAN dipanggil silang supaya modul ini tidak bergantung
+  // pada urutan/scope pemrosesan halaman oleh support.js.
+  function callApi(method, path, body) {
+    return fetch(API_BASE + path, {
+      method: method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    }).then(function (r) {
+      return r.text().then(function (text) {
+        var json;
+        try { json = JSON.parse(text); } catch (e) {
+          throw new Error('Server bermasalah (HTTP ' + r.status + ').');
+        }
+        if (!json.ok) throw new Error(json.error || 'Terjadi kesalahan.');
+        return json.data;
+      });
+    });
+  }
 
   function isAvailable() {
     return typeof qz !== 'undefined';
@@ -31,11 +58,11 @@
   // ke key). Endpoint itu wajib login (require_login()) -- proteksi
   // aplikasi kita sendiri, terpisah dari mekanisme trust QZ Tray.
   function signData(dataToSign) {
-    return api('POST', 'qz_sign.php', { data: dataToSign });
+    return callApi('POST', 'qz_sign.php', { data: dataToSign });
   }
 
   function fetchCertificate() {
-    return api('GET', 'qz_certificate.php');
+    return callApi('GET', 'qz_certificate.php');
   }
 
   if (isAvailable()) {
