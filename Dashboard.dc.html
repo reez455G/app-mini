@@ -108,16 +108,18 @@
     .dialog-actions { justify-content: center; }
     .dialog-body { overflow-y: auto; min-height: 0; }
     #stok-print-sheet { display: none; }
-    /* Struk penjualan: kolom Barang mengambil SISA lebar, kolom angka tidak
-       pernah turun baris — tanpa ini nama panjang terjepit jadi 5 baris
-       padahal kolom angka di sebelahnya masih menyisakan ruang. */
-    #penj-invoice-print table.table th, #penj-invoice-print table.table td { white-space: nowrap; padding: 7px 4px; }
-    #penj-invoice-print table.table .inv-nama { white-space: normal; width: 100%; }
     /* Nama panjang mengecil sendiri supaya tetap muat. CSS murni tidak bisa
        mengukur panjang teks, jadi kelasnya ditentukan di penjLastInvoiceView
        berdasarkan jumlah karakter nama barang. */
     #penj-invoice-print .inv-nama-sm { font-size: 12px; }
     #penj-invoice-print .inv-nama-xs { font-size: 11px; }
+    /* Garis pemisah blok struk -- padanan visual dari border "====" (blok
+       besar: kop/footer) dan "----" (blok kecil: item/total/bayar) di
+       escpos-encoder.js. Border CSS dipakai di sini alih-alih mengetik
+       karakter "=" berulang -- itu memang cara "====" ASCII meniru garis
+       solid di font monospace, di HTML garis solid sungguhan sudah cukup. */
+    #penj-invoice-print .inv-hr { border-top: 2px solid var(--color-text); margin: 4px 0; }
+    #penj-invoice-print .inv-hr-sm { border-top-width: 1px; opacity: 0.35; }
     @media print {
       /* body:has(#stok-print-sheet) — #stok-print-sheet cuma ADA di DOM saat
          stokPrintOpen true (dibungkus sc-if). Tanpa syarat :has() ini,
@@ -156,12 +158,6 @@
          cetak invoice supaya tinggi kertas benar-benar ikut tinggi struknya. */
       body:has(#penj-invoice-print) #app-shell { min-height: 0 !important; }
       body:has(#penj-invoice-print) main { padding: 0 !important; gap: 0 !important; }
-      /* Lebar kertas cetak (di bawah 900px CSS px) juga memicu aturan
-         "table.table { min-width: 640px }" yang aslinya untuk tampilan HP —
-         di dalam kartu invoice yang cuma 520px lebar, itu bikin tabelnya
-         lebih lebar dari kartunya sendiri, jadi kolom Subtotal kepotong di
-         tepi kertas. Dibatalkan khusus untuk tabel di kartu invoice ini. */
-      #penj-invoice-print table.table { min-width: 0 !important; }
       /* Printer struk roll 80mm: kartu invoice dipersempit ke lebar CETAKnya,
          padding & semua font diperkecil biar muat, logo dikecilkan supaya
          tidak numpuk sama kop teks. Ukuran halaman TIDAK ditentukan di sini —
@@ -204,27 +200,16 @@
         font-size: 11px !important; font-weight: 700 !important;
         color: #000 !important; opacity: 1 !important;
       }
-      #penj-invoice-print h3 { font-size: 14px !important; }
-      /* Padding horizontal dirapatkan sejak kolom Harga ditambahkan (5 kolom
-         di 76mm). Aturan lebar/nowrap kolom & pengecilan nama panjang ada di
-         luar @media print (dipakai layar juga), di sini cuma ukuran cetaknya
-         -- pakai selector id+class supaya menang dari "#penj-invoice-print *"
-         yang !important di atas. Vertical padding dirapatkan lagi (3px->2px)
-         atas permintaan Owner supaya struk lebih hemat kertas. */
-      #penj-invoice-print table.table th, #penj-invoice-print table.table td { padding: 2px 2px !important; }
       /* Nama barang panjang: sans-serif + diperkecil khusus saat cetak
          (bukan di layar) supaya lebih hemat baris dan lebih jelas di
          thermal -- goresan halus serif (font default aplikasi) gampang
-         hilang/dot-nya kurang di printer titik pada ukuran kecil. Diuji
-         dengan render CSS cetak asli: "Oli SHELL ADV AX3 20W-50 0,8 L"
-         (30 karakter) turun dari 3 baris jadi 2 baris. */
-      #penj-invoice-print .inv-nama { font-family: system-ui, sans-serif !important; }
-      #penj-invoice-print .inv-nama-sm { font-size: 10px !important; }
-      #penj-invoice-print .inv-nama-xs { font-size: 9px !important; }
-      /* Di 76mm tiap milimeter berharga: satuan "pcs" dan letter-spacing
-         header dibuang supaya lebar itu jatuh ke kolom nama barang. */
-      #penj-invoice-print .inv-pcs, #penj-invoice-print .inv-rp { display: none !important; }
-      #penj-invoice-print table.table th { letter-spacing: 0 !important; }
+         hilang/dot-nya kurang di printer titik pada ukuran kecil.
+         font-weight SENGAJA tidak ikut "font-weight: 700" yang dipaksa ke
+         semua elemen di atas -- 700 bikin nama barang jauh lebih pekat dari
+         teks sekitarnya (diukur: 77% tinta vs 50% pada 500). */
+      #penj-invoice-print .inv-nama { font-family: system-ui, sans-serif !important; font-size: 9px !important; font-weight: 500 !important; }
+      #penj-invoice-print .inv-nama-sm { font-size: 8px !important; }
+      #penj-invoice-print .inv-nama-xs { font-size: 7px !important; }
     }
 
     /* ── Responsif: tablet & Android ─────────────────────────────────
@@ -770,39 +755,64 @@
                     </sc-if>
                   </div>
                 </sc-if>
-                <div>
+                <!-- "Transaksi Berhasil" cuma penanda di LAYAR -- dibuang
+                     khusus saat cetak lewat kelas .no-print yang sudah ada
+                     (baris tombol Cetak/dst juga pakai ini). No. Invoice
+                     sudah ikut baris "INV" di blok info, tidak perlu
+                     diulang di sini. -->
+                <div class="no-print">
                   <div class="card-kicker">Transaksi Berhasil</div>
-                  <h3 style="margin:4px 0 0;">{{ penjLastInvoiceView.invoiceNo }}</h3>
                 </div>
-                <!-- Optimasi layout struk (compact, hemat kertas): baris info
-                     digabung 2 kolom per baris (Pelanggan+Kasir, Tanggal+
-                     Metode), "Jumlah Barang" dibuang (sudah kebaca dari
-                     jumlah baris tabel) -- selaras dengan layout ESC/POS di
-                     escpos-encoder.js supaya fallback browser-print tidak
-                     terasa beda jauh dari hasil cetak thermal langsung. -->
+                <!-- Layout struk: satu field per baris (INV/TGL/KSR/PEL),
+                     border "====" (garis solid) memisah blok kop-info dari
+                     item, dan lagi dari footer -- PERSIS sama urutan &
+                     strukturnya dengan escpos-encoder.js supaya hasil
+                     Browser Print (fallback) tidak beda dari cetak thermal
+                     langsung lewat QZ Tray. -->
+                <div class="inv-hr"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;font-size:13px;">
-                  <div style="display:flex;justify-content:space-between;gap:8px;"><span><span style="opacity:0.6;">Pelanggan </span>{{ penjLastInvoiceView.custName }}</span><span><span style="opacity:0.6;">Kasir </span>{{ penjLastInvoiceView.kasirLabel }}</span></div>
-                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">{{ penjLastInvoiceView.waktuLabel }}</span><span><span style="opacity:0.6;">Bayar </span>{{ penjLastInvoiceView.paymentMethod }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">INV</span><span>{{ penjLastInvoiceView.invoiceNo }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">TGL</span><span>{{ penjLastInvoiceView.waktuLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">KSR</span><span>{{ penjLastInvoiceView.kasirLabel }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">PEL</span><span>{{ penjLastInvoiceView.custName }}</span></div>
                 </div>
-                <table class="table">
-                  <thead><tr><th>No.</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr></thead>
-                  <tbody>
-                    <sc-for list="{{ penjLastInvoiceView.items }}" as="item" hint-placeholder-count="3">
-                      <tr><td>{{ item.no }}</td><td class="inv-nama {{ item.namaSizeClass }}">{{ item.nama }}</td><td>{{ item.qty }}<span class="inv-pcs"> pcs</span></td><td><span class="inv-rp">Rp </span>{{ item.unitPriceNum }}</td><td><span class="inv-rp">Rp </span>{{ item.subtotalNum }}</td></tr>
-                    </sc-for>
-                  </tbody>
-                </table>
+                <div class="inv-hr inv-hr-sm"></div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <sc-for list="{{ penjLastInvoiceView.items }}" as="item" hint-placeholder-count="3">
+                    <div>
+                      <div class="inv-nama {{ item.namaSizeClass }}">{{ item.nama }}</div>
+                      <div style="display:flex;justify-content:space-between;font-size:13px;">
+                        <span>{{ item.qty }} x <span class="inv-rp">Rp </span>{{ item.unitPriceNum }}</span>
+                        <span><span class="inv-rp">Rp </span>{{ item.subtotalNum }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div class="inv-hr inv-hr-sm"></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;opacity:0.7;">
+                  <span>Subtotal</span><span>{{ penjLastInvoiceView.grandTotalLabel }}</span>
+                </div>
                 <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:18px;">
-                  <span>Total</span><span>{{ penjLastInvoiceView.grandTotalLabel }}</span>
+                  <span>TOTAL</span><span>{{ penjLastInvoiceView.grandTotalLabel }}</span>
+                </div>
+                <div class="inv-hr inv-hr-sm"></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;opacity:0.7;">
+                  <span>Metode</span><span>{{ penjLastInvoiceView.paymentMethod }}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:13px;opacity:0.7;">
-                  <span>Dibayar</span><span>{{ penjLastInvoiceView.amountPaidLabel }}</span>
+                  <span>Bayar</span><span>{{ penjLastInvoiceView.amountPaidLabel }}</span>
                 </div>
                 <sc-if value="{{ penjLastInvoiceView.isTunai }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex;justify-content:space-between;font-size:13px;opacity:0.7;">
-                    <span>Kembalian</span><span>{{ penjLastInvoiceView.kembalianLabel }}</span>
+                    <span>Kembali</span><span>{{ penjLastInvoiceView.kembalianLabel }}</span>
                   </div>
                 </sc-if>
+                <div class="inv-hr"></div>
+                <div style="text-align:center;">
+                  <div style="font-weight:700;">TERIMA KASIH</div>
+                  <div style="font-size:13px;opacity:0.7;">SELAMAT BERBELANJA</div>
+                </div>
+                <div class="inv-hr"></div>
                 <div class="no-print" style="display:flex;flex-direction:column;gap:10px;">
                   <div style="display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span class="tag tag-outline">{{ printModeLabel }}</span>

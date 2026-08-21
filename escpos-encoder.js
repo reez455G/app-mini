@@ -8,11 +8,13 @@
 // Dashboard.dc.html). Font A ESC/POS standar = 12 dot/karakter di printer
 // 203dpi generic manapun (bukan merek tertentu), 576 / 12 = 48 kolom.
 //
-// Layout dibuat compact (hemat kertas) atas permintaan Owner sesudah tes
-// cetak fisik: field yang berkaitan digabung satu baris (invoice+waktu,
-// kasir+pelanggan), nama barang tabel dgn lebar kolom ADAPTIF (dihitung
-// dari data transaksi ini, bukan angka tetap) supaya barang muat 1 baris
-// selama masih memungkinkan, dan border/footer yang tidak esensial dibuang.
+// Layout ditentukan Owner: kop toko, blok INV/TGL/KSR/PEL (satu field per
+// baris, bukan digabung), nama barang di baris sendiri lalu "qty x harga"
+// vs subtotal di baris berikutnya, Subtotal+TOTAL, Metode/Bayar/Kembali,
+// footer TERIMA KASIH+SELAMAT BERBELANJA -- dipisah border "====" (blok
+// besar) dan "----" (blok kecil). Sama persis dipakai browser-print
+// (Dashboard.dc.html, #penj-invoice-print) supaya kedua jalur cetak
+// terlihat identik strukturnya.
 (function () {
   'use strict';
 
@@ -40,6 +42,16 @@
     return str.length >= width ? str : str + new Array(width - str.length + 1).join(' ');
   }
 
+  // Potong + "..." kalau melebihi maxLen -- dipakai baris PEL supaya nama
+  // pelanggan yang panjang tidak pernah bikin baris turun/lebih lebar dari
+  // kolom yang sudah ada (beda dari nama barang, yang boleh wrap/pindah
+  // baris; ini cuma metadata satu baris, bukan bagian tabel item).
+  function truncate(str, maxLen) {
+    str = String(str);
+    if (str.length <= maxLen) return str;
+    return str.slice(0, Math.max(0, maxLen - 3)) + '...';
+  }
+
   function centerText(str, width) {
     str = String(str);
     if (str.length >= width) return str;
@@ -59,8 +71,8 @@
   }
 
   // Word-wrap murni: pecah per kata, kata yang sendirian lebih panjang dari
-  // width dipotong paksa (bukan meluber) -- ini yang menjaga kolom qty/
-  // harga/subtotal di baris berikutnya tidak pernah terdorong keluar kertas.
+  // width dipotong paksa (bukan meluber) -- ini yang menjaga baris qty/
+  // harga/subtotal di bawahnya tidak pernah terdorong keluar kertas.
   function wrapText(str, width) {
     var words = String(str).split(/\s+/).filter(Boolean);
     var lines = []; var cur = '';
@@ -91,58 +103,13 @@
 
   function paymentLabel(m) { return m === 'TRANSFER' ? 'Transfer' : 'Tunai'; }
 
-  // Lebar kolom No./Qty/Harga/Total dihitung dari data TRANSAKSI INI (bukan
-  // angka tetap) -- supaya kolom angka selalu pas untuk transaksi kecil
-  // (hemat, sisa lebar jatuh ke nama barang) MAUPUN transaksi dengan harga
-  // besar (kolom melebar sendiri, tidak pernah kepotong). Minimum per kolom
-  // dijaga supaya header "Qty/Harga/Total" sendiri tidak pernah terpotong.
-  function computeColumns(items, width) {
-    var noWidth = Math.max(1, String(items.length).length);
-    var qtyWidth = 3, hargaWidth = 5, subWidth = 5; // minimum: muat header "Qty"/"Harga"/"Total"
-    items.forEach(function (it) {
-      qtyWidth = Math.max(qtyWidth, String(it.qty).length);
-      hargaWidth = Math.max(hargaWidth, formatRibuan(it.unitPrice).length);
-      subWidth = Math.max(subWidth, formatRibuan(it.subtotal).length);
-    });
-    var spacers = 4; // spasi pemisah: No|Nama, Nama|Qty, Qty|Harga, Harga|Total
-    var nameWidth = width - noWidth - qtyWidth - hargaWidth - subWidth - spacers;
-    if (nameWidth < 8) {
-      // Kolom angka kebetulan sangat lebar (harga jutaan+) -- prioritaskan
-      // nama tetap punya ruang wajar, kolom angka yang mengalah dulu.
-      var deficit = 8 - nameWidth;
-      var shrink = Math.min(deficit, Math.max(0, hargaWidth - 5));
-      hargaWidth -= shrink; deficit -= shrink;
-      shrink = Math.min(deficit, Math.max(0, subWidth - 5));
-      subWidth -= shrink;
-      nameWidth = width - noWidth - qtyWidth - hargaWidth - subWidth - spacers;
-    }
-    return { noWidth: noWidth, nameWidth: Math.max(1, nameWidth), qtyWidth: qtyWidth, hargaWidth: hargaWidth, subWidth: subWidth };
-  }
-
-  function itemRow(no, name, qty, harga, sub, cols) {
-    return padLeft(no, cols.noWidth) + ' ' + padRight(name, cols.nameWidth) + ' ' +
-      padLeft(qty, cols.qtyWidth) + ' ' + padLeft(harga, cols.hargaWidth) + ' ' + padLeft(sub, cols.subWidth);
-  }
-
-  // Satu baris kalau nama muat di nameWidth (prioritas utama -- diminta
-  // Owner supaya barang TIDAK wrap kalau sebenarnya masih muat). Kalau
-  // benar-benar tidak muat, nama dipecah lewat wrapText mengisi lebar penuh
-  // (bukan cuma nameWidth -- baris nama sendirian, jadi boleh pinjam lebar
-  // kolom angka), lalu qty/harga/subtotal turun ke baris sendiri rata
-  // kanan -- supaya TIDAK PERNAH bertabrakan dengan nama.
-  function itemLines(no, item, cols, width) {
-    var name = item.nama || '';
-    var qtyStr = String(item.qty), hargaStr = formatRibuan(item.unitPrice), subStr = formatRibuan(item.subtotal);
-    if (name.length <= cols.nameWidth) {
-      return [itemRow(no, name, qtyStr, hargaStr, subStr, cols)];
-    }
-    var out = [];
-    var nameLines = wrapText(name, width - cols.noWidth - 1);
-    nameLines.forEach(function (l, i) {
-      out.push((i === 0 ? padLeft(no, cols.noWidth) : padLeft('', cols.noWidth)) + ' ' + l);
-    });
-    var numLine = padLeft(qtyStr, cols.qtyWidth) + ' ' + padLeft(hargaStr, cols.hargaWidth) + ' ' + padLeft(subStr, cols.subWidth);
-    out.push(padLeft(numLine, width));
+  // Satu item = 1-2 baris: nama barang (wrap ke lebar PENUH kalau panjang,
+  // bukan dipotong paksa jadi kolom sempit), lalu "qty x harga" di kiri vs
+  // subtotal di kanan pada baris berikutnya.
+  function itemLines(item, width) {
+    var out = wrapText(item.nama || '', width);
+    var kiri = '  ' + item.qty + ' x ' + formatRibuan(item.unitPrice);
+    twoColumn(kiri, formatRibuan(item.subtotal), width).forEach(function (l) { out.push(l); });
     return out;
   }
 
@@ -168,39 +135,48 @@
     bold(false);
     if (toko.alamat) wrapText(toko.alamat, width).forEach(line);
     if (toko.noHp) line(toko.noHp);
-    line('');
+    sep('=');
 
-    align(0); bold(true);
-    line('TRANSAKSI BERHASIL');
-    bold(false);
-    twoColumn(receiptData.invoiceNo, receiptData.waktuLabel, width).forEach(line);
-    twoColumn('Kasir: ' + (receiptData.kasirUsername || '-'), 'Pelanggan: ' + (receiptData.custName || 'Umum'), width).forEach(line);
-    line('');
-
-    var cols = computeColumns(items, width);
+    align(0);
+    line('INV : ' + receiptData.invoiceNo);
+    line('TGL : ' + receiptData.waktuLabel);
+    line('KSR : ' + (receiptData.kasirUsername || '-'));
+    // PEL: nama pelanggan dari receiptData.custName -- SATU sumber data yang
+    // sama dipakai QZ Tray/ESC-POS, browser-print, dan reprint (buildReceiptData()
+    // di Dashboard.dc.html), sudah snapshot histori transaksi, bukan state
+    // login saat ini. "Umum" kalau transaksi walk-in tanpa nama pelanggan.
+    line('PEL : ' + truncate(receiptData.custName || 'Umum', width - 6));
     sep('-');
-    bold(true);
-    line(itemRow('', 'Barang', 'Qty', 'Harga', 'Total', cols));
-    bold(false);
-    items.forEach(function (it, idx) {
-      itemLines(String(idx + 1), it, cols, width).forEach(line);
+
+    items.forEach(function (it) {
+      itemLines(it, width).forEach(line);
     });
     sep('-');
 
+    // Subtotal & TOTAL sengaja nilainya sama (grandTotal) -- aplikasi ini
+    // tidak punya konsep diskon/pajak terpisah, jadi tidak ada subtotal
+    // "sebelum" apa pun buat dikurangi/ditambah. Dua baris tetap ditampilkan
+    // karena format struk yang diminta Owner.
+    twoColumn('Subtotal', formatRibuan(receiptData.grandTotal), width).forEach(line);
     bold(true);
-    twoColumn('TOTAL', 'Rp ' + formatRibuan(receiptData.grandTotal), width).forEach(line);
+    twoColumn('TOTAL', formatRibuan(receiptData.grandTotal), width).forEach(line);
     bold(false);
-    twoColumn('DIBAYAR (' + paymentLabel(receiptData.paymentMethod).toUpperCase() + ')', 'Rp ' + formatRibuan(receiptData.amountPaid), width).forEach(line);
-    // KEMBALI cuma relevan untuk Tunai -- Transfer selalu 0, baris ini
+    sep('-');
+
+    twoColumn('Metode', paymentLabel(receiptData.paymentMethod), width).forEach(line);
+    twoColumn('Bayar', formatRibuan(receiptData.amountPaid), width).forEach(line);
+    // Kembali cuma relevan untuk Tunai -- Transfer selalu 0, baris ini
     // dibuang khusus Transfer supaya tidak menampilkan info kosong.
     if (receiptData.paymentMethod !== 'TRANSFER') {
-      twoColumn('KEMBALI', 'Rp ' + formatRibuan(receiptData.kembalian), width).forEach(line);
+      twoColumn('Kembali', formatRibuan(receiptData.kembalian), width).forEach(line);
     }
-    line('');
+    sep('=');
 
     align(1); bold(true);
     line('TERIMA KASIH');
     bold(false);
+    line('SELAMAT BERBELANJA');
+    sep('=');
 
     push([LF, LF]);
     if (autoCut) push([GS, 0x56, 0x01]); // potong sebagian -- printer tanpa cutter cukup mengabaikan command ini
@@ -209,5 +185,5 @@
     return new Uint8Array(out);
   }
 
-  window.EscPosEncoder = { build: build, wrapText: wrapText, formatRibuan: formatRibuan };
+  window.EscPosEncoder = { build: build, wrapText: wrapText, formatRibuan: formatRibuan, truncate: truncate };
 })();
