@@ -763,7 +763,7 @@
                 <div class="no-print">
                   <div class="card-kicker">Transaksi Berhasil</div>
                 </div>
-                <!-- Layout struk: satu field per baris (INV/TGL/KSR/PEL),
+                <!-- Layout struk: satu field per baris (INV/TGL/KSR/CUST),
                      border "====" (garis solid) memisah blok kop-info dari
                      item, dan lagi dari footer -- PERSIS sama urutan &
                      strukturnya dengan escpos-encoder.js supaya hasil
@@ -774,7 +774,7 @@
                   <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">INV</span><span>{{ penjLastInvoiceView.invoiceNo }}</span></div>
                   <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">TGL</span><span>{{ penjLastInvoiceView.waktuLabel }}</span></div>
                   <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">KSR</span><span>{{ penjLastInvoiceView.kasirLabel }}</span></div>
-                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">PEL</span><span>{{ penjLastInvoiceView.custName }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="opacity:0.6;">CUST</span><span>{{ penjLastInvoiceView.custName }}</span></div>
                 </div>
                 <div class="inv-hr inv-hr-sm"></div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
@@ -3316,9 +3316,17 @@ class Component extends DCLogic {
   useBrowserPrintCurrent = () => { this.printPage(); this.setState({ printStatus: 'ok', printError: '' }); };
 
   // Uji Cetak: lewat jalur print SAMA PERSIS seperti struk sungguhan, tapi
-  // datanya statis (SAMPLE_RECEIPT_DATA) -- tidak pernah memanggil
-  // penjualan.php atau menyentuh database.
-  testPrintSample = () => this.printReceiptData(SAMPLE_RECEIPT_DATA);
+  // item/invoice/pelanggan-nya statis (SAMPLE_RECEIPT_DATA) -- tidak pernah
+  // memanggil penjualan.php atau menyentuh database. Kop toko (nama/alamat/
+  // no HP) TETAP diambil dari profil toko sungguhan (s.tokoProfil, sudah
+  // dimuat sejak login) -- sebelumnya ikut di-hardcode jadi "-"/"-" di
+  // SAMPLE_RECEIPT_DATA, jadi alamat & no HP toko tidak pernah kelihatan
+  // sungguhan waktu Uji Cetak walau di struk transaksi asli sudah benar.
+  testPrintSample = () => {
+    const t = this.state.tokoProfil || {};
+    const data = { ...SAMPLE_RECEIPT_DATA, toko: { nama: t.nama || 'PUTRA JAYA MOTOR', alamat: t.alamat || '-', noHp: t.no_hp || '-' } };
+    this.printReceiptData(data);
+  };
 
   // Satu setter untuk semua field Setelan Printer -- simpan ke localStorage
   // SEKALIGUS ke state supaya UI langsung ikut berubah tanpa reload.

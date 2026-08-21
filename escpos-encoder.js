@@ -141,11 +141,12 @@
     line('INV : ' + receiptData.invoiceNo);
     line('TGL : ' + receiptData.waktuLabel);
     line('KSR : ' + (receiptData.kasirUsername || '-'));
-    // PEL: nama pelanggan dari receiptData.custName -- SATU sumber data yang
+    // CUST: nama pelanggan dari receiptData.custName -- SATU sumber data yang
     // sama dipakai QZ Tray/ESC-POS, browser-print, dan reprint (buildReceiptData()
     // di Dashboard.dc.html), sudah snapshot histori transaksi, bukan state
     // login saat ini. "Umum" kalau transaksi walk-in tanpa nama pelanggan.
-    line('PEL : ' + truncate(receiptData.custName || 'Umum', width - 6));
+    var custLabel = 'CUST : ';
+    line(custLabel + truncate(receiptData.custName || 'Umum', width - custLabel.length));
     sep('-');
 
     items.forEach(function (it) {
