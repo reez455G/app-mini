@@ -7,3 +7,11 @@
 # deploy-windows.bat -- pindahkan foldernya lewat USB/zip/copy-paste, bukan
 # git clone, kalau butuh instalasi offline yang bawa file ini juga.
 installers/*.exe
+
+# Kunci & sertifikat penandatanganan QZ Tray -- lokasi sungguhannya di luar
+# repo ini sama sekali (%XAMPP%\qz-keys\, lihat backend/qz_signing_key.php),
+# baris ini cuma jaring pengaman kalau suatu saat ada yang menjalankan
+# backend/qz_certgen.php dari lokasi yang bikin folder ini kebetulan
+# muncul di dalam repo (mis. testing lokal) -- private key TIDAK BOLEH
+# pernah ke-commit dalam kondisi apa pun.
+qz-keys/

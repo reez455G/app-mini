@@ -30,12 +30,18 @@ Cara instal di PC kasir
    panah "^" untuk melihat ikon tersembunyi).
 3. Biarkan QZ Tray selalu jalan (biasanya otomatis start bareng Windows).
    Kalau ikonnya tidak ada, buka lagi lewat Start Menu > QZ Tray.
-4. Di app-mini: Master Data > Printer > pilih mode "QZ Tray / ESC-POS" >
+4. Jalankan provision-qz-signing.bat (di folder utama app-mini, sejajar
+   dengan deploy-windows.bat) -- SEKALI, sesudah app-mini juga sudah
+   di-deploy. Ini memasang sertifikat penandatanganan supaya QZ Tray
+   TIDAK PERNAH nanya izin lagi (reload halaman, restart browser, restart
+   QZ Tray -- semuanya tetap trusted). Lihat komentar di dalam file itu
+   untuk detail. WAJIB DIULANG di tiap PC kasir yang mau pakai mode ini
+   (trust QZ Tray selalu per-PC, bukan per-toko).
+5. Restart QZ Tray (klik kanan ikon system tray > Exit, buka lagi lewat
+   Start Menu) supaya sertifikat dari langkah 4 terbaca.
+6. Di app-mini: Master Data > Printer > pilih mode "QZ Tray / ESC-POS" >
    klik "Cari Printer" untuk pastikan printernya terdeteksi > "Uji Cetak"
-   untuk tes.
-5. Kali pertama mencetak, QZ Tray akan menampilkan dialog "izinkan situs
-   ini mencetak?" -- centang "remember this decision" supaya tidak muncul
-   lagi tiap kali.
+   untuk tes -- seharusnya langsung cetak tanpa dialog izin apa pun.
 
 Cara update ke versi lebih baru
 ---------------------------------

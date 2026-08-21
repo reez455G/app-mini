@@ -2,18 +2,52 @@
 // Bungkus QZ Tray API resmi (vendor/printer/qz-tray.js) jadi antarmuka
 // sederhana buat Dashboard.dc.html: connect/disconnect/findPrinters/print.
 //
-// TIDAK pakai sertifikat/signing (qz.security.setCertificatePromise/
-// setSignaturePromise) -- artinya tiap koneksi baru dari browser yang belum
-// pernah "Allow" akan memicu dialog trust SEKALI dari aplikasi QZ Tray
-// sendiri (bukan dialog Windows/browser yang mau dihindari). Pemilik toko
-// bisa centang "remember this decision" di dialog itu supaya tidak muncul
-// lagi. Upgrade ke signed request adalah langkah terpisah (butuh sertifikat
-// sendiri per instalasi), sengaja tidak dikerjakan di sini.
+// Signed connection: sertifikat & tanda tangan diambil dari backend
+// (backend/api/qz_certificate.php, backend/api/qz_sign.php) -- private key
+// TIDAK PERNAH ada di file ini atau di browser sama sekali, cuma hasil
+// tanda tangannya (base64) yang lewat sini. Supaya QZ Tray benar-benar
+// tidak pernah nanya izin lagi (bukan cuma sekali klik "remember"),
+// sertifikat ini juga harus di-provisioning ke QZ Tray lewat
+// provision-qz-signing.bat (override.crt + allowed.dat) -- itu langkah
+// TERPISAH di luar kode ini, lihat installers/README.txt.
+//
+// fetchCertificate()/signData() memanggil api() (didefinisikan di
+// Dashboard.dc.html lewat support.js) -- SENGAJA tidak dipanggil di level
+// atas modul ini (baru dieksekusi belakangan, di dalam callback), karena
+// printer-manager.js dimuat SEBELUM support.js selesai memproses halaman
+// (urutan <script> di <head>), jadi api() belum tentu ada di titik file
+// ini pertama kali dijalankan -- cuma boleh dipanggil lewat referensi
+// lambat (di dalam fungsi), bukan langsung saat modul dimuat.
 (function () {
   'use strict';
 
   function isAvailable() {
     return typeof qz !== 'undefined';
+  }
+
+  // dataToSign: string mentah dari QZ Tray, dikirim apa adanya ke backend
+  // (backend/api/qz_sign.php) yang menandatanganinya pakai private key
+  // server-side, TIDAK PERNAH sebaliknya (browser tidak pernah punya akses
+  // ke key). Endpoint itu wajib login (require_login()) -- proteksi
+  // aplikasi kita sendiri, terpisah dari mekanisme trust QZ Tray.
+  function signData(dataToSign) {
+    return api('POST', 'qz_sign.php', { data: dataToSign });
+  }
+
+  function fetchCertificate() {
+    return api('GET', 'qz_certificate.php');
+  }
+
+  if (isAvailable()) {
+    qz.security.setCertificatePromise(function (resolve, reject) {
+      fetchCertificate().then(resolve).catch(reject);
+    });
+    qz.security.setSignatureAlgorithm('SHA512');
+    qz.security.setSignaturePromise(function (toSign) {
+      return function (resolve, reject) {
+        signData(toSign).then(resolve).catch(reject);
+      };
+    });
   }
 
   function isConnected() {
